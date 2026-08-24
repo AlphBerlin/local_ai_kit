@@ -1,0 +1,23 @@
+name: local_ai_sherpa
+description: >-
+  sherpa_onnx adapters for LocalAI Kit: on-device VAD (Silero), streaming
+  STT (SenseVoice) and TTS, all FFI work isolated in worker isolates.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  local_ai_core:
+    path: ../local_ai_core
+  sherpa_onnx: ^1.10.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
