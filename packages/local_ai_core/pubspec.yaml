@@ -1,0 +1,21 @@
+name: local_ai_core
+description: >-
+  Pure-Dart core of LocalAI Kit: capability interfaces (LLM/STT/TTS/VAD/
+  embedding), configuration models, model manifests, state/event models,
+  adapter registry and test fakes. Zero Flutter / native AI dependencies.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+
+# Hard rule (see docs-internal/architecture.md §2): only Dart SDK + meta +
+# collection are allowed here. Never add flutter / flutter_gemma / genkit /
+# sherpa_onnx to this package.
+dependencies:
+  meta: ^1.15.0
+  collection: ^1.19.0
+
+dev_dependencies:
+  test: ^1.25.0
