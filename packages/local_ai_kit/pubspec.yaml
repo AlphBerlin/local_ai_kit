@@ -1,0 +1,31 @@
+name: local_ai_kit
+description: >-
+  LocalAI Kit facade: LocalAI.initialize wiring, facades (llm/stt/tts/voice/
+  models/runtime), model download manager with resumable downloads, LRU
+  runtime scheduler, voice pipeline with barge-in, typed pipeline DSL and
+  config presets.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  local_ai_core:
+    path: ../local_ai_core
+  local_ai_flutter:
+    path: ../local_ai_flutter
+  crypto: ^3.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  assets:
+    - assets/catalog.json
