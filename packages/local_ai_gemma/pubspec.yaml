@@ -16,6 +16,8 @@ dependencies:
   local_ai_core:
   # Upgraded version for modern on-device LLMs (Qwen, DeepSeek, Gemma)
   flutter_gemma: ^1.6.5
+  flutter_gemma_mediapipe: ^1.0.4
+  flutter_gemma_litertlm: ^1.5.2
 
 dev_dependencies:
   flutter_test:

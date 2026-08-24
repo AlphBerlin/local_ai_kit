@@ -4,9 +4,9 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-// Prefixed to avoid clashes with core types (e.g. core `ModelType`).
-import 'package:flutter_gemma/core/model.dart' as fg_model;
 import 'package:flutter_gemma/flutter_gemma.dart' as fg;
+import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
+import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:local_ai_core/local_ai_core.dart';
 
 /// [LocalLlm] implementation backed by Google's flutter_gemma runtime.
@@ -40,7 +40,12 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
   Future<void> _ensureInitialized() async {
     if (!_gemmaInitialized) {
       try {
-        await fg.FlutterGemma.initialize();
+        await fg.FlutterGemma.initialize(
+          inferenceEngines: [
+            MediaPipeEngine(),
+            LiteRtLmEngine(),
+          ],
+        );
         _gemmaInitialized = true;
       } catch (_) {
         // Already initialized or platform fallback
@@ -154,19 +159,26 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
   Future<dynamic> _nativeCreateModel(
       String path, LlmLoadOptions options) async {
     final gemma = fg.FlutterGemmaPlugin.instance;
-    // ignore: deprecated_member_use
-    await gemma.modelManager.setModelPath(path);
+    final idLower = options.modelId.toLowerCase();
+    final modelType = switch (idLower) {
+      final id when id.contains('deepseek') => fg.ModelType.deepSeek,
+      final id when id.contains('qwen') => fg.ModelType.qwen,
+      final id when id.contains('llama') => fg.ModelType.llama,
+      _ => fg.ModelType.gemmaIt,
+    };
+    final fileType = switch (path) {
+      final p when p.endsWith('.litertlm') => fg.ModelFileType.litertlm,
+      final p when p.endsWith('.task') => fg.ModelFileType.task,
+      _ => fg.ModelFileType.binary,
+    };
+    await fg.FlutterGemma.installModel(
+      modelType: modelType,
+      fileType: fileType,
+    ).fromFile(path).install();
     final backend = switch (options.runtime) {
       RuntimePreference.gpu => fg.PreferredBackend.gpu,
       RuntimePreference.cpu => fg.PreferredBackend.cpu,
       _ => fg.PreferredBackend.gpu,
-    };
-    final idLower = options.modelId.toLowerCase();
-    final modelType = switch (idLower) {
-      final id when id.contains('deepseek') => fg_model.ModelType.deepSeek,
-      final id when id.contains('qwen') => fg_model.ModelType.qwen,
-      final id when id.contains('llama') => fg_model.ModelType.llama,
-      _ => fg_model.ModelType.gemmaIt,
     };
     try {
       return await gemma.createModel(

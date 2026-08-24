@@ -19,7 +19,12 @@ import 'models_sheet.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await FlutterGemma.initialize();
+    await FlutterGemma.initialize(
+      inferenceEngines: [
+        MediaPipeEngine(),
+        LiteRtLmEngine(),
+      ],
+    );
   } catch (_) {}
   AppLogger.info('BOOTSTRAP', 'LocalAI Kit demo application starting…');
   runApp(const LocalAIDemoApp());
@@ -81,7 +86,7 @@ class _DemoHomePageState extends State<DemoHomePage> {
   bool _isGenerating = false;
   bool _showLogs = true;
 
-  String _selectedModelId = 'qwen-2.5-0.5b-instruct'; // Default to fast 0.5B model
+  String _selectedModelId = 'smollm2-360m-instruct'; // Default to LiteRT-LM desktop/mobile model
 
   int _tokenCount = 0;
   DateTime? _generationStartTime;
@@ -480,16 +485,16 @@ class _DemoHomePageState extends State<DemoHomePage> {
                           value: _selectedModelId,
                           items: const [
                             DropdownMenuItem(
+                              value: 'smollm2-360m-instruct',
+                              child: Text('🚀 SmolLM2 360M (LiteRT-LM - Desktop & Mobile 373 MB)'),
+                            ),
+                            DropdownMenuItem(
                               value: 'qwen-2.5-0.5b-instruct',
-                              child: Text('⚡ Qwen 2.5 0.5B Instruct (Fast 546 MB Download)'),
+                              child: Text('⚡ Qwen 2.5 0.5B Instruct (MediaPipe - Android/iOS/Web 546 MB)'),
                             ),
                             DropdownMenuItem(
                               value: 'deepseek-r1-1.5b-int4',
-                              child: Text('🧠 DeepSeek R1 Distill (1.5B Reasoning - 1.86 GB)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'smollm2-360m-instruct',
-                              child: Text('🚀 SmolLM2 360M Instruct (Ultra-Light 373 MB)'),
+                              child: Text('🧠 DeepSeek R1 Distill (MediaPipe - Android/iOS/Web 1.86 GB)'),
                             ),
                             DropdownMenuItem(
                               value: 'gemma-3n-e2b-it-int4',

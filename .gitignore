@@ -86,3 +86,5 @@ app.*.map.json
 **/*.tflite
 **/*.onnx
 **/*.bin
+**/build/
+/example/*
