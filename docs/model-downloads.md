@@ -1,0 +1,110 @@
+# Model Downloads
+
+`ai.models` (`ModelHub`, backed by `ModelManagerImpl`) owns the full lifecycle of model artifacts: pre-flight checks, resumable downloads, verification and atomic installation.
+
+## API overview
+
+| Method | Signature | Description |
+|---|---|---|
+| `isInstalled` | `Future<bool> isInstalled(String modelId)` | Fully installed **and** verified. |
+| `getStatus` | `Future<ModelStatus> getStatus(String modelId)` | Point-in-time status snapshot. |
+| `ensureInstalled` | `Future<void> ensureInstalled(String modelId, {DownloadPolicy policy = const DownloadPolicy()})` | Idempotent: returns immediately when installed and verified; otherwise queues/starts the download. |
+| `install` | `Future<void> install(String modelId, {DownloadPolicy? policy})` | Download + install even if already installed (reinstall). Concurrent installs of the same id are serialized behind one future. |
+| `update` | `Future<void> update(String modelId)` | Upgrades to a newer catalog version when available (see `updatable`). |
+| `remove` | `Future<void> remove(String modelId)` | Deletes installed files and download scratch data. |
+| `verify` | `Future<bool> verify(String modelId)` | Full sha256 re-verification of installed files. |
+| `downloadProgress` | `Stream<ModelDownloadProgress> downloadProgress(String modelId)` | Live progress (broadcast, multi-subscriber). |
+| `watchStatus` | `Stream<ModelStatus> watchStatus(String modelId)` | Status changes (broadcast). |
+| `installVoice` | `Future<void> installVoice(String voiceId, {required String ttsModelId, DownloadPolicy policy})` | Installs a TTS voice into `voices/<voiceId>/`. |
+| `installPack` | `Future<void> installPack(String packId, {DownloadPolicy policy})` | `ensureInstalled` for every model of a `ModelPack`. |
+| `refreshCatalog` | `Future<void> refreshCatalog()` | Pulls the remote catalog and merges. |
+| `updatable` | `Set<String> get updatable` | Installed models with a newer catalog version available. |
+
+## Install state machine
+
+```
+                 ┌─────────────── failed (from any state; carries LocalAIError)
+                 ▲
+ notInstalled → queued → downloading ⇄ paused → verifying
+                       → extracting → installing → installed → loading → ready
+
+ installed → updating → verifying → extracting → installing → installed → ready
+```
+
+States move in one direction on the happy path; retries can step back (e.g. a sha mismatch re-downloads one file). `ModelStatus.isInstalled` is true for `installed`, `loading` and `ready`.
+
+## Resumable downloads
+
+Scratch state lives in `downloads/<modelId>/` as `*.part` files plus a `meta.json` (`ResumeMeta`):
+
+```json
+{
+  "modelId": "gemma-3n-e2b-it-int4",
+  "catalogVersion": 3,
+  "etag": "…",
+  "files": [{"name": "gemma-3n-E2B-it-int4.task", "received": 12345}]
+}
+```
+
+- **Resume** — each file resumes from `received` via a `Range: bytes=<received>-` request; if the server ignores ranges (HTTP 200), that file restarts from zero. Appends flush every N MB and `meta.json` updates are atomic (`meta.json.tmp` → rename).
+- **Retry** — network errors retry with exponential backoff (1 s / 2 s / 4 s, capped at 30 s, up to `DownloadPolicy.maxRetries`, default 5); HTTP 4xx fails immediately.
+- **Crash recovery** — on `initialize()`, the installer scans `downloads/` for resumable state and removes half-installed model directories without an `installed.json` marker.
+
+## Verification & atomic install
+
+1. **Pre-flight**: disk check against `sizeBytes × 1.2` headroom (throws `InsufficientDiskError` with `requiredMB`/`freeMB`) and network policy check.
+2. **Streamed sha256**: per-file digests are computed while downloading; any mismatch deletes and re-downloads that file (at most 2 full rounds, then `ModelCorruptedError`).
+3. **Atomic install**: once all files verify, `downloads/<modelId>` is `rename`d into `models/<type>/<modelId>/` — guaranteed atomic because both live under the same root partition. Finally `installed.json` (with `catalogVersion`, `installedAt`) is written as the completion marker.
+
+## Progress streams
+
+```dart
+ai.models.downloadProgress(Models.gemma3nE2b.id).listen((p) {
+  // p.state, p.receivedBytes, p.totalBytes, p.bytesPerSecond,
+  // p.eta, p.currentFile, p.fraction (0..1)
+});
+ai.models.watchStatus(Models.gemma3nE2b.id).listen((s) {
+  // s.state, s.installedCatalogVersion, s.progress, s.error
+});
+```
+
+Both streams are broadcast: multiple widgets may subscribe independently.
+
+## Wi-Fi only & DownloadPolicy
+
+```dart
+await ai.models.ensureInstalled(
+  Models.gemma3nE2b.id,
+  policy: const DownloadPolicy(
+    wifiOnly: true,   // default; on cellular the download stays queued
+    maxRetries: 5,    // exponential backoff attempts
+    verifySha256: true,
+  ),
+);
+```
+
+With `wifiOnly: true`, starting a download on a metered connection leaves it in `queued`; the manager subscribes to `NetworkPolicy.onStatusChanged` and resumes automatically when Wi-Fi returns. Set `wifiOnly: false` only when the user has explicitly consented to cellular data use.
+
+## Voices and packs
+
+```dart
+// Individual voice (files land in voices/<voiceId>/).
+await ai.tts.installVoice('supertonic-en-male-1');
+
+// Whole curated bundle.
+await ai.models.installPack('voice-assistant-pack');
+```
+
+## Compatibility checks
+
+Before offering a model for download, check it against the probed device:
+
+```dart
+final manifest = await ai.catalog.get(Models.gemma3nE2b.id);
+final report = await ai.runtime.checkCompatibility(manifest);
+if (!report.isCompatible) {
+  print(report.summary); // e.g. memory or platform mismatch reasons
+}
+```
+
+`CompatibilityReport` carries `reasons`, `availableMemoryMB` and `requiredMemoryMB`; `ai.runtime.deviceCapabilities()` returns the raw `DeviceCapabilities` snapshot (RAM, free disk, platform, detected accelerators).
