@@ -99,8 +99,7 @@ class ModelDownloadProgress {
   final String? currentFile;
 
   /// Completion ratio in [0, 1]; 0 when [totalBytes] is unknown.
-  double get fraction =>
-      totalBytes > 0 ? receivedBytes / totalBytes : 0.0;
+  double get fraction => totalBytes > 0 ? receivedBytes / totalBytes : 0.0;
 
   ModelDownloadProgress copyWith({
     ModelInstallState? state,

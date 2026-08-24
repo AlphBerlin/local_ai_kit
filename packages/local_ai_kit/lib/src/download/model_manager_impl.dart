@@ -127,15 +127,13 @@ class ModelManagerImpl implements LocalModelManager {
     // Serialize concurrent installs of the same model behind one Future.
     final existing = _inflight[modelId];
     if (existing != null) return existing;
-    final future =
-        _installInternal(modelId, policy ?? const DownloadPolicy())
-            .whenComplete(() => _inflight.remove(modelId));
+    final future = _installInternal(modelId, policy ?? const DownloadPolicy())
+        .whenComplete(() => _inflight.remove(modelId));
     _inflight[modelId] = future;
     return future;
   }
 
-  Future<void> _installInternal(
-      String modelId, DownloadPolicy policy) async {
+  Future<void> _installInternal(String modelId, DownloadPolicy policy) async {
     final manifest = await _catalog.get(modelId);
     final cancelToken = _cancelTokens[modelId] = CancelToken();
     try {
@@ -157,7 +155,8 @@ class ModelManagerImpl implements LocalModelManager {
       _setStatus(modelId, ModelInstallState.failed, error: e);
       rethrow;
     } on Object catch (e, st) {
-      final wrapped = NativeRuntimeError('install failed', cause: e, stackTrace: st);
+      final wrapped =
+          NativeRuntimeError('install failed', cause: e, stackTrace: st);
       _setStatus(modelId, ModelInstallState.failed, error: wrapped);
       throw wrapped;
     } finally {

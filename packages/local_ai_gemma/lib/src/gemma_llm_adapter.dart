@@ -5,7 +5,9 @@ import 'dart:async';
 import 'dart:io';
 
 // Prefixed to avoid clashes with core types (e.g. core `ModelType`).
+import 'package:flutter_gemma/core/model.dart' as fg_model;
 import 'package:flutter_gemma/flutter_gemma.dart' as fg;
+import 'package:flutter_gemma/pigeon.g.dart' as fg_pigeon;
 import 'package:local_ai_core/local_ai_core.dart';
 
 /// [LocalLlm] implementation backed by Google's flutter_gemma runtime.
@@ -132,19 +134,20 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     return candidates.first;
   }
 
-  // TODO(verify): flutter_gemma API — model creation entry point.
-  Future<dynamic> _nativeCreateModel(String path, LlmLoadOptions options) async {
+  Future<dynamic> _nativeCreateModel(
+      String path, LlmLoadOptions options) async {
     final gemma = fg.FlutterGemmaPlugin.instance;
+    await gemma.modelManager.setModelPath(path);
     final backend = switch (options.runtime) {
-      RuntimePreference.gpu => 'gpu',
-      RuntimePreference.cpu => 'cpu',
-      _ => 'gpu', // auto / npu → gpu, scheduler handles fallback to cpu
+      RuntimePreference.gpu => fg_pigeon.PreferredBackend.gpu,
+      RuntimePreference.cpu => fg_pigeon.PreferredBackend.cpu,
+      _ => fg_pigeon.PreferredBackend
+          .gpu, // auto / npu → gpu, scheduler handles fallback to cpu
     };
     return gemma.createModel(
-      modelType: fg.ModelType.gemmaIt,
+      modelType: fg_model.ModelType.gemmaIt,
       preferredBackend: backend,
       maxTokens: options.maxContextTokens ?? 4096,
-      filePath: path,
     );
   }
 

@@ -4,7 +4,6 @@ library;
 import 'package:local_ai_core/local_ai_core.dart';
 
 import 'genkit_llm_adapter.dart';
-import 'genkit_orchestrator.dart';
 
 /// Wraps whichever LLM adapter resolves for a manifest with the Genkit
 /// orchestration layer.

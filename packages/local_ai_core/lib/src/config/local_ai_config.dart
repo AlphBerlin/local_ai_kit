@@ -2,7 +2,6 @@
 library;
 
 import '../models/model_delivery.dart';
-import '../models/models.dart';
 import '../runtime/memory_policy.dart';
 import 'component_configs.dart';
 

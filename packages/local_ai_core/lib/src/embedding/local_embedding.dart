@@ -2,6 +2,7 @@
 library;
 
 import 'dart:async';
+
 /// Options for [LocalEmbedding.load].
 class EmbeddingLoadOptions {
   const EmbeddingLoadOptions({

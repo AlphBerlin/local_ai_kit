@@ -295,14 +295,8 @@ class DownloadManager {
 
   /// Streamed sha256 of [file] (chunked digest, constant memory).
   static Future<String> sha256OfFile(File file) async {
-    final output = AccumulatorSink<Digest>();
-    final input = sha256.startChunkedConversion(output);
-    await for (final chunk in file.openRead()) {
-      input.add(chunk);
-    }
-    input.close();
-    output.close();
-    return output.events.single.toString();
+    final digest = await sha256.bind(file.openRead()).first;
+    return digest.toString();
   }
 }
 

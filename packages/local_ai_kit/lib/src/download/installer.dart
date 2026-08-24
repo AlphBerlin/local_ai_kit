@@ -58,8 +58,7 @@ class ModelInstaller {
 
   /// The catalog version of the installed copy, or `null`.
   Future<int?> installedVersion(ModelType type, String modelId) async {
-    final marker =
-        File('${_paths.modelDir(type, modelId)}/$_installedMarker');
+    final marker = File('${_paths.modelDir(type, modelId)}/$_installedMarker');
     if (!marker.existsSync()) return null;
     try {
       final json = jsonDecode(await marker.readAsString());

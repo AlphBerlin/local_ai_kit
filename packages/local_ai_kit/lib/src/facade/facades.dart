@@ -76,7 +76,7 @@ class LocalLlmFacade {
 
   /// Whether the configured LLM is currently loaded in memory.
   bool get isLoaded =>
-      _config != null && _gate.runtime.isLoaded(_config!.modelId);
+      _config != null && _gate.runtime.isLoaded(_config.modelId);
 
   /// Streams a completion for [request].
   Future<Stream<LlmChunk>> generateStream(LlmRequest request) async =>
@@ -114,8 +114,7 @@ class LocalLlmFacade {
   }
 
   /// Unloads the LLM from memory (it reloads lazily on next use).
-  Future<void> unload() =>
-      _gate.runtime.unloadModel(_requireConfig().modelId);
+  Future<void> unload() => _gate.runtime.unloadModel(_requireConfig().modelId);
 }
 
 /// `ai.stt` facade.
@@ -141,8 +140,7 @@ class LocalSttFacade {
 
   Future<LocalStt> _ready() async {
     final config = _requireConfig();
-    return _gate.ready<LocalStt>(
-        config.modelId, RuntimePreference.auto, 'stt');
+    return _gate.ready<LocalStt>(config.modelId, RuntimePreference.auto, 'stt');
   }
 
   /// Streams transcription events for a live [audio] frame stream.
@@ -153,7 +151,8 @@ class LocalSttFacade {
       (await _ready()).transcribeStream(audio, options: options);
 
   /// One-shot transcription of a complete [audio] buffer.
-  Future<Transcript> transcribe(AudioBuffer audio, {SttOptions? options}) async =>
+  Future<Transcript> transcribe(AudioBuffer audio,
+          {SttOptions? options}) async =>
       (await _ready()).transcribe(audio, options: options);
 }
 
@@ -183,8 +182,7 @@ class LocalTtsFacade {
 
   Future<LocalTts> _ready() async {
     final config = _requireConfig();
-    return _gate.ready<LocalTts>(
-        config.modelId, RuntimePreference.auto, 'tts');
+    return _gate.ready<LocalTts>(config.modelId, RuntimePreference.auto, 'tts');
   }
 
   /// Voices installed on device for the configured TTS model.

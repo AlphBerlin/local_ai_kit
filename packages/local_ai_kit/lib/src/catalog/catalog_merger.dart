@@ -39,7 +39,8 @@ class CatalogMerger {
 
     for (final remoteManifest in remote) {
       final local = merged[remoteManifest.id];
-      if (local == null || remoteManifest.catalogVersion > local.catalogVersion) {
+      if (local == null ||
+          remoteManifest.catalogVersion > local.catalogVersion) {
         merged[remoteManifest.id] = remoteManifest;
         final installedVersion = installedVersions[remoteManifest.id];
         if (local != null &&

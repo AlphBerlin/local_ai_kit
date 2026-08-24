@@ -12,6 +12,5 @@ extension LocalAIGenkitX on LocalAI {
   /// The Genkit orchestrator wrapping the configured LLM, or `null` when
   /// Genkit is not enabled (register `GenkitAdapterPlugin` after the base
   /// LLM plugin and set `LlmConfig.enableGenkit`).
-  GenkitOrchestrator? get genkit =>
-      genkitOrchestrator as GenkitOrchestrator?;
+  GenkitOrchestrator? get genkit => genkitOrchestrator as GenkitOrchestrator?;
 }

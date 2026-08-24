@@ -54,7 +54,8 @@ class LocalVoice {
         gender: json['gender'] as String?,
         sampleRate: json['sampleRate'] as int? ?? 22050,
         files: (json['files'] as List?)
-                ?.map((e) => ModelFile.fromJson((e as Map).cast<String, Object?>()))
+                ?.map((e) =>
+                    ModelFile.fromJson((e as Map).cast<String, Object?>()))
                 .toList() ??
             const [],
       );

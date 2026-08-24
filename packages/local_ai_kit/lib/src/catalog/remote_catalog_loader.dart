@@ -78,7 +78,8 @@ class RemoteCatalog {
   static RemoteCatalog parse(String body) {
     final json = (jsonDecode(body) as Map).cast<String, Object?>();
     final models = (json['models'] as List)
-        .map((e) => LocalModelManifest.fromJson((e as Map).cast<String, Object?>()))
+        .map((e) =>
+            LocalModelManifest.fromJson((e as Map).cast<String, Object?>()))
         .toList();
     return RemoteCatalog(
       catalogVersion: json['catalogVersion'] as int? ?? 1,

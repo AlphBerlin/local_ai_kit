@@ -2,6 +2,7 @@
 library;
 
 import 'dart:async';
+
 /// Coarse network reachability / transport classification.
 enum NetworkStatus {
   /// Connected over Wi-Fi (or ethernet).

@@ -17,11 +17,9 @@ class SherpaVadAdapter implements LocalVad {
 
   final LocalStoragePaths _paths;
   SherpaWorker? _worker;
-  VadConfig? _config;
 
   @override
   Future<void> load(VadConfig config) async {
-    _config = config;
     final modelPath =
         '${_paths.modelDir(ModelType.vad, config.modelId)}/silero_vad.onnx';
     final worker = _worker = await SherpaWorker.spawn(_vadWorkerEntry);
@@ -115,6 +113,7 @@ class _VadWorkerLoop extends SherpaWorkerLoop {
   Future<void> onCommand(SherpaCommand command) async {
     switch (command.op) {
       case 'initVad':
+        // ignore: unused_local_variable
         final args = (command.payload as Map).cast<String, Object?>();
         // TODO(verify): sherpa_onnx API.
         // final config = sherpa.VadModelConfig(

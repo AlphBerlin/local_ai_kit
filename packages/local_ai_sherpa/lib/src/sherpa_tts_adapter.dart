@@ -144,6 +144,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
   Future<void> onCommand(SherpaCommand command) async {
     switch (command.op) {
       case 'initTts':
+        // ignore: unused_local_variable
         final args = (command.payload as Map).cast<String, Object?>();
         // TODO(verify): sherpa_onnx API.
         // final config = sherpa.OfflineTtsConfig(

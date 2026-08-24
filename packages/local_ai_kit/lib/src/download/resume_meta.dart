@@ -41,8 +41,7 @@ class FileResumeInfo {
         'verified': verified,
       };
 
-  factory FileResumeInfo.fromJson(Map<String, Object?> json) =>
-      FileResumeInfo(
+  factory FileResumeInfo.fromJson(Map<String, Object?> json) => FileResumeInfo(
         name: json['name'] as String,
         sizeBytes: json['sizeBytes'] as int,
         sha256: json['sha256'] as String,
@@ -83,7 +82,8 @@ class ResumeMeta {
         catalogVersion: json['catalogVersion'] as int? ?? 1,
         etag: json['etag'] as String?,
         files: (json['files'] as List)
-            .map((e) => FileResumeInfo.fromJson((e as Map).cast<String, Object?>()))
+            .map((e) =>
+                FileResumeInfo.fromJson((e as Map).cast<String, Object?>()))
             .toList(),
       );
 

@@ -20,16 +20,14 @@ void main(List<String> args) {
   var failures = 0;
   for (final entity in dir.listSync(recursive: true)) {
     if (entity is! File) continue;
-    if (!entity.path.endsWith(RegExp(r'(onnx|tflite|task|bin)$'))) continue;
+    if (!RegExp(r'\.(onnx|tflite|task|bin)$').hasMatch(entity.path)) continue;
     final sizeMB = entity.lengthSync() / (1024 * 1024);
     if (sizeMB >= thresholdMB) {
-      stderr.writeln(
-          'FAIL: ${entity.path} is ${sizeMB.toStringAsFixed(1)}MB '
+      stderr.writeln('FAIL: ${entity.path} is ${sizeMB.toStringAsFixed(1)}MB '
           '(>= ${thresholdMB}MB threshold). Mark it `download` delivery.');
       failures++;
     } else {
-      stdout.writeln(
-          'ok: ${entity.path} (${sizeMB.toStringAsFixed(2)}MB)');
+      stdout.writeln('ok: ${entity.path} (${sizeMB.toStringAsFixed(2)}MB)');
     }
   }
 

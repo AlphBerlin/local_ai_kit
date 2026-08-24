@@ -31,8 +31,7 @@ class ModelDeliveryPolicy {
   /// declares [declared].
   ModelDelivery resolve(ModelDelivery declared, int totalSizeBytes) {
     if (declared == ModelDelivery.bundledIfSmall) {
-      final belowThreshold =
-          totalSizeBytes < bundleBelowMB * 1024 * 1024;
+      final belowThreshold = totalSizeBytes < bundleBelowMB * 1024 * 1024;
       return belowThreshold ? ModelDelivery.bundled : ModelDelivery.download;
     }
     return declared;

@@ -17,18 +17,15 @@ class LocalPipelinePresets {
   /// await for (final e in chat.run(textInput: 'Hi')) { ... }
   /// ```
   BuiltPipeline textChat(LocalAI ai, {String? systemPrompt}) =>
-      LocalPipeline(ai)
-          .input
-          .text()
-          .llm(systemPrompt: systemPrompt)
-          .build();
+      LocalPipeline(ai).input.text().llm(systemPrompt: systemPrompt).build();
 
   /// Microphone in → VAD → STT → transcript events out.
   BuiltPipeline transcription(LocalAI ai) =>
       LocalPipeline(ai).input.microphone().vad().stt().build();
 
   /// Full voice loop: Mic → VAD → STT → LLM → TTS → speaker.
-  BuiltPipeline voiceChat(LocalAI ai, {String? systemPrompt, String? voiceId}) =>
+  BuiltPipeline voiceChat(LocalAI ai,
+          {String? systemPrompt, String? voiceId}) =>
       LocalPipeline(ai)
           .input
           .microphone()
@@ -37,8 +34,7 @@ class LocalPipelinePresets {
           .llm(systemPrompt: systemPrompt)
           .tts(voiceId: voiceId)
           .output
-          .speaker()
-          .build();
+          .speaker();
 
   /// Voice command: Mic → VAD → STT → LLM with a structured-output schema
   /// (intent extraction), no TTS.

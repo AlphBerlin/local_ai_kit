@@ -1,10 +1,9 @@
 /// In-memory fake VAD for unit tests.
 library;
 
-import 'dart:async';
-import '../../audio/audio_frame.dart';
-import '../../config/component_configs.dart';
-import '../../vad/local_vad.dart';
+import '../audio/audio_frame.dart';
+import '../config/component_configs.dart';
+import '../vad/local_vad.dart';
 
 /// Emits a started/ended pair around any non-empty audio.
 class FakeVad implements LocalVad {

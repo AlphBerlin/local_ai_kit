@@ -98,7 +98,8 @@ class SherpaWorker {
   /// Request/response command.
   Future<Object?> request(String op, {Object? payload}) {
     final replyPort = ReceivePort();
-    _commands.send(SherpaCommand(op, payload: payload, replyTo: replyPort.sendPort));
+    _commands
+        .send(SherpaCommand(op, payload: payload, replyTo: replyPort.sendPort));
     return replyPort.first.then((value) {
       replyPort.close();
       return value;

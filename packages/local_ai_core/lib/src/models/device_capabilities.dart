@@ -60,6 +60,5 @@ class CompatibilityReport {
   final int? requiredMemoryMB;
 
   /// One-line summary for logs / error messages.
-  String get summary =>
-      isCompatible ? 'compatible' : reasons.join('; ');
+  String get summary => isCompatible ? 'compatible' : reasons.join('; ');
 }

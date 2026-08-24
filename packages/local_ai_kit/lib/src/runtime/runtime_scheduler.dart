@@ -88,7 +88,8 @@ class RuntimeScheduler implements LocalModelRuntime {
   }
 
   @override
-  Future<void> loadModel(String modelId, {RuntimePreference? preference}) async {
+  Future<void> loadModel(String modelId,
+      {RuntimePreference? preference}) async {
     final existing = _handles[modelId];
     if (existing != null) {
       touch(modelId);
@@ -194,8 +195,7 @@ class RuntimeScheduler implements LocalModelRuntime {
           .where((h) => !h.info.locked && h.info.modelId != except)
           .toList();
       if (candidates.isEmpty) return; // everything locked: allow overshoot
-      candidates.sort(
-          (a, b) => a.info.lastUsedAt.compareTo(b.info.lastUsedAt));
+      candidates.sort((a, b) => a.info.lastUsedAt.compareTo(b.info.lastUsedAt));
       await _unload(candidates.first.info.modelId, 'evicted');
     }
   }
@@ -262,8 +262,7 @@ class RuntimeScheduler implements LocalModelRuntime {
     if (device.platform != 'unknown' &&
         manifest.platforms.isNotEmpty &&
         !manifest.platforms.contains(device.platform)) {
-      reasons.add(
-          'platform ${device.platform} not in ${manifest.platforms}');
+      reasons.add('platform ${device.platform} not in ${manifest.platforms}');
     }
     if (manifest.minMemoryMB > 0 &&
         device.totalMemoryMB > 0 &&

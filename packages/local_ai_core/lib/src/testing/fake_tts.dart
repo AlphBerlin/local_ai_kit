@@ -4,10 +4,10 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-import '../../audio/audio_chunk.dart';
-import '../../audio/audio_frame.dart';
-import '../../models/local_voice.dart';
-import '../../tts/local_tts.dart';
+import '../audio/audio_chunk.dart';
+import '../audio/audio_frame.dart';
+import '../models/local_voice.dart';
+import '../tts/local_tts.dart';
 
 /// Synthesizes silence: one [AudioChunk] of zeros per [chunksPerRequest].
 class FakeTts implements LocalTts {

@@ -36,8 +36,8 @@ class _DemoHomePageState extends State<DemoHomePage> {
   LocalAI? _ai;
   VoiceSession? _voiceSession;
 
-  final _promptController = TextEditingController(
-      text: 'Explain on-device AI in one sentence.');
+  final _promptController =
+      TextEditingController(text: 'Explain on-device AI in one sentence.');
   final _output = StringBuffer();
   String _status = 'initializing…';
   double _downloadProgress = 0;
@@ -178,10 +178,9 @@ class _DemoHomePageState extends State<DemoHomePage> {
                 const SizedBox(width: 12),
                 FilledButton.tonalIcon(
                   onPressed: _toggleVoice,
-                  icon: Icon(
-                      _voiceSession == null ? Icons.mic : Icons.mic_off),
-                  label: Text(
-                      _voiceSession == null ? 'Voice chat' : 'Stop voice'),
+                  icon: Icon(_voiceSession == null ? Icons.mic : Icons.mic_off),
+                  label:
+                      Text(_voiceSession == null ? 'Voice chat' : 'Stop voice'),
                 ),
               ],
             ),

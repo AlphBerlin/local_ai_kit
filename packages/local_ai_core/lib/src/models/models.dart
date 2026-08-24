@@ -94,7 +94,8 @@ abstract final class Models {
     files: [
       ModelFile(
         name: 'model.int8.onnx',
-        url: 'https://storage.example.com/models/sense-voice-small/model.int8.onnx',
+        url:
+            'https://storage.example.com/models/sense-voice-small/model.int8.onnx',
         sha256: kPlaceholderSha256,
         sizeBytes: 234000000,
       ),
@@ -152,7 +153,8 @@ abstract final class Models {
         files: [
           ModelFile(
             name: 'voice-james.bin',
-            url: 'https://storage.example.com/models/supertonic/voice-james.bin',
+            url:
+                'https://storage.example.com/models/supertonic/voice-james.bin',
             sha256: kPlaceholderSha256,
             sizeBytes: 8000000,
           ),

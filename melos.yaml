@@ -8,23 +8,32 @@ packages:
 
 scripts:
   bootstrap:
-    run: melos exec -- dart pub get
+    exec: dart pub get
     description: Run `dart pub get` in every package.
 
   analyze:
-    run: melos exec -- dart analyze --fatal-infos
+    exec: dart analyze --fatal-infos
     description: Analyze all packages.
 
   format:
-    run: melos exec -- dart format .
+    exec: dart format .
     description: Format all packages.
 
   test:core:
-    run: melos exec --dir="local_ai_core" -- dart test
+    exec: dart test
+    packageFilters:
+      scope: local_ai_core
     description: Run pure-Dart core tests (no device required, CI friendly).
 
+  test:flutter:
+    exec: flutter test
+    packageFilters:
+      dependsOn: flutter
+      dirExists: test
+    description: Run flutter test for Flutter packages.
+
   test:
-    run: melos exec --dir="packages" -- dart test
+    run: melos run test:core && melos run test:flutter
     description: Run tests for all packages that have them.
 
   verify:bundle-policy:

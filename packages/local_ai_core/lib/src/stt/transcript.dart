@@ -48,7 +48,8 @@ class Transcript {
   bool get isEmpty => text.trim().isEmpty;
 
   @override
-  String toString() => 'Transcript("$text"${language != null ? ', $language' : ''})';
+  String toString() =>
+      'Transcript("$text"${language != null ? ', $language' : ''})';
 }
 
 /// Events emitted by `LocalStt.transcribeStream`.

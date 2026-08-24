@@ -122,9 +122,9 @@ class VoiceSession {
 
     // VAD drives both utterance segmentation and barge-in detection.
     vad.analyze(micStream).listen(
-      _onVadEvent,
-      onError: (Object e) => _emitError(e),
-    );
+          _onVadEvent,
+          onError: (Object e) => _emitError(e),
+        );
 
     // Frame buffering for STT runs on the same broadcast mic stream.
     micStream.listen(_onAudioFrame);
@@ -176,8 +176,7 @@ class VoiceSession {
     final turnToken = _turnToken = CancelToken();
     _maxTurnTimer = Timer(sessionConfig.maxTurnDuration, () {
       turnToken.cancel();
-      _events.add(
-          const VoiceInterrupted(reason: InterruptReason.timeout));
+      _events.add(const VoiceInterrupted(reason: InterruptReason.timeout));
     });
     try {
       // STT ---------------------------------------------------------------
@@ -256,9 +255,8 @@ class VoiceSession {
   Future<void> _maybeBargeIn(DateTime at, double confidence) async {
     if (!sessionConfig.bargeIn || !_speaking) return;
     // Echo mitigation without AEC: require higher confidence + persistence.
-    final threshold =
-        sessionConfig.interruptConfidenceThreshold +
-            sessionConfig.speakingVadThresholdBoost;
+    final threshold = sessionConfig.interruptConfidenceThreshold +
+        sessionConfig.speakingVadThresholdBoost;
     if (confidence < threshold.clamp(0.0, 1.0)) return;
 
     _speechStartedAt ??= at;

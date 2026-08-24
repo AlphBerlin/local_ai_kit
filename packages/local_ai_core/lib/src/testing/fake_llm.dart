@@ -2,10 +2,9 @@
 /// replaceable with fakes).
 library;
 
-import 'dart:async';
-import '../../llm/llm_request.dart';
-import '../../llm/local_llm.dart';
-import '../../llm/structured_output.dart';
+import '../llm/llm_request.dart';
+import '../llm/local_llm.dart';
+import '../llm/structured_output.dart';
 
 /// Deterministic fake: echoes a canned or scripted response.
 class FakeLlm with StructuredOutputSupport implements LocalLlm {
@@ -46,8 +45,9 @@ class FakeLlm with StructuredOutputSupport implements LocalLlm {
       throw StateError('FakeLlm.generateStream called before load()');
     }
     for (var i = 0; i < responseText.length; i += chunkSize) {
-      final end =
-          (i + chunkSize > responseText.length) ? responseText.length : i + chunkSize;
+      final end = (i + chunkSize > responseText.length)
+          ? responseText.length
+          : i + chunkSize;
       yield LlmChunk(textDelta: responseText.substring(i, end));
     }
     yield const LlmChunk(isFinal: true, finishReason: LlmFinishReason.stop);

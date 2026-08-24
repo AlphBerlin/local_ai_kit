@@ -56,7 +56,7 @@ final class InsufficientDiskError extends LocalAIError {
 
 /// The device does not meet the model requirements (RAM / platform / SoC).
 final class IncompatibleDeviceError extends LocalAIError {
-  const IncompatibleDeviceError(this.report)
+  IncompatibleDeviceError(this.report)
       : super('Device is not compatible: ${report.summary}');
 
   final CompatibilityReport report;

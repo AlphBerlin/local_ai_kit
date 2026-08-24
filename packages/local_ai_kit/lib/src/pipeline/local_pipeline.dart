@@ -20,6 +20,7 @@ import 'dart:async';
 import 'package:local_ai_core/local_ai_core.dart';
 
 import '../facade/local_ai.dart';
+import 'presets.dart';
 
 /// Entry point of the builder chain (via `LocalAI.pipeline()`).
 class LocalPipeline {
@@ -196,8 +197,7 @@ class BuiltPipeline {
 
   /// Assembles the runnable pipeline (injects a pipeline-scoped
   /// [CancelToken]).
-  RunnablePipeline build() =>
-      RunnablePipeline(_spec, CancelToken());
+  RunnablePipeline build() => RunnablePipeline(_spec, CancelToken());
 }
 
 class _PipelineSpec {
@@ -323,9 +323,8 @@ class RunnablePipeline {
 
     // Tee the broadcast mic stream: one subscription feeds the VAD, the
     // other buffers utterance frames.
-    final frames = audioSource
-        .start(format: AudioFormat.pcm16kMono)
-        .asBroadcastStream();
+    final frames =
+        audioSource.start(format: AudioFormat.pcm16kMono).asBroadcastStream();
     final buffer = <AudioFrame>[];
     var inSpeech = false;
     final bufferSub = frames.listen((frame) {
@@ -343,8 +342,8 @@ class RunnablePipeline {
             inSpeech = false;
             if (buffer.isNotEmpty) {
               await audioSource.stop();
-              final transcript = await ai
-                  .transcribe(AudioBuffer.fromFrames(List.of(buffer)));
+              final transcript =
+                  await ai.transcribe(AudioBuffer.fromFrames(List.of(buffer)));
               return transcript.text;
             }
           case VadSpeechConfidence():

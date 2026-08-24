@@ -14,7 +14,8 @@ class FlutterStoragePaths implements LocalStoragePaths {
   final Directory _root;
 
   /// Resolves the app-support directory. Call once at startup.
-  static Future<FlutterStoragePaths> resolve({String subdir = 'local_ai'}) async {
+  static Future<FlutterStoragePaths> resolve(
+      {String subdir = 'local_ai'}) async {
     final support = await getApplicationSupportDirectory();
     return FlutterStoragePaths._(Directory('${support.path}/$subdir'));
   }

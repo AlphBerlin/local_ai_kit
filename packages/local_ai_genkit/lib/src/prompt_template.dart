@@ -22,6 +22,9 @@ class PromptTemplate {
   }
 
   /// Variables referenced by this template.
-  List<String> get variables =>
-      _placeholder.allMatches(template).map((m) => m.group(1)!).toSet().toList();
+  List<String> get variables => _placeholder
+      .allMatches(template)
+      .map((m) => m.group(1)!)
+      .toSet()
+      .toList();
 }

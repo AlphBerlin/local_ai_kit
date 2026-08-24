@@ -137,10 +137,10 @@ class LocalModelManifest {
       minMemoryMB: json['minMemoryMB'] as int? ?? 0,
       quantization: json['quantization'] as String?,
       contextLength: json['contextLength'] as int?,
-      capabilities: ((json['capabilities'] as List?)?.cast<String>() ??
-              const <String>[])
-          .map(ModelCapability.values.byName)
-          .toSet(),
+      capabilities:
+          ((json['capabilities'] as List?)?.cast<String>() ?? const <String>[])
+              .map(ModelCapability.values.byName)
+              .toSet(),
       license: json['license'] as String? ?? 'unknown',
       voices: (json['voices'] as List?)
           ?.map((e) => LocalVoice.fromJson((e as Map).cast<String, Object?>()))

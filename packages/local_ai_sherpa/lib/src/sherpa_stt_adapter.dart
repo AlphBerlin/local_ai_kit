@@ -17,14 +17,13 @@ class SherpaSttAdapter implements LocalStt {
 
   final LocalStoragePaths _paths;
   SherpaWorker? _worker;
-  SttLoadOptions? _options;
 
   @override
   Future<void> load(SttLoadOptions options) async {
-    _options = options;
     final modelDir = _paths.modelDir(ModelType.stt, options.modelId);
     final worker = _worker = await SherpaWorker.spawn(_sttWorkerEntry);
-    final ok = await worker.request('initRecognizer', payload: <String, Object?>{
+    final ok =
+        await worker.request('initRecognizer', payload: <String, Object?>{
       'modelPath': '$modelDir/model.int8.onnx',
       'tokensPath': '$modelDir/tokens.txt',
       'language': options.language,
@@ -61,15 +60,15 @@ class SherpaSttAdapter implements LocalStt {
           case 'partial':
             controller.add(TranscriptPartial(event.data as String? ?? ''));
           case 'final':
-            controller.add(TranscriptFinal(
-                Transcript(text: event.data as String? ?? '')));
+            controller.add(
+                TranscriptFinal(Transcript(text: event.data as String? ?? '')));
           case 'error':
             controller.addError(event.data ?? const NativeRuntimeError('stt'));
         }
       });
       worker.send('startUtterance');
       audioSub = audio.listen(
-        worker.sendFrame,
+        (frame) => worker.sendFrame(frame.samples),
         onDone: () async {
           worker.send('endUtterance');
           await controller.close();
@@ -85,7 +84,8 @@ class SherpaSttAdapter implements LocalStt {
   }
 
   @override
-  Future<Transcript> transcribe(AudioBuffer audio, {SttOptions? options}) async {
+  Future<Transcript> transcribe(AudioBuffer audio,
+      {SttOptions? options}) async {
     final worker = _worker;
     if (worker == null) {
       throw const InvalidStateError(
@@ -106,7 +106,7 @@ class SherpaSttAdapter implements LocalStt {
 class _SttWorkerLoop extends SherpaWorkerLoop {
   _SttWorkerLoop(super.mainPort);
 
-  // TODO(verify): sherpa_onnx API — OnlineRecognizer + OnlineStream.
+  // ignore: unused_field
   dynamic _recognizer;
   dynamic _stream;
 
@@ -114,6 +114,7 @@ class _SttWorkerLoop extends SherpaWorkerLoop {
   Future<void> onCommand(SherpaCommand command) async {
     switch (command.op) {
       case 'initRecognizer':
+        // ignore: unused_local_variable
         final args = (command.payload as Map).cast<String, Object?>();
         // TODO(verify): sherpa_onnx API.
         // final config = sherpa.OnlineRecognizerConfig(
@@ -135,8 +136,9 @@ class _SttWorkerLoop extends SherpaWorkerLoop {
         _stream = null;
       case 'decodeBuffer':
         final args = (command.payload as Map).cast<String, Object?>();
-        final samples =
-            (args['samples'] as TransferableTypedData).materialize().asFloat32List();
+        final samples = (args['samples'] as TransferableTypedData)
+            .materialize()
+            .asFloat32List();
         // TODO(verify): sherpa_onnx API — OfflineRecognizer decode.
         reply(command, 'decoded ${samples.length} samples (placeholder)');
     }

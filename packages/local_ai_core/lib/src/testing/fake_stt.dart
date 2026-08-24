@@ -1,10 +1,9 @@
 /// In-memory fake STT for unit tests.
 library;
 
-import 'dart:async';
-import '../../audio/audio_frame.dart';
-import '../../stt/local_stt.dart';
-import '../../stt/transcript.dart';
+import '../audio/audio_frame.dart';
+import '../stt/local_stt.dart';
+import '../stt/transcript.dart';
 
 /// Returns a scripted transcript regardless of audio content.
 class FakeStt implements LocalStt {
@@ -38,7 +37,8 @@ class FakeStt implements LocalStt {
   }
 
   @override
-  Future<Transcript> transcribe(AudioBuffer audio, {SttOptions? options}) async {
+  Future<Transcript> transcribe(AudioBuffer audio,
+      {SttOptions? options}) async {
     if (!_loaded) {
       throw StateError('FakeStt.transcribe called before load()');
     }
