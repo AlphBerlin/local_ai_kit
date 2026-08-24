@@ -1,0 +1,24 @@
+name: local_ai_gemma
+description: >-
+  flutter_gemma adapter for LocalAI Kit: implements the core LocalLlm
+  interface on top of Google's on-device Gemma runtime.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  local_ai_core:
+    path: ../local_ai_core
+  # Pinned version to be verified against the upstream API surface.
+  flutter_gemma: ^0.10.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
