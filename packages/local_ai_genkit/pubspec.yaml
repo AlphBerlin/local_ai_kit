@@ -1,0 +1,29 @@
+name: local_ai_genkit
+description: >-
+  Optional Genkit orchestration layer for LocalAI Kit: flows, tools,
+  prompt templates and schema-validated structured output on top of any
+  core LocalLlm.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  local_ai_core:
+    path: ../local_ai_core
+  # Only for the `LocalAIGenkitX` escape-hatch extension (architecture
+  # §3.5). The dependency direction genkit → kit is intentional.
+  local_ai_kit:
+    path: ../local_ai_kit
+  # TODO(verify): pin against the actual genkit Dart release used.
+  genkit: ^0.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
