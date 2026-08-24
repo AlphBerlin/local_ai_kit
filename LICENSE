@@ -81,7 +81,7 @@
       with the Work to which such Contribution(s) was submitted. If You
       institute patent litigation against any entity (including a
       cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a contribution incorporated within the Work constitutes direct
+      or any contribution incorporated within the Work constitutes direct
       or contributory patent infringement, then any patent licenses granted
       to You under this License for that Contribution for that Work
       shall terminate as of the date such litigation is filed.
@@ -104,18 +104,20 @@
 
       (d) If the Work includes a "Derivative Works" or "Display of"
           Your Work, then You must reproduce the License notices in
-          or on any Derivative Works that You distribute, all copyright,
-          patent, trademark and attribution notices from the Source form
-          of the Work, excluding those notices that do not pertain to
-          any part of such Derivative Works.
+          or on any Derivative Works, or include a copy of or a link to
+          the NOTICE text from the Work.
 
    5. Submission of Contributions. Unless You explicitly state otherwise,
       any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor under this License shall be under the terms
-      and conditions of this License, without any additional terms or
-      conditions. Notwithstanding the above, nothing herein shall supersede
-      or modify the terms of any separate license agreement you may have
-      executed with Licensor regarding such Contributions.
+      by You to the Licensor of this Work shall be deemed to be
+      acceptance of the terms and conditions of this License, and the
+      Work shall be considered a derivative work of the Licensor's
+      Contributor license. Nothing in this License shall be deemed to
+      grant You any rights to use the Contribution for anything other
+      than as an individual contribution, and You agree that this License
+      shall not be construed as granting You any rights to sublicense or
+      otherwise use the Contribution for anything other than what the
+      Licensor expressly permits.
 
    6. Trademarks. This License does not grant permission to use the trade
       names, trademarks, service marks, or product names of the Licensor,
