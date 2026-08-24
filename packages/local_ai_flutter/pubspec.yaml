@@ -16,7 +16,6 @@ dependencies:
   flutter:
     sdk: flutter
   local_ai_core:
-    path: ../local_ai_core
   path_provider: ^2.1.4
   record: ^6.0.0
   audioplayers: ^6.1.0

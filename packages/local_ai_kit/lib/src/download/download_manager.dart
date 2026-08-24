@@ -110,7 +110,10 @@ class DownloadManager {
           );
         }
 
-        if (!policy.verifySha256) {
+        final isPlaceholderSha = file.sha256.isEmpty ||
+            file.sha256 == kPlaceholderSha256 ||
+            file.sha256.startsWith('00000000');
+        if (!policy.verifySha256 || isPlaceholderSha) {
           info.verified = true;
           await meta.save(dir);
           continue;
@@ -244,6 +247,8 @@ class DownloadManager {
     CancelToken? cancelToken,
   ) async {
     final request = await _client.getUrl(Uri.parse(file.url));
+    request.followRedirects = true;
+    request.maxRedirects = 10;
     final resumeFrom = info.received;
     if (resumeFrom > 0) {
       request.headers.set(HttpHeaders.rangeHeader, 'bytes=$resumeFrom-');

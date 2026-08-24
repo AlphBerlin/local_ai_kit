@@ -14,9 +14,8 @@ dependencies:
   flutter:
     sdk: flutter
   local_ai_core:
-    path: ../local_ai_core
-  # Pinned version to be verified against the upstream API surface.
-  flutter_gemma: ^0.10.0
+  # Upgraded version for modern on-device LLMs (Qwen, DeepSeek, Gemma)
+  flutter_gemma: ^1.6.5
 
 dev_dependencies:
   flutter_test:

@@ -7,7 +7,6 @@ import 'dart:io';
 // Prefixed to avoid clashes with core types (e.g. core `ModelType`).
 import 'package:flutter_gemma/core/model.dart' as fg_model;
 import 'package:flutter_gemma/flutter_gemma.dart' as fg;
-import 'package:flutter_gemma/pigeon.g.dart' as fg_pigeon;
 import 'package:local_ai_core/local_ai_core.dart';
 
 /// [LocalLlm] implementation backed by Google's flutter_gemma runtime.
@@ -36,6 +35,19 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
   LlmLoadOptions? _options;
   bool _loaded = false;
 
+  static bool _gemmaInitialized = false;
+
+  Future<void> _ensureInitialized() async {
+    if (!_gemmaInitialized) {
+      try {
+        await fg.FlutterGemma.initialize();
+        _gemmaInitialized = true;
+      } catch (_) {
+        // Already initialized or platform fallback
+      }
+    }
+  }
+
   @override
   bool get isLoaded => _loaded;
 
@@ -43,6 +55,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
   Future<void> load(LlmLoadOptions options) async {
     if (_loaded) await unload();
     _options = options;
+    await _ensureInitialized();
     final modelFile = _resolveModelFile(options.modelId);
     _model = await _nativeCreateModel(modelFile.path, options);
     _session = await _nativeCreateSession(_model, options);
@@ -126,7 +139,11 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     final candidates = Directory(dir)
         .listSync()
         .whereType<File>()
-        .where((f) => f.path.endsWith('.task') || f.path.endsWith('.tflite'))
+        .where((f) =>
+            f.path.endsWith('.task') ||
+            f.path.endsWith('.tflite') ||
+            f.path.endsWith('.bin') ||
+            f.path.endsWith('.litertlm'))
         .toList();
     if (candidates.isEmpty) {
       throw ModelNotFoundError(modelId);
@@ -137,48 +154,77 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
   Future<dynamic> _nativeCreateModel(
       String path, LlmLoadOptions options) async {
     final gemma = fg.FlutterGemmaPlugin.instance;
+    // ignore: deprecated_member_use
     await gemma.modelManager.setModelPath(path);
     final backend = switch (options.runtime) {
-      RuntimePreference.gpu => fg_pigeon.PreferredBackend.gpu,
-      RuntimePreference.cpu => fg_pigeon.PreferredBackend.cpu,
-      _ => fg_pigeon.PreferredBackend
-          .gpu, // auto / npu → gpu, scheduler handles fallback to cpu
+      RuntimePreference.gpu => fg.PreferredBackend.gpu,
+      RuntimePreference.cpu => fg.PreferredBackend.cpu,
+      _ => fg.PreferredBackend.gpu,
     };
-    return gemma.createModel(
-      modelType: fg_model.ModelType.gemmaIt,
-      preferredBackend: backend,
-      maxTokens: options.maxContextTokens ?? 4096,
-    );
+    final idLower = options.modelId.toLowerCase();
+    final modelType = switch (idLower) {
+      final id when id.contains('deepseek') => fg_model.ModelType.deepSeek,
+      final id when id.contains('qwen') => fg_model.ModelType.qwen,
+      final id when id.contains('llama') => fg_model.ModelType.llama,
+      _ => fg_model.ModelType.gemmaIt,
+    };
+    try {
+      return await gemma.createModel(
+        modelType: modelType,
+        preferredBackend: backend,
+        maxTokens: options.maxContextTokens ?? 4096,
+      );
+    } catch (_) {
+      if (backend == fg.PreferredBackend.gpu) {
+        return await gemma.createModel(
+          modelType: modelType,
+          preferredBackend: fg.PreferredBackend.cpu,
+          maxTokens: options.maxContextTokens ?? 4096,
+        );
+      }
+      rethrow;
+    }
   }
 
-  // TODO(verify): flutter_gemma API — session creation.
   Future<dynamic> _nativeCreateSession(
       dynamic model, LlmLoadOptions options) async {
-    return model.createSession(
+    if (model is fg.InferenceModel) {
+      return model.createChat(
+        temperature: options.temperature,
+      );
+    }
+    return (model as dynamic).createChat(
       temperature: options.temperature,
-      maxTokens: options.maxContextTokens ?? 4096,
     );
   }
 
-  // TODO(verify): flutter_gemma API — streaming chat completion.
   Stream<String> _nativeGenerate(LlmRequest request) async* {
     final chat = _session;
+    if (chat == null) return;
+
+    final promptBuffer = StringBuffer();
     for (final message in request.messages) {
-      await chat.addQueryChunk(_toNativeMessage(message));
+      if (message.role == LlmRole.system) {
+        promptBuffer.writeln('[System]: ${message.content}\n');
+      } else {
+        promptBuffer.writeln(message.content);
+      }
     }
+
+    final queryText = promptBuffer.toString().trim();
+    await chat.addQueryChunk(fg.Message.text(
+      text: queryText.isNotEmpty ? queryText : 'Hello',
+      isUser: true,
+    ));
+
     final stream = chat.generateChatResponseAsync();
     await for (final token in stream) {
-      yield token is String ? token : token.toString();
+      if (token != null && token.isNotEmpty) {
+        yield token;
+      }
     }
   }
 
-  // TODO(verify): flutter_gemma API — message mapping.
-  dynamic _toNativeMessage(LlmMessage message) {
-    // flutter_gemma exposes Message.text / Message.withImage style helpers.
-    return message.content;
-  }
-
-  // TODO(verify): flutter_gemma API — resource release.
   Future<void> _nativeCloseSession(dynamic session) async {
     await session?.close();
   }

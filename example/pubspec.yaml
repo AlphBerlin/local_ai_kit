@@ -11,11 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   local_ai_kit:
-    path: ../packages/local_ai_kit
   local_ai_gemma:
-    path: ../packages/local_ai_gemma
   local_ai_sherpa:
-    path: ../packages/local_ai_sherpa
 
 dev_dependencies:
   flutter_test:

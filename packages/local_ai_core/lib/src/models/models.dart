@@ -23,6 +23,96 @@ abstract final class ModelProviders {
 
 /// Built-in model manifests.
 abstract final class Models {
+  /// DeepSeek R1 Distill Qwen 1.5B model.
+  static const LocalModelManifest deepseekR1 = LocalModelManifest(
+    id: 'deepseek-r1-1.5b-int4',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'DeepSeek R1 Distill (1.5B)',
+    description: 'Fast reasoning on-device LLM with DeepSeek R1 distillation.',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 4096,
+    minMemoryMB: 2048,
+    languages: ['en', 'zh'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'deepseek_q8_ekv1280.task',
+        url:
+            'https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/deepseek_q8_ekv1280.task',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 1860686856,
+      ),
+    ],
+  );
+
+  /// Qwen 2.5 0.5B Instruct model (ultra-fast download ~540MB).
+  static const LocalModelManifest qwen25_05b = LocalModelManifest(
+    id: 'qwen-2.5-0.5b-instruct',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'Qwen 2.5 0.5B Instruct (Fast)',
+    description: 'Lightweight, fast on-device chat model (546 MB download).',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 4096,
+    minMemoryMB: 1024,
+    languages: ['en', 'zh'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
+        url:
+            'https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 546660344,
+      ),
+    ],
+  );
+
+  /// SmolLM2 360M Instruct model (ultra-lightweight ~370MB).
+  static const LocalModelManifest smollm2 = LocalModelManifest(
+    id: 'smollm2-360m-instruct',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'SmolLM2 360M Instruct (Ultra-Light)',
+    description: 'Smallest on-device LLM (373 MB download) for rapid responses.',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 2048,
+    minMemoryMB: 512,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'SmolLM2_360M_instruct.litertlm',
+        url:
+            'https://huggingface.co/litert-community/SmolLM2-360M-Instruct/resolve/main/SmolLM2_360M_instruct.litertlm',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 373719040,
+      ),
+    ],
+  );
+
   /// Gemma 3n E2B instruction-tuned, int4 quantized chat model.
   static const LocalModelManifest gemma3nE2b = LocalModelManifest(
     id: 'gemma-3n-e2b-it-int4',
@@ -70,9 +160,10 @@ abstract final class Models {
     files: [
       ModelFile(
         name: 'silero_vad.onnx',
-        url: 'https://storage.example.com/models/silero_vad.onnx',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx',
         sha256: kPlaceholderSha256,
-        sizeBytes: 2300000,
+        sizeBytes: 643854,
       ),
     ],
   );
@@ -165,6 +256,9 @@ abstract final class Models {
 
   /// All built-in manifests, keyed by id.
   static const List<LocalModelManifest> all = [
+    qwen25_05b,
+    deepseekR1,
+    smollm2,
     gemma3nE2b,
     sileroVad,
     senseVoiceSmall,

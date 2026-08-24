@@ -1,29 +1,77 @@
 {
-  "catalogVersion": 1,
-  "updatedAt": "2025-01-01T00:00:00Z",
-  "comment": "Built-in offline fallback catalog (architecture section 5.5). URLs and sha256 are release-time placeholders; the download manager fails closed on mismatch.",
+  "catalogVersion": 3,
+  "updatedAt": "2026-08-24T00:00:00Z",
+  "comment": "Built-in offline model catalog with direct high-speed weights for lightweight on-device models.",
   "models": [
     {
-      "id": "gemma-3n-e2b-it-int4",
+      "id": "qwen-2.5-0.5b-instruct",
       "type": "llm",
       "provider": "google-gemma",
-      "displayName": "Gemma 3n E2B IT (int4)",
-      "description": "General purpose on-device chat model.",
+      "displayName": "Qwen 2.5 0.5B Instruct (Fast)",
+      "description": "Ultra-lightweight on-device chat model (546 MB download) for rapid responses.",
       "delivery": "download",
-      "quantization": "int4",
-      "contextLength": 32768,
-      "minMemoryMB": 3072,
-      "languages": ["en"],
-      "platforms": ["android", "ios"],
-      "capabilities": ["chat", "streaming", "functionCalling"],
-      "license": "gemma-terms-of-use",
+      "quantization": "int8",
+      "contextLength": 4096,
+      "minMemoryMB": 1024,
+      "languages": ["en", "zh"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
       "catalogVersion": 1,
       "files": [
         {
-          "name": "gemma-3n-E2B-it-int4.task",
-          "url": "https://storage.example.com/models/gemma-3n-E2B-it-int4.task",
+          "name": "Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
+          "url": "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 2900000000
+          "sizeBytes": 546660344
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1-1.5b-int4",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "DeepSeek R1 Distill (1.5B)",
+      "description": "Reasoning on-device LLM with DeepSeek R1 distillation (1.86 GB download).",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 4096,
+      "minMemoryMB": 2048,
+      "languages": ["en", "zh"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "deepseek_q8_ekv1280.task",
+          "url": "https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/deepseek_q8_ekv1280.task",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 1860686856
+        }
+      ]
+    },
+    {
+      "id": "smollm2-360m-instruct",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "SmolLM2 360M Instruct (Ultra-Light)",
+      "description": "Smallest on-device LLM (373 MB download) for rapid responses.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 2048,
+      "minMemoryMB": 512,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "SmolLM2_360M_instruct.litertlm",
+          "url": "https://huggingface.co/litert-community/SmolLM2-360M-Instruct/resolve/main/SmolLM2_360M_instruct.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 373719040
         }
       ]
     },
@@ -42,87 +90,51 @@
       "files": [
         {
           "name": "silero_vad.onnx",
-          "url": "https://storage.example.com/models/silero_vad.onnx",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 2300000
+          "sizeBytes": 643854
         }
       ]
     },
     {
-      "id": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue",
+      "id": "sherpa-onnx-streaming-zipformer-en-20m",
       "type": "stt",
       "provider": "sherpa-community",
-      "displayName": "SenseVoice Small",
+      "displayName": "Zipformer Small ASR (20M)",
       "delivery": "download",
-      "minMemoryMB": 512,
-      "languages": ["zh", "en", "ja", "ko", "yue"],
-      "platforms": ["android", "ios"],
-      "capabilities": ["asrStreaming", "multilingual"],
-      "license": "MIT",
+      "minMemoryMB": 128,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrStreaming"],
+      "license": "Apache-2.0",
       "catalogVersion": 1,
       "files": [
         {
-          "name": "model.int8.onnx",
-          "url": "https://storage.example.com/models/sense-voice-small/model.int8.onnx",
+          "name": "sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 234000000
-        },
-        {
-          "name": "tokens.txt",
-          "url": "https://storage.example.com/models/sense-voice-small/tokens.txt",
-          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 420000
+          "sizeBytes": 70000000
         }
       ]
     },
     {
-      "id": "supertonic-tts",
+      "id": "vits-piper-en-lessac",
       "type": "tts",
       "provider": "sherpa-community",
-      "displayName": "Supertonic TTS",
+      "displayName": "Piper TTS (Lessac Low)",
       "delivery": "download",
-      "minMemoryMB": 256,
+      "minMemoryMB": 128,
       "languages": ["en"],
-      "platforms": ["android", "ios"],
+      "platforms": ["android", "ios", "macos"],
       "capabilities": ["ttsStreaming"],
       "license": "MIT",
       "catalogVersion": 1,
       "files": [
         {
-          "name": "supertonic.onnx",
-          "url": "https://storage.example.com/models/supertonic/supertonic.onnx",
+          "name": "vits-piper-en_US-lessac-low.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 90000000
-        }
-      ],
-      "voices": [
-        {
-          "id": "supertonic-en-female-1",
-          "name": "Emma (English, female)",
-          "language": "en",
-          "gender": "female",
-          "files": [
-            {
-              "name": "voice-emma.bin",
-              "url": "https://storage.example.com/models/supertonic/voice-emma.bin",
-              "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-              "sizeBytes": 8000000
-            }
-          ]
-        },
-        {
-          "id": "supertonic-en-male-1",
-          "name": "James (English, male)",
-          "language": "en",
-          "gender": "male",
-          "files": [
-            {
-              "name": "voice-james.bin",
-              "url": "https://storage.example.com/models/supertonic/voice-james.bin",
-              "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-              "sizeBytes": 8000000
-            }
-          ]
+          "sizeBytes": 67097098
         }
       ]
     }

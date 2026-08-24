@@ -16,10 +16,8 @@ dependencies:
   flutter:
     sdk: flutter
   local_ai_core:
-    path: ../local_ai_core
   local_ai_flutter:
-    path: ../local_ai_flutter
-  crypto: ^3.0.5
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

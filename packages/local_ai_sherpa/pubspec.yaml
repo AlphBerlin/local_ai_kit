@@ -14,7 +14,6 @@ dependencies:
   flutter:
     sdk: flutter
   local_ai_core:
-    path: ../local_ai_core
   sherpa_onnx: ^1.10.0
 
 dev_dependencies:
