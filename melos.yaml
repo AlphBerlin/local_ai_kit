@@ -1,0 +1,34 @@
+name: local_ai_kit
+repository: https://github.com/local-ai-kit/local_ai_kit
+
+# Melos manages the pub workspace: bootstrap, analyze, test, bundle policy.
+packages:
+  - packages/**
+  - example
+
+scripts:
+  bootstrap:
+    run: melos exec -- dart pub get
+    description: Run `dart pub get` in every package.
+
+  analyze:
+    run: melos exec -- dart analyze --fatal-infos
+    description: Analyze all packages.
+
+  format:
+    run: melos exec -- dart format .
+    description: Format all packages.
+
+  test:core:
+    run: melos exec --dir="local_ai_core" -- dart test
+    description: Run pure-Dart core tests (no device required, CI friendly).
+
+  test:
+    run: melos exec --dir="packages" -- dart test
+    description: Run tests for all packages that have them.
+
+  verify:bundle-policy:
+    run: dart run tools/verify_bundle_policy.dart
+    description: >-
+      Verify that assets declared as `bundled` stay below the
+      ModelDeliveryPolicy.smart(bundleBelowMB) threshold.

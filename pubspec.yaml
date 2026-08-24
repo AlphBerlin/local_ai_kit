@@ -1,0 +1,21 @@
+name: local_ai_kit_workspace
+description: >-
+  LocalAI Kit monorepo. Pluggable, offline-first, streaming-first on-device AI
+  toolkit for Flutter (LLM / STT / TTS / VAD / embeddings).
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+# Dart pub workspace: all packages are resolved together.
+workspace:
+  - packages/local_ai_core
+  - packages/local_ai_flutter
+  - packages/local_ai_gemma
+  - packages/local_ai_genkit
+  - packages/local_ai_sherpa
+  - packages/local_ai_kit
+  - example
+
+dev_dependencies:
+  melos: ^6.3.0

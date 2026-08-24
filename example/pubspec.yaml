@@ -1,0 +1,26 @@
+name: local_ai_kit_example
+description: Minimal LocalAI Kit demo app (text generation + voice session).
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  local_ai_kit:
+    path: ../packages/local_ai_kit
+  local_ai_gemma:
+    path: ../packages/local_ai_gemma
+  local_ai_sherpa:
+    path: ../packages/local_ai_sherpa
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
