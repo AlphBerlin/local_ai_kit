@@ -1,0 +1,130 @@
+{
+  "catalogVersion": 1,
+  "updatedAt": "2025-01-01T00:00:00Z",
+  "comment": "Built-in offline fallback catalog (architecture section 5.5). URLs and sha256 are release-time placeholders; the download manager fails closed on mismatch.",
+  "models": [
+    {
+      "id": "gemma-3n-e2b-it-int4",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Gemma 3n E2B IT (int4)",
+      "description": "General purpose on-device chat model.",
+      "delivery": "download",
+      "quantization": "int4",
+      "contextLength": 32768,
+      "minMemoryMB": 3072,
+      "languages": ["en"],
+      "platforms": ["android", "ios"],
+      "capabilities": ["chat", "streaming", "functionCalling"],
+      "license": "gemma-terms-of-use",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "gemma-3n-E2B-it-int4.task",
+          "url": "https://storage.example.com/models/gemma-3n-E2B-it-int4.task",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2900000000
+        }
+      ]
+    },
+    {
+      "id": "silero-vad",
+      "type": "vad",
+      "provider": "sherpa-community",
+      "displayName": "Silero VAD",
+      "delivery": "bundledIfSmall",
+      "minMemoryMB": 64,
+      "languages": ["multilingual"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["vadStreaming"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "silero_vad.onnx",
+          "url": "https://storage.example.com/models/silero_vad.onnx",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2300000
+        }
+      ]
+    },
+    {
+      "id": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "SenseVoice Small",
+      "delivery": "download",
+      "minMemoryMB": 512,
+      "languages": ["zh", "en", "ja", "ko", "yue"],
+      "platforms": ["android", "ios"],
+      "capabilities": ["asrStreaming", "multilingual"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "model.int8.onnx",
+          "url": "https://storage.example.com/models/sense-voice-small/model.int8.onnx",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 234000000
+        },
+        {
+          "name": "tokens.txt",
+          "url": "https://storage.example.com/models/sense-voice-small/tokens.txt",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 420000
+        }
+      ]
+    },
+    {
+      "id": "supertonic-tts",
+      "type": "tts",
+      "provider": "sherpa-community",
+      "displayName": "Supertonic TTS",
+      "delivery": "download",
+      "minMemoryMB": 256,
+      "languages": ["en"],
+      "platforms": ["android", "ios"],
+      "capabilities": ["ttsStreaming"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "supertonic.onnx",
+          "url": "https://storage.example.com/models/supertonic/supertonic.onnx",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 90000000
+        }
+      ],
+      "voices": [
+        {
+          "id": "supertonic-en-female-1",
+          "name": "Emma (English, female)",
+          "language": "en",
+          "gender": "female",
+          "files": [
+            {
+              "name": "voice-emma.bin",
+              "url": "https://storage.example.com/models/supertonic/voice-emma.bin",
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+              "sizeBytes": 8000000
+            }
+          ]
+        },
+        {
+          "id": "supertonic-en-male-1",
+          "name": "James (English, male)",
+          "language": "en",
+          "gender": "male",
+          "files": [
+            {
+              "name": "voice-james.bin",
+              "url": "https://storage.example.com/models/supertonic/voice-james.bin",
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+              "sizeBytes": 8000000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
