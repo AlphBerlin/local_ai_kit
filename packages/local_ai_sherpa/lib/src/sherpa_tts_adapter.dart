@@ -142,9 +142,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
       final proc = await Process.start(uvPath, [
         'run',
         '--with',
-        'onnxruntime',
-        '--with',
-        'soundfile',
+        'supertonic',
         'python3',
         '/tmp/supertonic_server.py',
         onnxDir,
