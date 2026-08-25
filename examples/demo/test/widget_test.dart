@@ -1,8 +1,34 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:local_ai_kit/local_ai_kit.dart';
 import 'package:local_ai_kit_example/main.dart';
 
 void main() {
+  test('STT capture buffer preserves frames for one-shot transcription', () {
+    final capture = SttCaptureBuffer();
+    final timestamp = DateTime(2026, 1, 1);
+    capture.add(AudioFrame(
+      samples: Float32List.fromList([0.1, 0.2]),
+      format: AudioFormat.pcm16kMono,
+      timestamp: timestamp,
+    ));
+    capture.add(AudioFrame(
+      samples: Float32List.fromList([0.3]),
+      format: AudioFormat.pcm16kMono,
+      timestamp: timestamp.add(const Duration(milliseconds: 1)),
+    ));
+
+    final buffer = capture.toAudioBuffer();
+
+    expect(capture.frameCount, 2);
+    expect(buffer.samples[0], closeTo(0.1, 0.000001));
+    expect(buffer.samples[1], closeTo(0.2, 0.000001));
+    expect(buffer.samples[2], closeTo(0.3, 0.000001));
+    expect(buffer.format, AudioFormat.pcm16kMono);
+  });
+
   testWidgets('LocalAIDemoApp renders initial UI elements and MCP controls',
       (WidgetTester tester) async {
     // Build our app and trigger a frame.
@@ -52,6 +78,11 @@ void main() {
     expect(find.text('STT Model & Microphone'), findsOneWidget);
     expect(find.text('Start Recording'), findsOneWidget);
     expect(find.text('Live Transcript'), findsOneWidget);
+    expect(
+      find.text(
+          'Capture 16 kHz mono microphone audio. Stop recording to produce one stable transcription for the captured utterance.'),
+      findsOneWidget,
+    );
     expect(find.text('Clear Transcript'), findsOneWidget);
   });
 

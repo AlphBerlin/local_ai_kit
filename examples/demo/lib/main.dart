@@ -17,6 +17,23 @@ import 'package:local_ai_sherpa/local_ai_sherpa.dart';
 
 import 'logger.dart';
 
+/// Keeps microphone frames together until the STT adapter can decode them.
+class SttCaptureBuffer {
+  final List<AudioFrame> _frames = [];
+
+  int get frameCount => _frames.length;
+
+  bool get isEmpty => _frames.isEmpty;
+
+  void add(AudioFrame frame) => _frames.add(frame);
+
+  AudioBuffer toAudioBuffer() => AudioBuffer.fromFrames(
+        List<AudioFrame>.of(_frames),
+      );
+
+  void clear() => _frames.clear();
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -122,14 +139,13 @@ class _DemoHomePageState extends State<DemoHomePage>
   double _ttsPlaybackProgress = 0.0;
   Timer? _ttsProgressTimer;
 
-  // 3. STT microphone streaming state
-  StreamSubscription<TranscriptEvent>? _sttSubscription;
+  // 3. STT microphone capture state
+  StreamSubscription<AudioFrame>? _sttAudioSubscription;
   Timer? _sttElapsedTimer;
   final Stopwatch _sttStopwatch = Stopwatch();
+  final SttCaptureBuffer _sttCapture = SttCaptureBuffer();
   bool _isSttRecording = false;
   String _sttTranscript = '';
-  String _sttPartialTranscript = '';
-  int _sttEventCount = 0;
   String _sttStatus = 'Ready to transcribe microphone audio.';
 
   static const Map<String, String> _samplePhrases = {
@@ -726,11 +742,10 @@ class _DemoHomePageState extends State<DemoHomePage>
     _sttStopwatch
       ..reset()
       ..start();
+    _sttCapture.clear();
     setState(() {
       _isSttRecording = true;
       _sttTranscript = '';
-      _sttPartialTranscript = '';
-      _sttEventCount = 0;
       _sttStatus = 'Starting microphone and STT model…';
     });
     AppLogger.info(
@@ -742,37 +757,19 @@ class _DemoHomePageState extends State<DemoHomePage>
 
     try {
       final audio = audioSource.start(format: AudioFormat.pcm16kMono);
-      final events = await ai.stt.transcribeStream(audio);
-      if (!mounted || !_isSttRecording) return;
-
-      _sttSubscription = events.listen(
-        (event) {
-          if (!mounted) return;
-          setState(() {
-            _sttEventCount++;
-            switch (event) {
-              case TranscriptPartial(:final text):
-                _sttPartialTranscript = text;
-                _sttStatus = 'Listening… Interim transcript updating.';
-              case TranscriptFinal(:final transcript):
-                _sttTranscript = transcript.text;
-                _sttPartialTranscript = '';
-                _sttStatus = 'Final transcript received.';
-            }
-          });
-        },
+      _sttAudioSubscription = audio.listen(
+        _sttCapture.add,
         onError: (Object error, StackTrace stackTrace) {
-          AppLogger.error('STT', 'Streaming transcription failed',
+          AppLogger.error('STT', 'Microphone stream failed',
               error: error, stackTrace: stackTrace);
           _sttElapsedTimer?.cancel();
           _sttStopwatch.stop();
           if (mounted) {
             setState(() {
               _isSttRecording = false;
-              _sttStatus = 'STT error: $error';
+              _sttStatus = 'Microphone error: $error';
             });
           }
-          unawaited(audioSource.stop());
         },
         onDone: () {
           if (!mounted || !_isSttRecording) return;
@@ -780,7 +777,7 @@ class _DemoHomePageState extends State<DemoHomePage>
         },
       );
       if (mounted) {
-        setState(() => _sttStatus = 'Listening… Speak into your microphone.');
+        setState(() => _sttStatus = 'Listening… Stop recording to transcribe.');
       }
     } on LocalAIError catch (e, st) {
       AppLogger.error('STT', 'STT setup failed: ${e.message}',
@@ -810,14 +807,14 @@ class _DemoHomePageState extends State<DemoHomePage>
   }
 
   Future<void> _stopSttRecording() async {
-    if (!_isSttRecording && _sttSubscription == null) return;
+    if (!_isSttRecording && _sttAudioSubscription == null) return;
 
     _sttElapsedTimer?.cancel();
     _sttElapsedTimer = null;
     _sttStopwatch.stop();
 
-    final subscription = _sttSubscription;
-    _sttSubscription = null;
+    final subscription = _sttAudioSubscription;
+    _sttAudioSubscription = null;
     try {
       await _ai?.audioSource?.stop();
       await subscription?.cancel();
@@ -826,14 +823,42 @@ class _DemoHomePageState extends State<DemoHomePage>
           error: e, stackTrace: st);
     }
 
-    if (mounted) {
-      setState(() {
-        _isSttRecording = false;
-        _sttStatus =
-            _sttTranscript.isNotEmpty || _sttPartialTranscript.isNotEmpty
-                ? 'Recording stopped. Transcript ready.'
-                : 'Recording stopped. No speech was detected.';
-      });
+    if (mounted) setState(() => _isSttRecording = false);
+
+    if (_sttCapture.isEmpty) {
+      if (mounted) {
+        setState(
+            () => _sttStatus = 'Recording stopped. No audio was captured.');
+      }
+      return;
+    }
+
+    if (mounted) setState(() => _sttStatus = 'Transcribing captured speech…');
+    await _transcribeCapturedAudio();
+  }
+
+  Future<void> _transcribeCapturedAudio() async {
+    final ai = _ai;
+    if (ai == null) return;
+
+    try {
+      final transcript = await ai.transcribe(_sttCapture.toAudioBuffer());
+      if (!mounted) return;
+
+      _sttTranscript = transcript.text;
+      _sttStatus = transcript.isEmpty
+          ? 'Transcription complete, but no speech was recognized.'
+          : 'Transcription complete.';
+      AppLogger.success('STT', 'Final transcript: "${transcript.text}"');
+      setState(() {});
+    } on LocalAIError catch (e, st) {
+      AppLogger.error('STT', 'Transcription failed: ${e.message}',
+          error: e, stackTrace: st);
+      if (mounted) setState(() => _sttStatus = 'STT error: ${e.message}');
+    } catch (e, st) {
+      AppLogger.error('STT', 'Unexpected transcription error',
+          error: e, stackTrace: st);
+      if (mounted) setState(() => _sttStatus = 'STT error: $e');
     }
   }
 
@@ -959,7 +984,7 @@ class _DemoHomePageState extends State<DemoHomePage>
   void dispose() {
     _ttsProgressTimer?.cancel();
     _sttElapsedTimer?.cancel();
-    unawaited(_sttSubscription?.cancel());
+    unawaited(_sttAudioSubscription?.cancel());
     _tabController.dispose();
     _downloadSub?.cancel();
     _statusSub?.cancel();
@@ -2193,8 +2218,7 @@ class _DemoHomePageState extends State<DemoHomePage>
   // ===========================================================================
   Widget _buildSttTab(ThemeData theme) {
     final isSttInstalled = _isModelInstalled(_selectedSttId);
-    final hasTranscript =
-        _sttTranscript.isNotEmpty || _sttPartialTranscript.isNotEmpty;
+    final hasTranscript = _sttTranscript.isNotEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -2307,7 +2331,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Capture 16 kHz mono microphone audio and inspect the partial and final recognition events emitted by the configured local model.',
+                    'Capture 16 kHz mono microphone audio. Stop recording to produce one stable transcription for the captured utterance.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -2380,31 +2404,11 @@ class _DemoHomePageState extends State<DemoHomePage>
                         fontStyle: FontStyle.italic,
                       ),
                     )
-                  else ...[
-                    if (_sttTranscript.isNotEmpty)
-                      SelectableText(
-                        _sttTranscript,
-                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
-                      ),
-                    if (_sttPartialTranscript.isNotEmpty) ...[
-                      if (_sttTranscript.isNotEmpty) const SizedBox(height: 10),
-                      Text(
-                        'Interim hypothesis',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _sttPartialTranscript,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ],
+                  else
+                    SelectableText(
+                      _sttTranscript,
+                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
+                    ),
                   const Divider(height: 24),
                   Wrap(
                     spacing: 8,
@@ -2412,19 +2416,18 @@ class _DemoHomePageState extends State<DemoHomePage>
                     children: [
                       _buildStatChip(
                           'Elapsed', _formatSttDuration(_sttStopwatch.elapsed)),
-                      _buildStatChip('Events', '$_sttEventCount'),
+                      _buildStatChip('Frames', '${_sttCapture.frameCount}'),
                       _buildStatChip('Format', 'PCM 16kHz Mono'),
                     ],
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: hasTranscript || _sttEventCount > 0
+                    onPressed: hasTranscript || !_sttCapture.isEmpty
                         ? () => setState(() {
                               _sttTranscript = '';
-                              _sttPartialTranscript = '';
-                              _sttEventCount = 0;
+                              _sttCapture.clear();
                               _sttStatus = _isSttRecording
-                                  ? 'Listening… Speak into your microphone.'
+                                  ? 'Listening… Stop recording to transcribe.'
                                   : 'Ready to transcribe microphone audio.';
                             })
                         : null,
