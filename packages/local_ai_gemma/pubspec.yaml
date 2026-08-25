@@ -2,8 +2,9 @@ name: local_ai_gemma
 description: >-
   flutter_gemma adapter for LocalAI Kit: implements the core LocalLlm
   interface on top of Google's on-device Gemma runtime.
-version: 0.1.0
-publish_to: none
+version: 0.0.1
+repository: https://github.com/AlphBerlin/local_ai_kit
+issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
 
 environment:
@@ -13,7 +14,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_ai_core:
+  local_ai_core: ^0.0.1
   # Upgraded version for modern on-device LLMs (Qwen, DeepSeek, Gemma)
   flutter_gemma: ^1.6.5
   flutter_gemma_mediapipe: ^1.0.4

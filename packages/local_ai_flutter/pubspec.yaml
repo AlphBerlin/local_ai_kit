@@ -4,8 +4,9 @@ description: >-
   streaming audio playback, network policy, device probing, permissions and
   app lifecycle hooks. The only package allowed to depend on Flutter
   platform plugins.
-version: 0.1.0
-publish_to: none
+version: 0.0.1
+repository: https://github.com/AlphBerlin/local_ai_kit
+issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
 
 environment:
@@ -15,7 +16,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_ai_core:
+  local_ai_core: ^0.0.1
   path_provider: ^2.1.4
   record: ^6.0.0
   audioplayers: ^6.1.0

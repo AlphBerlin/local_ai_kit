@@ -2,8 +2,9 @@ name: local_ai_sherpa
 description: >-
   sherpa_onnx adapters for LocalAI Kit: on-device VAD (Silero), streaming
   STT (SenseVoice) and TTS, all FFI work isolated in worker isolates.
-version: 0.1.0
-publish_to: none
+version: 0.0.1
+repository: https://github.com/AlphBerlin/local_ai_kit
+issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
 
 environment:
@@ -13,7 +14,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_ai_core:
+  local_ai_core: ^0.0.1
   sherpa_onnx: ^1.10.0
 
 dev_dependencies:

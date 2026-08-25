@@ -3,8 +3,9 @@ description: >-
   Pure-Dart core of LocalAI Kit: capability interfaces (LLM/STT/TTS/VAD/
   embedding), configuration models, model manifests, state/event models,
   adapter registry and test fakes. Zero Flutter / native AI dependencies.
-version: 0.1.0
-publish_to: none
+version: 0.0.1
+repository: https://github.com/AlphBerlin/local_ai_kit
+issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
 
 environment:
