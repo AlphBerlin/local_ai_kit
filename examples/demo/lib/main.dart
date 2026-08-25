@@ -910,16 +910,28 @@ class _DemoHomePageState extends State<DemoHomePage>
                             child: Text(
                                 '📱 Qwen 2.5 0.5B (MediaPipe • Android/iOS/Web • 546 MB)'),
                           ),
-
                           DropdownMenuItem(
                             value: 'deepseek-r1-1.5b-int4',
-                            child: Text('📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
+                            child: Text(
+                                '📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'gemma-4-e2b-it',
+                            child: Text(
+                                '💎 Gemma 4 E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'gemma-4-e4b-it',
+                            child: Text(
+                                '💎 Gemma 4 E4B (LiteRT-LM • macOS/iOS/Android • 3.66 GB)'),
                           ),
                           DropdownMenuItem(
                             value: 'gemma-3n-e2b-it-int4',
-                            child: Text('💎 Gemma 3n E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
+                            child: Text(
+                                '💎 Gemma 3n E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
                           ),
                         ],
+
                         onChanged: (val) {
                           if (val == null || val == _selectedLlmId) return;
                           setState(() => _selectedLlmId = val);

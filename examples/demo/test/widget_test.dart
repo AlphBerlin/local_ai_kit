@@ -36,4 +36,23 @@ void main() {
     await tester.pump();
     expect(find.textContaining('Calculator (calculate)'), findsOneWidget);
   });
+
+  testWidgets('LLM Dropdown contains gemma-4-e2b-it and allows selection',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const LocalAIDemoApp());
+
+    // Find LLM DropdownButton
+    final dropdown = find.byType(DropdownButton<String>).first;
+    expect(dropdown, findsOneWidget);
+
+    // Open Dropdown
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+
+    // Verify Gemma 4 E2B is an option and select it
+    final gemmaOption = find.textContaining('Gemma 4 E2B').last;
+    expect(gemmaOption, findsOneWidget);
+    await tester.tap(gemmaOption);
+    await tester.pump();
+  });
 }

@@ -25,6 +25,17 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
   /// Registered provider key (matches `ModelProviders.googleGemma`).
   static const String provider = ModelProviders.googleGemma;
 
+  /// Maps an installed weight filename to the format expected by
+  /// `flutter_gemma.createModel`.
+  static fg.ModelFileType modelFileTypeForPath(String path) {
+    final lowerPath = path.toLowerCase();
+    return switch (lowerPath) {
+      final p when p.endsWith('.litertlm') => fg.ModelFileType.litertlm,
+      final p when p.endsWith('.task') => fg.ModelFileType.task,
+      _ => fg.ModelFileType.binary,
+    };
+  }
+
   final LocalStoragePaths _paths;
 
   // TODO(verify): flutter_gemma API — the concrete session/model types
@@ -173,11 +184,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
       final id when id.contains('llama') => fg.ModelType.llama,
       _ => fg.ModelType.gemmaIt,
     };
-    final fileType = switch (path) {
-      final p when p.endsWith('.litertlm') => fg.ModelFileType.litertlm,
-      final p when p.endsWith('.task') => fg.ModelFileType.task,
-      _ => fg.ModelFileType.binary,
-    };
+    final fileType = modelFileTypeForPath(path);
     try {
       await fg.FlutterGemma.installModel(
         modelType: modelType,
@@ -203,6 +210,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
       try {
         return await gemma.createModel(
           modelType: modelType,
+          fileType: fileType,
           preferredBackend: backend,
           maxTokens: options.maxContextTokens ?? 4096,
         );
@@ -210,6 +218,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
         if (backend == fg.PreferredBackend.gpu) {
           return await gemma.createModel(
             modelType: modelType,
+            fileType: fileType,
             preferredBackend: fg.PreferredBackend.cpu,
             maxTokens: options.maxContextTokens ?? 4096,
           );
