@@ -70,7 +70,8 @@ void main() {
       expect(supertonic.id, 'supertonic-tts');
       expect(supertonic.type, ModelType.tts);
       expect(supertonic.provider, ModelProviders.sherpaCommunity);
-      expect(supertonic.files.length, 9);
+      expect(supertonic.files.length, 17);
+      expect(supertonic.voices?.length, 10);
       final fileNames = supertonic.files.map((f) => f.name).toSet();
       expect(fileNames, containsAll([
         'duration_predictor.onnx',
@@ -80,7 +81,15 @@ void main() {
         'tts.json',
         'unicode_indexer.json',
         'voice_style_F1.json',
+        'voice_style_F2.json',
+        'voice_style_F3.json',
+        'voice_style_F4.json',
+        'voice_style_F5.json',
         'voice_style_M1.json',
+        'voice_style_M2.json',
+        'voice_style_M3.json',
+        'voice_style_M4.json',
+        'voice_style_M5.json',
         'config.json',
       ]));
 

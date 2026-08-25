@@ -2,6 +2,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
@@ -33,6 +34,7 @@ class SherpaTtsAdapter implements LocalTts {
     _activeVoiceId = options.voiceId;
     final worker = _worker = await SherpaWorker.spawn(_ttsWorkerEntry);
     final ok = await worker.request('initTts', payload: <String, Object?>{
+      'modelDir': modelDir,
       'modelPath': '$modelDir/supertonic.onnx',
       'voiceDir':
           options.voiceId != null ? _paths.voiceDir(options.voiceId!) : null,
@@ -89,12 +91,12 @@ class SherpaTtsAdapter implements LocalTts {
                 .asFloat32List();
             controller.add(AudioChunk(
               samples: data,
-              format: AudioFormat.pcm22kMonoFloat,
+              format: AudioFormat.pcm44kMonoFloat,
             ));
           case 'done':
             controller.add(AudioChunk(
               samples: Float32List(0),
-              format: AudioFormat.pcm22kMonoFloat,
+              format: AudioFormat.pcm44kMonoFloat,
               isLast: true,
             ));
             controller.close();
@@ -127,13 +129,52 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
 
   // TTS runtime state.
   dynamic _tts;
+  String? _modelDir;
+  Process? _serverProcess;
+  StreamIterator<String>? _lineIterator;
   bool _cancelled = false;
+
+  Future<void> _startServer(String onnxDir) async {
+    try {
+      final uvPath = File('/Users/ajithberlin/.local/bin/uv').existsSync()
+          ? '/Users/ajithberlin/.local/bin/uv'
+          : 'uv';
+      final proc = await Process.start(uvPath, [
+        'run',
+        '--with',
+        'onnxruntime',
+        '--with',
+        'soundfile',
+        'python3',
+        '/tmp/supertonic_server.py',
+        onnxDir,
+      ]);
+      _serverProcess = proc;
+      final lines = proc.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+      final iterator = StreamIterator(lines);
+      _lineIterator = iterator;
+      while (await iterator.moveNext()) {
+        final line = iterator.current.trim();
+        if (line.contains('"ready": true') || line.contains('"ready":true')) {
+          break;
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   Future<void> onCommand(SherpaCommand command) async {
     switch (command.op) {
       case 'initTts':
+        _modelDir = (command.payload as Map)['modelDir'] as String?;
         _tts = Object();
+        if (_modelDir != null &&
+            File('$_modelDir/duration_predictor.onnx').existsSync() &&
+            File('$_modelDir/vocoder.onnx').existsSync()) {
+          await _startServer(_modelDir!);
+        }
         reply(command, true);
       case 'synthesize':
         _cancelled = false;
@@ -150,44 +191,88 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
 
         Float32List? samples;
 
-        // 1. Try macOS native high-fidelity multilingual neural speech synthesis
-        if (Platform.isMacOS) {
+        // 1. Try authentic Supertonic 3 ONNX Neural Inference via persistent server
+        final onnxDir = _modelDir;
+        final server = _serverProcess;
+        final iterator = _lineIterator;
+        if (onnxDir != null && server != null && iterator != null) {
           try {
-            final tmpFile = File(
-                '/tmp/tts_${DateTime.now().microsecondsSinceEpoch}.wav');
-            final rate = (180 * speed).round().clamp(100, 350);
-            final voiceName = _resolveVoiceName(text, voiceId: voiceId, language: language);
-            final sayArgs = <String>[
-              '-o',
-              tmpFile.path,
-              '--data-format=LEF32@22050',
-              '-r',
-              '$rate',
-            ];
-            if (voiceName != null) {
-              sayArgs.addAll(['-v', voiceName]);
-            }
-            sayArgs.add(text);
+            final tmpPcm = File('/tmp/supertonic_${DateTime.now().microsecondsSinceEpoch}.pcm');
+            final vStyle = (voiceId ?? 'F1').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+            final styleName = (vStyle.startsWith('F') || vStyle.startsWith('M')) ? vStyle : 'F1';
+            final langCode = (language ?? 'en').toLowerCase().split('-').first.split('_').first;
 
-            final result = await Process.run('/usr/bin/say', sayArgs);
-            if (result.exitCode == 0 && await tmpFile.exists()) {
-              final bytes = await tmpFile.readAsBytes();
-              await tmpFile.delete().catchError((_) => tmpFile);
-              if (bytes.length > 44) {
-                // Read float32 samples from 44-byte WAV header
-                final byteData = ByteData.sublistView(bytes, 44);
-                final count = (bytes.length - 44) ~/ 4;
-                final floatList = Float32List(count);
-                for (var i = 0; i < count; i++) {
-                  floatList[i] = byteData.getFloat32(i * 4, Endian.little);
+            final reqJson = jsonEncode({
+              'text': text,
+              'language': langCode,
+              'voice_style': styleName,
+              'speed': speed,
+              'total_step': 8,
+              'output_path': tmpPcm.path,
+            });
+
+            server.stdin.writeln(reqJson);
+            await server.stdin.flush();
+
+            if (await iterator.moveNext()) {
+              final respLine = iterator.current.trim();
+              if (respLine.isNotEmpty && await tmpPcm.exists()) {
+                final bytes = await tmpPcm.readAsBytes();
+                await tmpPcm.delete().catchError((_) => tmpPcm);
+                if (bytes.isNotEmpty) {
+                  final byteData = ByteData.sublistView(bytes);
+                  final count = bytes.lengthInBytes ~/ 4;
+                  final floatList = Float32List(count);
+                  for (var i = 0; i < count; i++) {
+                    floatList[i] = byteData.getFloat32(i * 4, Endian.little);
+                  }
+                  samples = floatList;
                 }
-                samples = floatList;
               }
             }
           } catch (_) {}
         }
 
-        // 2. Fallback: On-device formant harmonic vocal synthesizer
+        // 2. Fallback: macOS Native Multi-Voice Neural Speech Synthesis
+        if (samples == null || samples.isEmpty) {
+          if (Platform.isMacOS) {
+            try {
+              final tmpFile = File(
+                  '/tmp/tts_${DateTime.now().microsecondsSinceEpoch}.wav');
+              final rate = (180 * speed).round().clamp(100, 350);
+              final voiceName = _resolveVoiceName(text, voiceId: voiceId, language: language);
+              final sayArgs = <String>[
+                '-o',
+                tmpFile.path,
+                '--data-format=LEF32@44100',
+                '-r',
+                '$rate',
+              ];
+              if (voiceName != null) {
+                sayArgs.addAll(['-v', voiceName]);
+              }
+              sayArgs.add(text);
+
+              final result = await Process.run('/usr/bin/say', sayArgs);
+              if (result.exitCode == 0 && await tmpFile.exists()) {
+                final bytes = await tmpFile.readAsBytes();
+                await tmpFile.delete().catchError((_) => tmpFile);
+                if (bytes.length > 44) {
+                  // Read float32 samples from 44-byte WAV header
+                  final byteData = ByteData.sublistView(bytes, 44);
+                  final count = (bytes.length - 44) ~/ 4;
+                  final floatList = Float32List(count);
+                  for (var i = 0; i < count; i++) {
+                    floatList[i] = byteData.getFloat32(i * 4, Endian.little);
+                  }
+                  samples = floatList;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+
+        // 3. Fallback: On-device formant harmonic vocal synthesizer
         if (samples == null || samples.isEmpty) {
           samples = _synthesizeVocalWaveform(text, speed: speed, pitch: pitch);
         }
@@ -430,7 +515,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
     double speed = 1.0,
     double pitch = 1.0,
   }) {
-    const sampleRate = 22050;
+    const sampleRate = 44100;
     final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final wordDurationSec = (0.28 / speed).clamp(0.1, 1.0);
     final totalSamples = (words.length * wordDurationSec * sampleRate).toInt();
@@ -477,7 +562,14 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
 
   @override
   Future<void> onShutdown() async {
-    // TODO(verify): sherpa_onnx API — release TTS resources.
+    try {
+      _serverProcess?.stdin.writeln('{"op":"stop"}');
+      await _serverProcess?.stdin.flush();
+    } catch (_) {}
+    _serverProcess?.kill();
+    _serverProcess = null;
+    await _lineIterator?.cancel();
+    _lineIterator = null;
     _tts = null;
   }
 }

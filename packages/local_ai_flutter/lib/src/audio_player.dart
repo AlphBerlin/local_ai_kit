@@ -43,7 +43,7 @@ class FlutterAudioPlayer implements LocalAudioOutput {
       }
     }
     if (_stopped || buffer.isEmpty) return;
-    final effectiveFormat = format ?? AudioFormat.pcm22kMonoFloat;
+    final effectiveFormat = format ?? AudioFormat.pcm44kMonoFloat;
     final wav = _wrapWav(buffer.takeBytes(), effectiveFormat);
     final file =
         File('/tmp/tts_play_${DateTime.now().microsecondsSinceEpoch}.wav');

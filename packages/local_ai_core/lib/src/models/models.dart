@@ -6,6 +6,7 @@
 /// a stale placeholder fails closed, never open.
 library;
 
+import 'local_voice.dart';
 import 'manifest.dart';
 import 'model_delivery.dart';
 import 'model_file.dart';
@@ -351,6 +352,18 @@ abstract final class Models {
     capabilities: {ModelCapability.ttsStreaming},
     license: 'Supertone Community License',
     catalogVersion: 2,
+    voices: [
+      LocalVoice(id: 'f1', name: 'Female Voice 1 (F1 • Soft Natural)', gender: 'female', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'f2', name: 'Female Voice 2 (F2 • Bright Expressive)', gender: 'female', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'f3', name: 'Female Voice 3 (F3 • Calm Narrative)', gender: 'female', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'f4', name: 'Female Voice 4 (F4 • Warm Friendly)', gender: 'female', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'f5', name: 'Female Voice 5 (F5 • Clear Professional)', gender: 'female', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'm1', name: 'Male Voice 1 (M1 • Deep Resonant)', gender: 'male', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'm2', name: 'Male Voice 2 (M2 • Friendly Casual)', gender: 'male', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'm3', name: 'Male Voice 3 (M3 • Confident Dynamic)', gender: 'male', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'm4', name: 'Male Voice 4 (M4 • Warm Storyteller)', gender: 'male', language: 'mul', sampleRate: 44100),
+      LocalVoice(id: 'm5', name: 'Male Voice 5 (M5 • Clear Anchor)', gender: 'male', language: 'mul', sampleRate: 44100),
+    ],
     files: [
       ModelFile(
         name: 'duration_predictor.onnx',
@@ -402,9 +415,65 @@ abstract final class Models {
         sizeBytes: 292046,
       ),
       ModelFile(
+        name: 'voice_style_F2.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/F2.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 292046,
+      ),
+      ModelFile(
+        name: 'voice_style_F3.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/F3.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 292046,
+      ),
+      ModelFile(
+        name: 'voice_style_F4.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/F4.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 292046,
+      ),
+      ModelFile(
+        name: 'voice_style_F5.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/F5.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 292046,
+      ),
+      ModelFile(
         name: 'voice_style_M1.json',
         url:
             'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M1.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 291748,
+      ),
+      ModelFile(
+        name: 'voice_style_M2.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M2.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 291748,
+      ),
+      ModelFile(
+        name: 'voice_style_M3.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M3.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 291748,
+      ),
+      ModelFile(
+        name: 'voice_style_M4.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M4.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 291748,
+      ),
+      ModelFile(
+        name: 'voice_style_M5.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M5.json',
         sha256: kPlaceholderSha256,
         sizeBytes: 291748,
       ),
