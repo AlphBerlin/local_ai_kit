@@ -199,6 +199,7 @@ class LocalTtsFacade {
   Future<Stream<AudioChunk>> synthesizeStream(
     String text, {
     String? voiceId,
+    String? language,
     double? speed,
     double? pitch,
   }) async {
@@ -206,22 +207,33 @@ class LocalTtsFacade {
     return (await _ready()).synthesizeStream(SpeakRequest(
       text: text,
       voiceId: voiceId ?? config.voiceId,
+      language: language,
       speed: speed ?? config.speed,
       pitch: pitch ?? 1.0,
     ));
   }
 
   /// Speaks [text] through the configured [LocalAudioOutput].
-  Future<void> speak(String text,
-      {String? voiceId, double? speed, double? pitch}) async {
+  Future<void> speak(
+    String text, {
+    String? voiceId,
+    String? language,
+    double? speed,
+    double? pitch,
+  }) async {
     final output = _audioOutput;
     if (output == null) {
       throw const InvalidStateError(
           'No LocalAudioOutput configured: enable audio output in '
           'LocalAI.initialize.');
     }
-    final chunks = await synthesizeStream(text,
-        voiceId: voiceId, speed: speed, pitch: pitch);
+    final chunks = await synthesizeStream(
+      text,
+      voiceId: voiceId,
+      language: language,
+      speed: speed,
+      pitch: pitch,
+    );
     await output.play(chunks);
   }
 

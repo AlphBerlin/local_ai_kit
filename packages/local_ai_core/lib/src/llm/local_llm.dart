@@ -13,6 +13,8 @@ class LlmLoadOptions {
     this.runtime = RuntimePreference.auto,
     this.maxContextTokens,
     this.temperature = 0.8,
+    this.topK = 40,
+    this.topP = 0.9,
   });
 
   /// Catalog id of the model to load (see `LocalModelManifest.id`).
@@ -27,6 +29,12 @@ class LlmLoadOptions {
 
   /// Default sampling temperature for requests that don't override it.
   final double temperature;
+
+  /// Top-k sampling limit.
+  final int? topK;
+
+  /// Top-p (nucleus) sampling threshold.
+  final double? topP;
 }
 
 /// On-device large language model inference.

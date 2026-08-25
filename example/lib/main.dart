@@ -98,6 +98,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
   );
   double _ttsSpeed = 1.0;
   double _ttsPitch = 1.0;
+  String _ttsLanguage = 'ja';
+  String _ttsVoiceStyle = 'default';
   bool _isTtsSynthesizing = false;
   bool _isTtsPlaying = false;
   int _ttsAudioChunks = 0;
@@ -105,6 +107,28 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
   String _ttsStatus = 'Ready to synthesize speech.';
   double _ttsPlaybackProgress = 0.0;
   Timer? _ttsProgressTimer;
+
+  static const Map<String, String> _samplePhrases = {
+    'ja': 'こんにちは！ 今日は「ありがとう」の使い方を勉強しましょう。',
+    'en': 'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
+    'ko': '안녕하세요! 온디바이스 음성 합성 LocalAI Kit에 오신 것을 환영합니다.',
+    'zh': '你好！欢迎使用LocalAI Kit端侧语音合成。',
+    'es': '¡Hola! Bienvenido a LocalAI Kit con síntesis de voz en el dispositivo.',
+    'fr': 'Bonjour! Bienvenue sur LocalAI Kit avec synthèse vocale sur appareil.',
+    'de': 'Hallo! Willkommen bei LocalAI Kit für lokale Sprachsynthese.',
+    'it': 'Ciao! Benvenuto in LocalAI Kit con sintesi vocale sul dispositivo.',
+    'pt': 'Olá! Bem-vindo ao LocalAI Kit com síntese de voz no dispositivo.',
+    'ru': 'Привет! Добро пожаловать в LocalAI Kit с синтезом речи на устройстве.',
+    'hi': 'नमस्ते! लोकल एआई किट में आपका स्वागत है।',
+    'ar': 'مرحبا بك في LocalAI Kit لتحويل النص إلى كلام محليا.',
+    'nl': 'Hallo! Welkom bij LocalAI Kit met spraaksynthese op het apparaat.',
+    'pl': 'Cześć! Witamy w LocalAI Kit z syntezą mowy na urządzeniu.',
+    'tr': 'Merhaba! Cihaz içi ses sentezi ile LocalAI Kit\'e hoş geldiniz.',
+    'sv': 'Hej! Välkommen till LocalAI Kit med talsyntes på enheten.',
+    'vi': 'Xin chào! Chào mừng đến với LocalAI Kit tổng hợp giọng nói.',
+    'id': 'Halo! Selamat datang di LocalAI Kit dengan sintesis suara di perangkat.',
+    'th': 'สวัสดี! ยินดีต้อนรับสู่ LocalAI Kit ระบบสังเคราะห์เสียงบนอุปกรณ์',
+  };
 
   // 3. Voice session state
   String _voiceStatus = 'Voice session idle. Press Start to speak.';
@@ -502,6 +526,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
       // 1. Synthesize audio stream and collect chunks
       final chunkStream = await ai.tts.synthesizeStream(
         text,
+        language: _ttsLanguage,
+        voiceId: _ttsVoiceStyle != 'default' ? _ttsVoiceStyle : null,
         speed: _ttsSpeed,
         pitch: _ttsPitch,
       );
@@ -519,7 +545,13 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
       // 2. Play audio stream through system speaker output
       setState(() => _ttsStatus = '🔊 Playing audio through device speakers…');
-      await ai.tts.speak(text, speed: _ttsSpeed, pitch: _ttsPitch);
+      await ai.tts.speak(
+        text,
+        language: _ttsLanguage,
+        voiceId: _ttsVoiceStyle != 'default' ? _ttsVoiceStyle : null,
+        speed: _ttsSpeed,
+        pitch: _ttsPitch,
+      );
 
       stopwatch.stop();
       _ttsProgressTimer?.cancel();
@@ -995,7 +1027,7 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.graphic_eq,
                     value: _selectedTtsId,
                     items: const [
-                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic TTS (67 MB)')),
+                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic 3 (Supertone Inc. • 31+ Languages • 398 MB)')),
                       DropdownMenuItem(value: 'vits-piper-en-lessac', child: Text('Piper TTS Lessac Low (67 MB)')),
                       DropdownMenuItem(value: 'kokoro-en-tts', child: Text('Kokoro TTS v0.19 (319 MB)')),
                     ],
@@ -1048,6 +1080,102 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // Language & Voice Style Selectors
+                  Row(
+                    children: [
+                      // Language Dropdown
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _ttsLanguage,
+                          decoration: InputDecoration(
+                            labelText: 'Spoken Language',
+                            prefixIcon: const Icon(Icons.language, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'ja', child: Text('🇯🇵 Japanese (日本語)')),
+                            DropdownMenuItem(value: 'en', child: Text('🇺🇸 English (US)')),
+                            DropdownMenuItem(value: 'ko', child: Text('🇰🇷 Korean (한국어)')),
+                            DropdownMenuItem(value: 'zh', child: Text('🇨🇳 Chinese (中文)')),
+                            DropdownMenuItem(value: 'es', child: Text('🇪🇸 Spanish (Español)')),
+                            DropdownMenuItem(value: 'fr', child: Text('🇫🇷 French (Français)')),
+                            DropdownMenuItem(value: 'de', child: Text('🇩🇪 German (Deutsch)')),
+                            DropdownMenuItem(value: 'it', child: Text('🇮🇹 Italian (Italiano)')),
+                            DropdownMenuItem(value: 'pt', child: Text('🇵🇹 Portuguese (Português)')),
+                            DropdownMenuItem(value: 'ru', child: Text('🇷🇺 Russian (Русский)')),
+                            DropdownMenuItem(value: 'hi', child: Text('🇮🇳 Hindi (हिन्दी)')),
+                            DropdownMenuItem(value: 'ar', child: Text('🇦🇪 Arabic (العربية)')),
+                            DropdownMenuItem(value: 'nl', child: Text('🇳🇱 Dutch (Nederlands)')),
+                            DropdownMenuItem(value: 'pl', child: Text('🇵🇱 Polish (Polski)')),
+                            DropdownMenuItem(value: 'tr', child: Text('🇹🇷 Turkish (Türkçe)')),
+                            DropdownMenuItem(value: 'sv', child: Text('🇸🇪 Swedish (Svenska)')),
+                            DropdownMenuItem(value: 'vi', child: Text('🇻🇳 Vietnamese (Tiếng Việt)')),
+                            DropdownMenuItem(value: 'id', child: Text('🇮🇩 Indonesian (Bahasa)')),
+                            DropdownMenuItem(value: 'th', child: Text('🇹🇭 Thai (ไทย)')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _ttsLanguage = val;
+                                if (_samplePhrases.containsKey(val)) {
+                                  _ttsTextController.text = _samplePhrases[val]!;
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Speaker / Voice Style Dropdown
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _ttsVoiceStyle,
+                          decoration: InputDecoration(
+                            labelText: 'Speaker Voice Style',
+                            prefixIcon: const Icon(Icons.record_voice_over, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: _selectedTtsId == 'supertonic-tts'
+                              ? const [
+                                  DropdownMenuItem(value: 'default', child: Text('Auto Matching (Default)')),
+                                  DropdownMenuItem(value: 'f1', child: Text('F1 (Female • Soft Natural)')),
+                                  DropdownMenuItem(value: 'f2', child: Text('F2 (Female • Bright Expressive)')),
+                                  DropdownMenuItem(value: 'f3', child: Text('F3 (Female • Calm Narrative)')),
+                                  DropdownMenuItem(value: 'f4', child: Text('F4 (Female • Warm Friendly)')),
+                                  DropdownMenuItem(value: 'f5', child: Text('F5 (Female • Clear Professional)')),
+                                  DropdownMenuItem(value: 'm1', child: Text('M1 (Male • Deep Resonant)')),
+                                  DropdownMenuItem(value: 'm2', child: Text('M2 (Male • Friendly Casual)')),
+                                  DropdownMenuItem(value: 'm3', child: Text('M3 (Male • Confident Dynamic)')),
+                                  DropdownMenuItem(value: 'm4', child: Text('M4 (Male • Warm Storyteller)')),
+                                  DropdownMenuItem(value: 'm5', child: Text('M5 (Male • Clear Anchor)')),
+                                ]
+                              : (_selectedTtsId == 'kokoro-en-tts'
+                                  ? const [
+                                      DropdownMenuItem(value: 'default', child: Text('Heart (Default)')),
+                                      DropdownMenuItem(value: 'bella', child: Text('Bella (Female)')),
+                                      DropdownMenuItem(value: 'nicole', child: Text('Nicole (Female)')),
+                                      DropdownMenuItem(value: 'sarah', child: Text('Sarah (Female)')),
+                                      DropdownMenuItem(value: 'adam', child: Text('Adam (Male)')),
+                                      DropdownMenuItem(value: 'michael', child: Text('Michael (Male)')),
+                                    ]
+                                  : const [
+                                      DropdownMenuItem(value: 'default', child: Text('Lessac Low (Default)')),
+                                    ]),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _ttsVoiceStyle = val);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
                   // Speed slider
                   Row(
                     children: [
@@ -1105,24 +1233,108 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           ),
           const SizedBox(height: 8),
 
-          // Preset text chips
+          // Multilingual Quick Sample Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
                 ActionChip(
-                  label: const Text('Welcome message'),
-                  onPressed: () => _ttsTextController.text = 'Welcome to LocalAI Kit! Running 100% offline text to speech.',
+                  avatar: const Text('🇯🇵'),
+                  label: const Text('日本語 Japanese'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'ja';
+                    _ttsTextController.text = _samplePhrases['ja']!;
+                  }),
                 ),
                 const SizedBox(width: 6),
                 ActionChip(
-                  label: const Text('Privacy & speed'),
-                  onPressed: () => _ttsTextController.text = 'On-device neural synthesis guarantees complete privacy with ultra-low latency.',
+                  avatar: const Text('🇺🇸'),
+                  label: const Text('English (US)'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'en';
+                    _ttsTextController.text = _samplePhrases['en']!;
+                  }),
                 ),
                 const SizedBox(width: 6),
                 ActionChip(
-                  label: const Text('Antigravity power'),
-                  onPressed: () => _ttsTextController.text = 'Antigravity enables modular inference with streaming audio synthesis.',
+                  avatar: const Text('🇰🇷'),
+                  label: const Text('한국어 Korean'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'ko';
+                    _ttsTextController.text = _samplePhrases['ko']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇨🇳'),
+                  label: const Text('中文 Chinese'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'zh';
+                    _ttsTextController.text = _samplePhrases['zh']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇪🇸'),
+                  label: const Text('Español Spanish'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'es';
+                    _ttsTextController.text = _samplePhrases['es']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇫🇷'),
+                  label: const Text('Français French'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'fr';
+                    _ttsTextController.text = _samplePhrases['fr']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇩🇪'),
+                  label: const Text('Deutsch German'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'de';
+                    _ttsTextController.text = _samplePhrases['de']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇮🇹'),
+                  label: const Text('Italiano Italian'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'it';
+                    _ttsTextController.text = _samplePhrases['it']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇮🇳'),
+                  label: const Text('हिन्दी Hindi'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'hi';
+                    _ttsTextController.text = _samplePhrases['hi']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇷🇺'),
+                  label: const Text('Русский Russian'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'ru';
+                    _ttsTextController.text = _samplePhrases['ru']!;
+                  }),
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  avatar: const Text('🇦🇪'),
+                  label: const Text('العربية Arabic'),
+                  onPressed: () => setState(() {
+                    _ttsLanguage = 'ar';
+                    _ttsTextController.text = _samplePhrases['ar']!;
+                  }),
                 ),
               ],
             ),
@@ -1376,7 +1588,7 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.volume_up,
                     value: _selectedTtsId,
                     items: const [
-                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic TTS (67 MB)')),
+                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic 3 (31+ Langs • 398 MB)')),
                       DropdownMenuItem(value: 'vits-piper-en-lessac', child: Text('Piper TTS Lessac (67 MB)')),
                       DropdownMenuItem(value: 'kokoro-en-tts', child: Text('Kokoro TTS v0.19 (319 MB)')),
                     ],

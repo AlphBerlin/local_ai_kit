@@ -164,8 +164,20 @@ class LocalAI {
       _sttFacade.transcribeStream(audio, options: options);
 
   /// Speaks [text] through the speaker (delegates to [tts]).
-  Future<void> speak(String text, {String? voiceId, double? speed}) =>
-      _ttsFacade.speak(text, voiceId: voiceId, speed: speed);
+  Future<void> speak(
+    String text, {
+    String? voiceId,
+    String? language,
+    double? speed,
+    double? pitch,
+  }) =>
+      _ttsFacade.speak(
+        text,
+        voiceId: voiceId,
+        language: language,
+        speed: speed,
+        pitch: pitch,
+      );
 
   /// Starts the typed pipeline DSL (architecture §5.4).
   LocalPipeline pipeline() => LocalPipeline(this);

@@ -163,6 +163,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     final modelType = switch (idLower) {
       final id when id.contains('deepseek') => fg.ModelType.deepSeek,
       final id when id.contains('qwen') => fg.ModelType.qwen,
+      final id when id.contains('smollm') => fg.ModelType.llama,
       final id when id.contains('llama') => fg.ModelType.llama,
       _ => fg.ModelType.gemmaIt,
     };
@@ -227,33 +228,72 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     if (model is fg.InferenceModel) {
       return model.createChat(
         temperature: options.temperature,
+        topK: options.topK ?? 40,
+        topP: options.topP ?? 0.9,
       );
     }
     return (model as dynamic).createChat(
       temperature: options.temperature,
+      topK: options.topK ?? 40,
+      topP: options.topP ?? 0.9,
     );
   }
 
   Stream<String> _nativeGenerate(LlmRequest request) async* {
-    final chat = _session;
-    if (chat == null) return;
+    final model = _model;
+    if (model == null) return;
 
-    final promptBuffer = StringBuffer();
-    for (final message in request.messages) {
-      if (message.role == LlmRole.system) {
-        promptBuffer.writeln('[System]: ${message.content}\n');
-      } else {
-        promptBuffer.writeln(message.content);
-      }
+    // Separate system instruction from conversation turns
+    final systemMsgs = request.messages.where((m) => m.role == LlmRole.system).toList();
+    final systemPrompt = systemMsgs.isNotEmpty
+        ? systemMsgs.map((m) => m.content).join('\n').trim()
+        : null;
+
+    final turns = request.messages.where((m) => m.role != LlmRole.system).toList();
+
+    // Use nucleus top-p / top-k sampling to avoid greedy repetition traps
+    final temp = (_options?.temperature ?? 0.7).clamp(0.1, 1.2);
+    final topK = _options?.topK ?? 40;
+    final topP = _options?.topP ?? 0.9;
+
+    // Create a fresh chat session for this generation request
+    dynamic chat;
+    if (model is fg.InferenceModel) {
+      chat = await model.createChat(
+        temperature: temp,
+        topK: topK,
+        topP: topP,
+        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty ? systemPrompt : null,
+      );
+    } else {
+      chat = await (model as dynamic).createChat(
+        temperature: temp,
+        topK: topK,
+        topP: topP,
+        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty ? systemPrompt : null,
+      );
     }
 
-    final queryText = promptBuffer.toString().trim();
+    // Add preceding turns in order
+    for (var i = 0; i < turns.length - 1; i++) {
+      final t = turns[i];
+      await chat.addQueryChunk(fg.Message.text(
+        text: t.content,
+        isUser: t.role == LlmRole.user,
+      ));
+    }
+
+    // Add the final user query
+    final latest = turns.isNotEmpty ? turns.last : const LlmMessage.user('Hello');
     await chat.addQueryChunk(fg.Message.text(
-      text: queryText.isNotEmpty ? queryText : 'Hello',
+      text: latest.content,
       isUser: true,
     ));
 
     final stream = chat.generateChatResponseAsync();
+    String? lastChunk;
+    var repeatCount = 0;
+
     await for (final response in stream) {
       if (response == null) continue;
       String? text;
@@ -269,6 +309,16 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
         }
       }
       if (text.isNotEmpty) {
+        // Degenerate repetition loop guard
+        if (text == lastChunk) {
+          repeatCount++;
+          if (repeatCount > 6) {
+            break;
+          }
+        } else {
+          lastChunk = text;
+          repeatCount = 0;
+        }
         yield text;
       }
     }

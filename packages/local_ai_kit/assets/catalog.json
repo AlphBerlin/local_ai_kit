@@ -239,21 +239,73 @@
       "id": "supertonic-tts",
       "type": "tts",
       "provider": "sherpa-community",
-      "displayName": "Supertonic TTS",
-      "description": "Fast streaming text-to-speech voice synthesis.",
+      "displayName": "Supertonic 3 (Supertone Inc. • 31+ Languages)",
+      "description": "Ultra-fast on-device neural TTS with 31+ languages and 10 voice styles (F1-F5, M1-M5).",
       "delivery": "download",
-      "minMemoryMB": 128,
-      "languages": ["en"],
+      "minMemoryMB": 256,
+      "languages": [
+        "en", "ko", "es", "ja", "zh", "fr", "de", "pt", "it", "ru", "ar", "hi",
+        "nl", "pl", "tr", "sv", "id", "vi", "tl", "th", "el", "cs", "ro", "hu",
+        "da", "fi", "no", "sk", "uk", "ms", "bn"
+      ],
       "platforms": ["android", "ios", "macos"],
-      "capabilities": ["ttsStreaming"],
-      "license": "MIT",
-      "catalogVersion": 1,
+      "capabilities": ["ttsStreaming", "multilingual"],
+      "license": "Supertone Community License",
+      "catalogVersion": 2,
       "files": [
         {
-          "name": "vits-piper-en_US-lessac-low.tar.bz2",
-          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2",
+          "name": "duration_predictor.onnx",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/duration_predictor.onnx",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 67097098
+          "sizeBytes": 3700147
+        },
+        {
+          "name": "text_encoder.onnx",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/text_encoder.onnx",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 36416150
+        },
+        {
+          "name": "vector_estimator.onnx",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/vector_estimator.onnx",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 256534781
+        },
+        {
+          "name": "vocoder.onnx",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/vocoder.onnx",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 101424195
+        },
+        {
+          "name": "tts.json",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/tts.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 8253
+        },
+        {
+          "name": "unicode_indexer.json",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/unicode_indexer.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 277676
+        },
+        {
+          "name": "voice_style_F1.json",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/F1.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 292046
+        },
+        {
+          "name": "voice_style_M1.json",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M1.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 291748
+        },
+        {
+          "name": "config.json",
+          "url": "https://huggingface.co/Supertone/supertonic-3/resolve/main/config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 174
         }
       ]
     },

@@ -24,6 +24,7 @@ class SpeakRequest {
   const SpeakRequest({
     required this.text,
     this.voiceId,
+    this.language,
     this.speed = 1.0,
     this.pitch = 1.0,
   });
@@ -34,6 +35,9 @@ class SpeakRequest {
 
   /// Overrides the active voice for this request.
   final String? voiceId;
+
+  /// Language code (e.g. 'ja', 'en', 'es', 'ko', 'zh', 'fr', 'de').
+  final String? language;
 
   /// Speaking rate multiplier, 1.0 = normal.
   final double speed;

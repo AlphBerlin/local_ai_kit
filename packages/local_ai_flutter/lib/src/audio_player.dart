@@ -37,30 +37,33 @@ class FlutterAudioPlayer implements LocalAudioOutput {
 
     await for (final chunk in audio) {
       if (_stopped) return;
-      format = chunk.format;
-      buffer.add(_float32ToPcm16Bytes(chunk.samples));
+      if (chunk.samples.isNotEmpty) {
+        format = chunk.format;
+        buffer.add(_float32ToPcm16Bytes(chunk.samples));
+      }
     }
-    if (_stopped) return;
-    final effectiveFormat = format ?? AudioFormat.pcm16kMono;
+    if (_stopped || buffer.isEmpty) return;
+    final effectiveFormat = format ?? AudioFormat.pcm22kMonoFloat;
     final wav = _wrapWav(buffer.takeBytes(), effectiveFormat);
     final file =
-        File('$cacheDir/tts-${DateTime.now().microsecondsSinceEpoch}.wav');
+        File('/tmp/tts_play_${DateTime.now().microsecondsSinceEpoch}.wav');
     await file.writeAsBytes(wav, flush: true);
     try {
       if (Platform.isMacOS) {
-        final proc = await Process.start('afplay', [file.path]);
+        final proc = await Process.start('/usr/bin/afplay', [file.path]);
         _activeProcess = proc;
         await proc.exitCode;
       } else {
         await player.play(DeviceFileSource(file.path));
-        // Wait for playback completion (watchdog timeout; barge-in stop()
-        // releases via the finally block).
         try {
           await player.onPlayerComplete.first.timeout(const Duration(minutes: 5));
-        } on TimeoutException {
-          // Give up waiting; the player is stopped below regardless.
-        }
+        } on TimeoutException {}
       }
+    } catch (_) {
+      try {
+        await player.play(DeviceFileSource(file.path));
+        await player.onPlayerComplete.first.timeout(const Duration(minutes: 5));
+      } catch (_) {}
     } finally {
       _activeProcess = null;
       await file.delete().catchError((_) => file);

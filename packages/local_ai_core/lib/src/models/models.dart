@@ -332,27 +332,88 @@ abstract final class Models {
     ],
   );
 
-  /// Supertonic streaming TTS model (alias / fallback).
+  /// Supertonic 3 multilingual on-device TTS model (Supertone Inc.).
   static const LocalModelManifest supertonic = LocalModelManifest(
     id: 'supertonic-tts',
     type: ModelType.tts,
     provider: ModelProviders.sherpaCommunity,
-    displayName: 'Supertonic TTS',
-    description: 'Streaming text-to-speech voice synthesis.',
+    displayName: 'Supertonic 3 (Supertone Inc. • 31+ Languages)',
+    description:
+        'Ultra-fast on-device neural TTS with 31+ languages and 10 voice styles (F1-F5, M1-M5).',
     delivery: ModelDelivery.download,
-    minMemoryMB: 128,
-    languages: ['en'],
+    minMemoryMB: 256,
+    languages: [
+      'en', 'ko', 'es', 'ja', 'zh', 'fr', 'de', 'pt', 'it', 'ru', 'ar', 'hi',
+      'nl', 'pl', 'tr', 'sv', 'id', 'vi', 'tl', 'th', 'el', 'cs', 'ro', 'hu',
+      'da', 'fi', 'no', 'sk', 'uk', 'ms', 'bn',
+    ],
     platforms: ['android', 'ios', 'macos'],
     capabilities: {ModelCapability.ttsStreaming},
-    license: 'MIT',
-    catalogVersion: 1,
+    license: 'Supertone Community License',
+    catalogVersion: 2,
     files: [
       ModelFile(
-        name: 'vits-piper-en_US-lessac-low.tar.bz2',
+        name: 'duration_predictor.onnx',
         url:
-            'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2',
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/duration_predictor.onnx',
         sha256: kPlaceholderSha256,
-        sizeBytes: 67097098,
+        sizeBytes: 3700147,
+      ),
+      ModelFile(
+        name: 'text_encoder.onnx',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/text_encoder.onnx',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 36416150,
+      ),
+      ModelFile(
+        name: 'vector_estimator.onnx',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/vector_estimator.onnx',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 256534781,
+      ),
+      ModelFile(
+        name: 'vocoder.onnx',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/vocoder.onnx',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 101424195,
+      ),
+      ModelFile(
+        name: 'tts.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/tts.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 8253,
+      ),
+      ModelFile(
+        name: 'unicode_indexer.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/unicode_indexer.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 277676,
+      ),
+      ModelFile(
+        name: 'voice_style_F1.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/F1.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 292046,
+      ),
+      ModelFile(
+        name: 'voice_style_M1.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles/M1.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 291748,
+      ),
+      ModelFile(
+        name: 'config.json',
+        url:
+            'https://huggingface.co/Supertone/supertonic-3/resolve/main/config.json',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 174,
       ),
     ],
   );
