@@ -34,7 +34,7 @@ Wraps `WidgetsBindingObserver` and collapses Flutter's five `AppLifecycleState` 
 
 ## FlutterAudioPlayer
 
-`LocalAudioOutput` backed by `audioplayers`. Because `audioplayers` is file/bytes-oriented rather than sample-stream-oriented, playback isn't truly low-latency streaming today: the whole `Stream<AudioChunk>` is buffered into a growing in-memory WAV, written once to `cacheDir`, and then played back as a file — `/usr/bin/afplay` on macOS, `audioplayers`' `DeviceFileSource` elsewhere. `stop()` kills the active process/player immediately, which is what makes barge-in's playback cutoff work. The source has an explicit `TODO(verify)` calling out that a PCM push API (platform channel or a streaming plugin) should replace this before a low-latency release; the public `play`/`stop` contract wouldn't change.
+`LocalAudioOutput` backed by `flutter_soloud`. Each `AudioChunk` is converted to little-endian PCM16 and pushed into a native `setBufferStream` with released buffering and a bounded two-second buffer, so playback starts while synthesis is still producing audio instead of waiting for a complete WAV file. `stop()` cancels the input iterator, stops the active voice and disposes its source for barge-in. The `cacheDir` constructor argument remains for source compatibility, but no playback scratch files are created.
 
 ## FlutterNetworkPolicy
 
@@ -42,6 +42,4 @@ Wraps `connectivity_plus`, mapping its results onto `NetworkStatus.wifi` / `.cel
 
 ## FlutterDeviceProbe
 
-Backs `ai.runtime.deviceCapabilities()` / `checkCompatibility()` (see [Runtime & Memory](runtime-memory.md)). **Currently a placeholder, not a real probe:** on both Android and iOS it hardcodes `totalMemoryMB: 4096`, `availableMemoryMB: 2048`, and `freeDiskMB` to 100 GB, regardless of the actual device — the source has multiple `TODO(verify)` comments noting that `device_info_plus` doesn't expose RAM directly and that `dart:io` has no free-space API, so these are conservative stand-ins pending a real platform-channel probe. This means memory/disk pre-flight checks (model compatibility gating, download disk checks) don't yet reflect the real device — see the [FAQ](faq.md#what-happens-when-the-device-runs-out-of-ram) for the practical implication.
-
-Inject your own probe via `LocalAI.initialize(deviceProbe: () async => myRealCapabilities)` if you need accurate figures before this is fixed upstream.
+Backs `ai.runtime.deviceCapabilities()` / `checkCompatibility()` (see [Runtime & Memory](runtime-memory.md)). On Android and iOS it reads physical RAM, available RAM and free disk from `device_info_plus`. On Linux it parses `/proc/meminfo` and `df`; on macOS it uses `sysctl`, `vm_stat` and `df`; on Windows it uses PowerShell CIM queries. A failed or unsupported metric is reported as `0` rather than a fabricated capacity. Pass a custom `DeviceMetricsSource` to `FlutterDeviceProbe` in tests or when an app has a more appropriate platform-specific source.

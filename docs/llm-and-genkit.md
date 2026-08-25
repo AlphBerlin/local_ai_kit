@@ -115,6 +115,32 @@ import 'package:local_ai_genkit/local_ai_genkit.dart';
 final genkit = ai.genkit; // GenkitOrchestrator?
 ```
 
+For direct integration with the upstream Genkit runtime, register the adapter
+with a caller-owned `Genkit` instance. The bridge targets Genkit `0.14.x`,
+forwards text-only messages, sampling configuration and streamed text chunks:
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:local_ai_genkit/local_ai_genkit.dart';
+
+final runtime = Genkit(promptDir: null);
+final model = GenkitLlmAdapter(inner: ai.llm!).registerAsGenkitModel(
+  genkit: runtime,
+  name: 'localai/inner',
+);
+
+final response = await model.call(
+  ModelRequest(
+    messages: [
+      Message(role: Role.user, content: [TextPart(text: 'Say hello.')]),
+    ],
+  ),
+);
+```
+
+Media, tool-call and other non-text message parts are rejected explicitly by
+the bridge because `LocalLlm` currently exposes a text-only contract.
+
 ### Flows and tools
 
 ```dart

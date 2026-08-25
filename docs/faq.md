@@ -14,7 +14,7 @@ When the remote catalog carries a higher `catalogVersion` with changed file hash
 
 Three layers of defense:
 
-1. **Pre-check** — `ai.runtime.checkCompatibility(manifest)` compares `minMemoryMB` with available RAM before you even offer a download. **Caveat:** on the shipped `FlutterDeviceProbe`, RAM and free-disk figures are currently hardcoded placeholders (4096 MB total / 2048 MB available / 100 GB free) rather than a real platform probe — see the `TODO(verify)` comments in `packages/local_ai_flutter/lib/src/device_probe.dart`. The check runs, but it isn't yet reading your actual device's memory.
+1. **Pre-check** — `ai.runtime.checkCompatibility(manifest)` compares `minMemoryMB` with available RAM before you even offer a download. The shipped `FlutterDeviceProbe` reads mobile metrics through `device_info_plus` and desktop metrics through native OS commands. Unsupported or failed metrics are `0`, so an app can inject a stricter `DeviceMetricsSource` when a reliable platform-specific value is required.
 2. **LRU policy** — `RuntimeMemoryPolicy.maxLoadedModels` caps simultaneously loaded models; the least-recently-used unlocked model is evicted first, idle models are swept after `unloadUnusedAfter`, and backgrounding trims everything unlocked.
 3. **Fallback** — if a `gpu`/`npu` load fails, the scheduler retries on `cpu` and reports `RuntimeBackendFallback`.
 
