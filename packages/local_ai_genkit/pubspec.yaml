@@ -19,8 +19,7 @@ dependencies:
   # Only for the `LocalAIGenkitX` escape-hatch extension (architecture
   # §3.5). The dependency direction genkit → kit is intentional.
   local_ai_kit: ^0.0.1
-  # TODO(verify): pin against the actual genkit Dart release used.
-  genkit: ^0.5.0
+  genkit: ">=0.14.1 <0.15.0"
 
 dev_dependencies:
   flutter_test:
