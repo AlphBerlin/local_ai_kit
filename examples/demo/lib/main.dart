@@ -1,5 +1,5 @@
 /// LocalAI Kit interactive demo:
-/// - Categorized tabs: Text Generation (LLM), Text-to-Speech (TTS), Voice Pipeline (VAD+STT+LLM+TTS), Model Catalog & Storage, Live Terminal
+/// - Categorized tabs: Text Generation (LLM), Text-to-Speech (TTS), Speech-to-Text (STT), Voice Pipeline (VAD+STT+LLM+TTS), Model Catalog & Storage, Live Terminal
 /// - Fast on-device LLMs: SmolLM2 360M (LiteRT-LM for macOS & Mobile), Qwen 2.5 0.5B, DeepSeek R1 1.5B
 /// - On-device TTS: Piper TTS Lessac Low, Supertonic TTS, Kokoro TTS v0.19 with Audio Player
 /// - Real-time model downloader with live MB / speed / ETA tracking & uninstalled model notifications
@@ -122,6 +122,16 @@ class _DemoHomePageState extends State<DemoHomePage>
   double _ttsPlaybackProgress = 0.0;
   Timer? _ttsProgressTimer;
 
+  // 3. STT microphone streaming state
+  StreamSubscription<TranscriptEvent>? _sttSubscription;
+  Timer? _sttElapsedTimer;
+  final Stopwatch _sttStopwatch = Stopwatch();
+  bool _isSttRecording = false;
+  String _sttTranscript = '';
+  String _sttPartialTranscript = '';
+  int _sttEventCount = 0;
+  String _sttStatus = 'Ready to transcribe microphone audio.';
+
   static const Map<String, String> _samplePhrases = {
     'ja': 'こんにちは！ 今日は「ありがとう」の使い方を勉強しましょう。',
     'en':
@@ -179,7 +189,7 @@ class _DemoHomePageState extends State<DemoHomePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _bootstrap();
   }
 
@@ -199,6 +209,7 @@ class _DemoHomePageState extends State<DemoHomePage>
     try {
       await _downloadSub?.cancel();
       await _statusSub?.cancel();
+      await _stopSttRecording();
       await _voiceSession?.stop();
       _voiceSession = null;
       await _ai?.dispose();
@@ -682,6 +693,150 @@ class _DemoHomePageState extends State<DemoHomePage>
     }
   }
 
+  Future<void> _toggleSttRecording() async {
+    if (_isSttRecording) {
+      await _stopSttRecording();
+      return;
+    }
+
+    final ai = _ai;
+    if (ai == null) return;
+
+    if (!_isModelInstalled(_selectedSttId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Model "$_selectedSttId" is not installed. Please download it first.'),
+          action: SnackBarAction(
+            label: 'Download',
+            onPressed: () => _installModel(_selectedSttId),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final audioSource = ai.audioSource;
+    if (audioSource == null) {
+      setState(() => _sttStatus = 'Microphone input is not enabled.');
+      return;
+    }
+
+    _sttElapsedTimer?.cancel();
+    _sttStopwatch
+      ..reset()
+      ..start();
+    setState(() {
+      _isSttRecording = true;
+      _sttTranscript = '';
+      _sttPartialTranscript = '';
+      _sttEventCount = 0;
+      _sttStatus = 'Starting microphone and STT model…';
+    });
+    AppLogger.info(
+        'STT', 'Starting microphone transcription with $_selectedSttId');
+
+    _sttElapsedTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted && _isSttRecording) setState(() {});
+    });
+
+    try {
+      final audio = audioSource.start(format: AudioFormat.pcm16kMono);
+      final events = await ai.stt.transcribeStream(audio);
+      if (!mounted || !_isSttRecording) return;
+
+      _sttSubscription = events.listen(
+        (event) {
+          if (!mounted) return;
+          setState(() {
+            _sttEventCount++;
+            switch (event) {
+              case TranscriptPartial(:final text):
+                _sttPartialTranscript = text;
+                _sttStatus = 'Listening… Interim transcript updating.';
+              case TranscriptFinal(:final transcript):
+                _sttTranscript = transcript.text;
+                _sttPartialTranscript = '';
+                _sttStatus = 'Final transcript received.';
+            }
+          });
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          AppLogger.error('STT', 'Streaming transcription failed',
+              error: error, stackTrace: stackTrace);
+          _sttElapsedTimer?.cancel();
+          _sttStopwatch.stop();
+          if (mounted) {
+            setState(() {
+              _isSttRecording = false;
+              _sttStatus = 'STT error: $error';
+            });
+          }
+          unawaited(audioSource.stop());
+        },
+        onDone: () {
+          if (!mounted || !_isSttRecording) return;
+          setState(() => _sttStatus = 'Microphone stream ended.');
+        },
+      );
+      if (mounted) {
+        setState(() => _sttStatus = 'Listening… Speak into your microphone.');
+      }
+    } on LocalAIError catch (e, st) {
+      AppLogger.error('STT', 'STT setup failed: ${e.message}',
+          error: e, stackTrace: st);
+      await audioSource.stop();
+      _sttElapsedTimer?.cancel();
+      _sttStopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _isSttRecording = false;
+          _sttStatus = 'STT error: ${e.message}';
+        });
+      }
+    } catch (e, st) {
+      AppLogger.error('STT', 'Unexpected STT setup error',
+          error: e, stackTrace: st);
+      await audioSource.stop();
+      _sttElapsedTimer?.cancel();
+      _sttStopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _isSttRecording = false;
+          _sttStatus = 'STT error: $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _stopSttRecording() async {
+    if (!_isSttRecording && _sttSubscription == null) return;
+
+    _sttElapsedTimer?.cancel();
+    _sttElapsedTimer = null;
+    _sttStopwatch.stop();
+
+    final subscription = _sttSubscription;
+    _sttSubscription = null;
+    try {
+      await _ai?.audioSource?.stop();
+      await subscription?.cancel();
+    } catch (e, st) {
+      AppLogger.error('STT', 'Failed to stop microphone transcription',
+          error: e, stackTrace: st);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isSttRecording = false;
+        _sttStatus =
+            _sttTranscript.isNotEmpty || _sttPartialTranscript.isNotEmpty
+                ? 'Recording stopped. Transcript ready.'
+                : 'Recording stopped. No speech was detected.';
+      });
+    }
+  }
+
   Future<void> _toggleVoice() async {
     final ai = _ai;
     if (ai == null) return;
@@ -803,6 +958,8 @@ class _DemoHomePageState extends State<DemoHomePage>
   @override
   void dispose() {
     _ttsProgressTimer?.cancel();
+    _sttElapsedTimer?.cancel();
+    unawaited(_sttSubscription?.cancel());
     _tabController.dispose();
     _downloadSub?.cancel();
     _statusSub?.cancel();
@@ -838,6 +995,9 @@ class _DemoHomePageState extends State<DemoHomePage>
                 icon: Icon(Icons.chat_bubble_outline),
                 text: 'Text Generation (LLM)'),
             Tab(icon: Icon(Icons.volume_up), text: 'Text-to-Speech (TTS)'),
+            Tab(
+                icon: Icon(Icons.record_voice_over),
+                text: 'Speech-to-Text (STT)'),
             Tab(icon: Icon(Icons.mic), text: 'Voice Assistant'),
             Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Model Catalog'),
             Tab(icon: Icon(Icons.terminal), text: 'Live Logs'),
@@ -849,6 +1009,7 @@ class _DemoHomePageState extends State<DemoHomePage>
         children: [
           _buildLlmChatTab(theme),
           _buildTtsTab(theme),
+          _buildSttTab(theme),
           _buildVoiceTab(theme),
           _buildCatalogTab(theme),
           _buildLogsTab(theme),
@@ -2028,7 +2189,264 @@ class _DemoHomePageState extends State<DemoHomePage>
   }
 
   // ===========================================================================
-  // 3. Voice Pipeline Tab (VAD -> STT -> LLM -> TTS)
+  // 3. Speech-to-Text (STT) Tab
+  // ===========================================================================
+  Widget _buildSttTab(ThemeData theme) {
+    final isSttInstalled = _isModelInstalled(_selectedSttId);
+    final hasTranscript =
+        _sttTranscript.isNotEmpty || _sttPartialTranscript.isNotEmpty;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.record_voice_over,
+                          color: Colors.deepPurpleAccent),
+                      const SizedBox(width: 8),
+                      Text('STT Model & Microphone',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDropdownRow(
+                    label: 'STT Model',
+                    icon: Icons.graphic_eq,
+                    value: _selectedSttId,
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-whisper-base.en',
+                          child: Text('Whisper Base English (75 MB)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-whisper-tiny.en',
+                          child: Text('Whisper Tiny English (40 MB)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
+                          child: Text('SenseVoice Small (234 MB)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-moonshine-tiny-en',
+                          child: Text('Moonshine Tiny English (30 MB)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-streaming-zipformer-en-20m',
+                          child: Text('Zipformer Small English (70 MB)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null && val != _selectedSttId) {
+                        setState(() => _selectedSttId = val);
+                        _bootstrap();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSttInstalled
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: isSttInstalled
+                              ? Colors.green.withValues(alpha: 0.3)
+                              : Colors.amber.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSttInstalled
+                              ? Icons.check_circle
+                              : Icons.warning_amber_rounded,
+                          size: 16,
+                          color: isSttInstalled
+                              ? Colors.green
+                              : Colors.amber.shade800,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            isSttInstalled
+                                ? '$_selectedSttId is installed and ready to transcribe.'
+                                : '⚠️ $_selectedSttId is not downloaded yet.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isSttInstalled
+                                  ? Colors.green.shade800
+                                  : Colors.amber.shade900,
+                            ),
+                          ),
+                        ),
+                        if (!isSttInstalled)
+                          FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 2),
+                            ),
+                            onPressed: () => _installModel(_selectedSttId),
+                            child: const Text('Download',
+                                style: TextStyle(fontSize: 11)),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Capture 16 kHz mono microphone audio and inspect the partial and final recognition events emitted by the configured local model.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Column(
+              children: [
+                FilledButton.icon(
+                  onPressed: _toggleSttRecording,
+                  icon: Icon(_isSttRecording ? Icons.stop : Icons.mic),
+                  label: Text(
+                      _isSttRecording ? 'Stop Recording' : 'Start Recording'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _isSttRecording ? Colors.redAccent : null,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _sttStatus,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: _isSttRecording
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.notes,
+                          size: 18, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('Live Transcript',
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      if (_isSttRecording)
+                        const Icon(Icons.fiber_manual_record,
+                            size: 12, color: Colors.redAccent),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (!hasTranscript)
+                    Text(
+                      'Your recognized speech will appear here…',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
+                  else ...[
+                    if (_sttTranscript.isNotEmpty)
+                      SelectableText(
+                        _sttTranscript,
+                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
+                      ),
+                    if (_sttPartialTranscript.isNotEmpty) ...[
+                      if (_sttTranscript.isNotEmpty) const SizedBox(height: 10),
+                      Text(
+                        'Interim hypothesis',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _sttPartialTranscript,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                  const Divider(height: 24),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildStatChip(
+                          'Elapsed', _formatSttDuration(_sttStopwatch.elapsed)),
+                      _buildStatChip('Events', '$_sttEventCount'),
+                      _buildStatChip('Format', 'PCM 16kHz Mono'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: hasTranscript || _sttEventCount > 0
+                        ? () => setState(() {
+                              _sttTranscript = '';
+                              _sttPartialTranscript = '';
+                              _sttEventCount = 0;
+                              _sttStatus = _isSttRecording
+                                  ? 'Listening… Speak into your microphone.'
+                                  : 'Ready to transcribe microphone audio.';
+                            })
+                        : null,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Clear Transcript'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatSttDuration(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  // 4. Voice Pipeline Tab (VAD -> STT -> LLM -> TTS)
   // ===========================================================================
   Widget _buildVoiceTab(ThemeData theme) {
     final isVoiceActive = _voiceSession != null;
