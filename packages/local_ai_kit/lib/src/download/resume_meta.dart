@@ -20,7 +20,7 @@ class FileResumeInfo {
   });
 
   final String name;
-  final int sizeBytes;
+  int sizeBytes;
   final String sha256;
   final String? relativePath;
 

@@ -27,6 +27,7 @@ class SherpaSttAdapter implements LocalStt {
     final ok =
         await worker.request('initRecognizer', payload: <String, Object?>{
       'modelDir': modelDir,
+      'cacheDir': _paths.cacheDir,
       'language': options.language,
       'enablePunctuation': options.enablePunctuation,
     });
@@ -132,13 +133,57 @@ def main():
         try:
             import sherpa_onnx
             
-            # 1. Zipformer / Transducer (Online Recognizer)
+            tokens = glob.glob(os.path.join(model_dir, '**', '*tokens*.txt'), recursive=True)
+            joiners = glob.glob(os.path.join(model_dir, '**', '*joiner*.onnx'), recursive=True)
             encoders = glob.glob(os.path.join(model_dir, '**', '*encoder*.onnx'), recursive=True)
             decoders = glob.glob(os.path.join(model_dir, '**', '*decoder*.onnx'), recursive=True)
-            joiners = glob.glob(os.path.join(model_dir, '**', '*joiner*.onnx'), recursive=True)
-            tokens = glob.glob(os.path.join(model_dir, '**', '*tokens*.txt'), recursive=True)
             
-            if encoders and decoders and joiners and tokens:
+            # 1. Whisper (Offline Recognizer)
+            if encoders and decoders and not joiners and tokens:
+                recognizer = sherpa_onnx.OfflineRecognizer.from_whisper(
+                    encoder=encoders[0],
+                    decoder=decoders[0],
+                    tokens=tokens[0],
+                    language='',
+                    task='transcribe',
+                    num_threads=4,
+                )
+                engine_type = 'whisper'
+                is_online = False
+
+            # 2. Moonshine (Offline Recognizer)
+            if recognizer is None:
+                preprocessors = glob.glob(os.path.join(model_dir, '**', '*preprocess*.onnx'), recursive=True)
+                uncached_dec = glob.glob(os.path.join(model_dir, '**', '*uncached_decode*.onnx'), recursive=True)
+                cached_dec = glob.glob(os.path.join(model_dir, '**', '*cached_decode*.onnx'), recursive=True)
+                m_encoders = glob.glob(os.path.join(model_dir, '**', '*encode*.onnx'), recursive=True)
+                if preprocessors and m_encoders and uncached_dec and cached_dec and tokens:
+                    recognizer = sherpa_onnx.OfflineRecognizer.from_moonshine(
+                        preprocessor=preprocessors[0],
+                        encoder=m_encoders[0],
+                        uncached_decoder=uncached_dec[0],
+                        cached_decoder=cached_dec[0],
+                        tokens=tokens[0],
+                        num_threads=4,
+                    )
+                    engine_type = 'moonshine'
+                    is_online = False
+
+            # 3. SenseVoice (Offline Recognizer)
+            if recognizer is None:
+                sense_models = glob.glob(os.path.join(model_dir, '**', '*model*int8*.onnx'), recursive=True) or glob.glob(os.path.join(model_dir, '**', '*model*.onnx'), recursive=True)
+                if sense_models and tokens:
+                    recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+                        model=sense_models[0],
+                        tokens=tokens[0],
+                        num_threads=4,
+                        use_itn=True,
+                    )
+                    engine_type = 'sense_voice'
+                    is_online = False
+
+            # 4. Zipformer / Transducer (Online Recognizer)
+            if recognizer is None and encoders and decoders and joiners and tokens:
                 int8_enc = [e for e in encoders if 'int8' in e]
                 int8_dec = [d for d in decoders if 'int8' in d]
                 int8_join = [j for j in joiners if 'int8' in j]
@@ -152,33 +197,11 @@ def main():
                     joiner=join_file,
                     tokens=tokens[0],
                     num_threads=4,
+                    decoding_method='modified_beam_search',
+                    max_active_paths=4,
                 )
                 engine_type = 'transducer'
                 is_online = True
-            
-            # 2. SenseVoice (Offline Recognizer)
-            if recognizer is None:
-                sense_models = glob.glob(os.path.join(model_dir, '**', '*model*int8*.onnx'), recursive=True) or glob.glob(os.path.join(model_dir, '**', '*model*.onnx'), recursive=True)
-                if sense_models and tokens:
-                    recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-                        model=sense_models[0],
-                        tokens=tokens[0],
-                        num_threads=4,
-                        use_itn=True,
-                    )
-                    engine_type = 'sense_voice'
-                    is_online = False
-            
-            # 3. Whisper (Offline Recognizer)
-            if recognizer is None and encoders and decoders and tokens:
-                recognizer = sherpa_onnx.OfflineRecognizer.from_whisper(
-                    encoder=encoders[0],
-                    decoder=decoders[0],
-                    tokens=tokens[0],
-                    num_threads=4,
-                )
-                engine_type = 'whisper'
-                is_online = False
 
         except Exception as e:
             sys.stderr.write(f'Failed to load Sherpa-ONNX ASR: {e}\n')
@@ -204,15 +227,20 @@ def main():
                 raw_bytes = f.read()
             samples = np.frombuffer(raw_bytes, dtype=np.float32)
             
+            # 1. Gain normalization: scale peak sample to 0.85 so quiet speech is amplified
+            if len(samples) > 0:
+                max_val = np.max(np.abs(samples))
+                if max_val > 0.001:
+                    samples = samples * (0.85 / max_val)
+                # 2. Add clean 300ms trailing silence pad for complete token decoding
+                post_pad = np.zeros(int(sample_rate * 0.3), dtype=np.float32)
+                samples = np.concatenate([samples, post_pad])
+
             text = ''
             if recognizer is not None and len(samples) > 0:
                 stream = recognizer.create_stream()
                 if is_online:
-                    pre_silence = np.zeros(int(sample_rate * 0.25), dtype=np.float32)
-                    stream.accept_waveform(sample_rate, pre_silence)
                     stream.accept_waveform(sample_rate, samples)
-                    post_silence = np.zeros(int(sample_rate * 0.4), dtype=np.float32)
-                    stream.accept_waveform(sample_rate, post_silence)
                     stream.input_finished()
                     while recognizer.is_ready(stream):
                         recognizer.decode_stream(stream)
@@ -253,9 +281,15 @@ if __name__ == '__main__':
     main()
 ''';
 
+  String _cacheDir = '/tmp';
+
   Future<void> _startServer(String modelDir) async {
     try {
-      final scriptFile = File('/tmp/sherpa_stt_server.py');
+      final cacheDirObj = Directory(_cacheDir);
+      if (!cacheDirObj.existsSync()) {
+        cacheDirObj.createSync(recursive: true);
+      }
+      final scriptFile = File('$_cacheDir/sherpa_stt_server.py');
       await scriptFile.writeAsString(_sttServerScript);
 
       final uvPath = File('/Users/ajithberlin/.local/bin/uv').existsSync()
@@ -268,7 +302,7 @@ if __name__ == '__main__':
         '--with',
         'numpy',
         'python3',
-        '/tmp/sherpa_stt_server.py',
+        scriptFile.path,
         modelDir,
       ]);
       _serverProcess = proc;
@@ -291,6 +325,7 @@ if __name__ == '__main__':
       case 'initRecognizer':
         final args = (command.payload as Map).cast<String, Object?>();
         _modelDir = args['modelDir'] as String?;
+        _cacheDir = args['cacheDir'] as String? ?? '/tmp';
         if (_modelDir != null) {
           await _startServer(_modelDir!);
         }
@@ -312,8 +347,12 @@ if __name__ == '__main__':
 
         if (server != null && iterator != null && samples.isNotEmpty) {
           try {
+            final cacheDirObj = Directory(_cacheDir);
+            if (!cacheDirObj.existsSync()) {
+              cacheDirObj.createSync(recursive: true);
+            }
             final tmpPcm = File(
-                '/tmp/stt_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
+                '$_cacheDir/stt_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
             final byteData = ByteData(samples.lengthInBytes);
             for (var i = 0; i < samples.length; i++) {
               byteData.setFloat32(i * 4, samples[i], Endian.little);

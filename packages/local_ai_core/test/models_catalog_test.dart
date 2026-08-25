@@ -80,6 +80,8 @@ void main() {
       expect(manifest.provider, ModelProviders.sherpaCommunity);
       expect(manifest.files, isNotEmpty);
       expect(manifest.files.first.url, startsWith('https://'));
+      expect(manifest.files.first.url, contains('-int8-'));
+      expect(manifest.files.first.sizeBytes, 245366784);
     });
 
     test('Supertonic & Kokoro TTS manifests are configured properly', () {

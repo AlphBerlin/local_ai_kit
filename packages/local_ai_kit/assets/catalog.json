@@ -267,8 +267,8 @@
       "id": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue",
       "type": "stt",
       "provider": "sherpa-community",
-      "displayName": "SenseVoice Small ASR",
-      "description": "Multilingual streaming speech recognition (1.04 GB).",
+      "displayName": "SenseVoice Small Multilingual",
+      "description": "High-accuracy multilingual speech recognition (EN, JA, ZH, KO, YUE - 234 MB).",
       "delivery": "download",
       "minMemoryMB": 512,
       "languages": ["zh", "en", "ja", "ko", "yue"],
@@ -278,10 +278,76 @@
       "catalogVersion": 1,
       "files": [
         {
-          "name": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2",
-          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2",
+          "name": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 1047870769
+          "sizeBytes": 245366784
+        }
+      ]
+    },
+    {
+      "id": "sherpa-onnx-whisper-base.en",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Whisper Base English",
+      "description": "High-accuracy speech recognition by OpenAI (75 MB).",
+      "delivery": "download",
+      "minMemoryMB": 256,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrStreaming"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "sherpa-onnx-whisper-base.en.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 74846467
+        }
+      ]
+    },
+    {
+      "id": "sherpa-onnx-whisper-tiny.en",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Whisper Tiny English",
+      "description": "Ultra-fast speech recognition by OpenAI (40 MB).",
+      "delivery": "download",
+      "minMemoryMB": 128,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrStreaming"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "sherpa-onnx-whisper-tiny.en.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 39828551
+        }
+      ]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-tiny-en",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine Tiny English",
+      "description": "Next-gen sub-100ms speech recognition (30 MB).",
+      "delivery": "download",
+      "minMemoryMB": 128,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrStreaming"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "sherpa-onnx-moonshine-tiny-en-int8.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-en-int8.tar.bz2",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 30000000
         }
       ]
     },

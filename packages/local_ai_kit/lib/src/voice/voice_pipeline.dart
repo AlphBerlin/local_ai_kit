@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:local_ai_core/local_ai_core.dart';
 
@@ -154,10 +155,10 @@ class VoiceSession {
         _inSpeech = true;
         _speechStartedAt = event.timestamp;
         _utterance.clear();
-        // Grab pre-roll: up to 30 frames (~1.0s) leading up to speech start
-        final preRoll = _rollingRing.length > 30
-            ? _rollingRing.sublist(_rollingRing.length - 30)
-            : List<AudioFrame>.of(_rollingRing);
+        // Grab pre-roll: up to 6 frames (~400-600ms) leading up to speech start
+        final preRollCount = min(6, _rollingRing.length);
+        final preRoll =
+            _rollingRing.sublist(_rollingRing.length - preRollCount);
         _utterance.addAll(preRoll);
         _events.add(const VoiceSpeechStarted());
       case VadSpeechEnded():
@@ -165,10 +166,10 @@ class VoiceSession {
         _inSpeech = false;
         _speechStartedAt = null;
         _events.add(const VoiceSpeechEnded());
-        // Add trailing post-roll: up to 6 frames (~200ms)
-        final postRoll = _rollingRing.length > 6
-            ? _rollingRing.sublist(_rollingRing.length - 6)
-            : List<AudioFrame>.of(_rollingRing);
+        // Add trailing post-roll: up to 4 frames (~300ms)
+        final postRollCount = min(4, _rollingRing.length);
+        final postRoll =
+            _rollingRing.sublist(_rollingRing.length - postRollCount);
         for (final f in postRoll) {
           if (!_utterance.contains(f)) _utterance.add(f);
         }

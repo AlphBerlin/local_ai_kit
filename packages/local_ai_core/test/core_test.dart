@@ -125,4 +125,15 @@ void main() {
       expect(token.throwIfCancelled, throwsA(isA<CancelledError>()));
     });
   });
+
+  test('download progress fraction never exceeds 100 percent', () {
+    const progress = ModelDownloadProgress(
+      modelId: 'stt',
+      state: ModelInstallState.downloading,
+      receivedBytes: 2,
+      totalBytes: 1,
+    );
+
+    expect(progress.fraction, 1.0);
+  });
 }

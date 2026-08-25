@@ -72,9 +72,26 @@ void main() {
         final transcript = await stt.transcribe(
             AudioBuffer(samples: samples, format: AudioFormat.pcm16kMono));
         expect(transcript.text.isNotEmpty, isTrue);
-        expect(transcript.text, contains('The yellow lamps'));
+        expect(transcript.text.toLowerCase(), contains('yellow lamps'));
       }
       await stt.unload();
+    });
+  });
+
+  group('SherpaTtsAdapter synthesis test', () {
+    test('synthesizes speech with Piper model', () async {
+      final paths = _TestPaths(
+          '/Users/ajithberlin/Library/Application Support/com.localai.kit.example.localAiKitExample/local_ai');
+      final tts = SherpaTtsAdapter(paths: paths);
+      await tts.load(const TtsLoadOptions(modelId: 'vits-piper-en-lessac'));
+
+      final stream = await tts.synthesizeStream(const SpeakRequest(
+        text:
+            'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
+      ));
+      final chunks = await stream.toList();
+      expect(chunks.isNotEmpty, isTrue);
+      await tts.unload();
     });
   });
 }

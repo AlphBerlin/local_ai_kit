@@ -588,7 +588,8 @@ class _DemoHomePageState extends State<DemoHomePage>
         });
       }
     } catch (e, st) {
-      AppLogger.error('TTS', 'Unexpected TTS error', error: e, stackTrace: st);
+      AppLogger.error('TTS', 'Unexpected TTS error: $e',
+          error: e, stackTrace: st);
       _ttsProgressTimer?.cancel();
       if (mounted) {
         setState(() {
@@ -1777,11 +1778,22 @@ class _DemoHomePageState extends State<DemoHomePage>
                     value: _selectedSttId,
                     items: const [
                       DropdownMenuItem(
-                          value: 'sherpa-onnx-streaming-zipformer-en-20m',
-                          child: Text('Zipformer Small English (70 MB)')),
+                          value: 'sherpa-onnx-whisper-base.en',
+                          child: Text('Whisper Base English (75 MB - OpenAI)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-whisper-tiny.en',
+                          child: Text('Whisper Tiny English (40 MB - OpenAI)')),
                       DropdownMenuItem(
                           value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
-                          child: Text('SenseVoice Multilingual (1.04 GB)')),
+                          child: Text(
+                              'SenseVoice Small (234 MB - Multilingual EN/JA/ZH/KO)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-moonshine-tiny-en',
+                          child:
+                              Text('Moonshine Tiny English (30 MB - NextGen)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-streaming-zipformer-en-20m',
+                          child: Text('Zipformer Small English (70 MB)')),
                     ],
                     onChanged: (val) {
                       if (val != null) {

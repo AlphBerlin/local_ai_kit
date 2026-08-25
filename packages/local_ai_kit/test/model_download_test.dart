@@ -225,5 +225,42 @@ void main() {
       expect(await downloadedFile.exists(), isTrue);
       expect(await downloadedFile.readAsBytes(), fullContent);
     });
+
+    test('uses the response size when the catalog size is stale', () async {
+      final fullContent = utf8.encode('ACTUAL_STT_ARCHIVE_CONTENT');
+
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((HttpRequest request) {
+        request.response.headers.contentLength = fullContent.length;
+        request.response.add(fullContent);
+        request.response.close();
+      });
+
+      final manifest = LocalModelManifest(
+        id: 'stale-stt-size',
+        type: ModelType.stt,
+        provider: 'sherpa-community',
+        delivery: ModelDelivery.download,
+        files: [
+          ModelFile(
+            name: 'stt-model.tar.bz2',
+            url:
+                'http://${server.address.host}:${server.port}/stt-model.tar.bz2',
+            sha256: kPlaceholderSha256,
+            sizeBytes: 4,
+          ),
+        ],
+      );
+
+      final progressEvents = <ModelDownloadProgress>[];
+      await downloader.download(
+        manifest,
+        onProgress: progressEvents.add,
+      );
+
+      expect(progressEvents.last.totalBytes, fullContent.length);
+      expect(progressEvents.last.receivedBytes, fullContent.length);
+      expect(progressEvents.last.fraction, 1.0);
+    });
   });
 }

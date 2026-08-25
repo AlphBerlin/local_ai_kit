@@ -102,14 +102,14 @@ class SherpaVadAdapter implements LocalVad {
 class _VadWorkerLoop extends SherpaWorkerLoop {
   _VadWorkerLoop(super.mainPort);
 
-  double _threshold = 0.0035;
-  int _minSpeechDurationMs = 120;
-  int _minSilenceDurationMs = 850;
+  double _threshold = 0.0025;
+  int _minSpeechDurationMs = 80;
+  int _minSilenceDurationMs = 700;
   int _sampleRate = 16000;
 
   bool _inSpeech = false;
   DateTime? _speechStartTime;
-  double _noiseFloor = 0.001;
+  double _noiseFloor = 0.0008;
   int _consecutiveSpeechFrames = 0;
   int _consecutiveSilenceFrames = 0;
 
@@ -118,16 +118,16 @@ class _VadWorkerLoop extends SherpaWorkerLoop {
     switch (command.op) {
       case 'initVad':
         final args = (command.payload as Map).cast<String, Object?>();
-        _threshold = ((args['threshold'] as num?)?.toDouble() ?? 0.5) * 0.007;
-        if (_threshold < 0.003) _threshold = 0.003;
+        _threshold = ((args['threshold'] as num?)?.toDouble() ?? 0.5) * 0.005;
+        if (_threshold < 0.002) _threshold = 0.002;
         _minSpeechDurationMs =
-            (args['minSpeechDurationMs'] as num?)?.toInt() ?? 120;
+            (args['minSpeechDurationMs'] as num?)?.toInt() ?? 80;
         _minSilenceDurationMs =
-            (args['minSilenceDurationMs'] as num?)?.toInt() ?? 850;
+            (args['minSilenceDurationMs'] as num?)?.toInt() ?? 700;
         _sampleRate = (args['sampleRate'] as num?)?.toInt() ?? 16000;
         _inSpeech = false;
         _speechStartTime = null;
-        _noiseFloor = 0.001;
+        _noiseFloor = 0.0008;
         _consecutiveSpeechFrames = 0;
         _consecutiveSilenceFrames = 0;
         reply(command, true);

@@ -266,6 +266,31 @@ class DownloadManager {
       append = false;
     }
 
+    if (resumeFrom > 0 && response.statusCode == HttpStatus.partialContent) {
+      final range = _parseContentRange(
+          response.headers.value(HttpHeaders.contentRangeHeader));
+      final contentLength = response.contentLength;
+      final rangeIsValid = range != null &&
+          range.start == resumeFrom &&
+          (contentLength < 0 || range.end - range.start + 1 == contentLength) &&
+          (range.total == null || range.total! > range.end);
+      if (!rangeIsValid) {
+        // A proxy/CDN can return a partial response for the wrong offset.
+        // Discard it before restarting, otherwise the archive is duplicated
+        // and progress can grow far beyond 100%.
+        await response.drain<void>();
+        info.received = 0;
+        await meta.save(dir);
+        return _downloadFileOnce(file, info, meta, dir, progress, cancelToken);
+      }
+      if (range.total != null) info.sizeBytes = range.total!;
+    } else if (response.statusCode == HttpStatus.ok &&
+        response.contentLength >= 0) {
+      // Catalog sizes may be estimates. The final HTTP payload is the
+      // authoritative total for progress and resumable state.
+      info.sizeBytes = response.contentLength;
+    }
+
     final part = _partFile(dir, info);
     await part.parent.create(recursive: true);
     final sink =
@@ -293,6 +318,17 @@ class DownloadManager {
     }
   }
 
+  _ContentRange? _parseContentRange(String? value) {
+    if (value == null) return null;
+    final match = RegExp(r'^bytes (\d+)-(\d+)/(\d+|\*)$').firstMatch(value);
+    if (match == null) return null;
+    return _ContentRange(
+      start: int.parse(match.group(1)!),
+      end: int.parse(match.group(2)!),
+      total: match.group(3) == '*' ? null : int.parse(match.group(3)!),
+    );
+  }
+
   File _partFile(Directory dir, FileResumeInfo info) {
     final sub = info.relativePath != null ? '${info.relativePath}/' : '';
     return File('${dir.path}/$sub${info.name}.part');
@@ -310,6 +346,14 @@ class _HttpStatusException implements Exception {
   final int statusCode;
   @override
   String toString() => 'HTTP $statusCode';
+}
+
+class _ContentRange {
+  const _ContentRange({required this.start, required this.end, this.total});
+
+  final int start;
+  final int end;
+  final int? total;
 }
 
 /// Smoothed throughput / ETA computation + progress fan-out.

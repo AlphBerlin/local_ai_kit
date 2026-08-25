@@ -36,6 +36,7 @@ class SherpaTtsAdapter implements LocalTts {
     final ok = await worker.request('initTts', payload: <String, Object?>{
       'modelDir': modelDir,
       'modelPath': '$modelDir/supertonic.onnx',
+      'cacheDir': _paths.cacheDir,
       'voiceDir':
           options.voiceId != null ? _paths.voiceDir(options.voiceId!) : null,
     });
@@ -277,12 +278,16 @@ if __name__ == "__main__":
     main()
 ''';
 
+  String _cacheDir = '/tmp';
+
   Future<void> _startServer(String onnxDir) async {
     try {
-      final scriptFile = File('/tmp/supertonic_server.py');
-      if (!scriptFile.existsSync()) {
-        await scriptFile.writeAsString(_ttsServerScript);
+      final cacheDirObj = Directory(_cacheDir);
+      if (!cacheDirObj.existsSync()) {
+        cacheDirObj.createSync(recursive: true);
       }
+      final scriptFile = File('$_cacheDir/supertonic_server.py');
+      await scriptFile.writeAsString(_ttsServerScript);
 
       final uvPath = File('/Users/ajithberlin/.local/bin/uv').existsSync()
           ? '/Users/ajithberlin/.local/bin/uv'
@@ -296,7 +301,7 @@ if __name__ == "__main__":
         '--with',
         'numpy',
         'python3',
-        '/tmp/supertonic_server.py',
+        scriptFile.path,
         onnxDir,
       ]);
       _serverProcess = proc;
@@ -317,7 +322,9 @@ if __name__ == "__main__":
   Future<void> onCommand(SherpaCommand command) async {
     switch (command.op) {
       case 'initTts':
-        _modelDir = (command.payload as Map)['modelDir'] as String?;
+        final args = (command.payload as Map).cast<String, Object?>();
+        _modelDir = args['modelDir'] as String?;
+        _cacheDir = args['cacheDir'] as String? ?? '/tmp';
         _tts = Object();
         if (_modelDir != null) {
           await _startServer(_modelDir!);
@@ -345,8 +352,12 @@ if __name__ == "__main__":
         final iterator = _lineIterator;
         if (onnxDir != null && server != null && iterator != null) {
           try {
+            final cacheDirObj = Directory(_cacheDir);
+            if (!cacheDirObj.existsSync()) {
+              cacheDirObj.createSync(recursive: true);
+            }
             final tmpPcm = File(
-                '/tmp/tts_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
+                '$_cacheDir/tts_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
             final vStyle = (voiceId ?? 'F1')
                 .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
                 .toUpperCase();
@@ -394,8 +405,8 @@ if __name__ == "__main__":
         if (samples == null || samples.isEmpty) {
           if (Platform.isMacOS) {
             try {
-              final tmpFile =
-                  File('/tmp/tts_${DateTime.now().microsecondsSinceEpoch}.wav');
+              final tmpFile = File(
+                  '$_cacheDir/tts_${DateTime.now().microsecondsSinceEpoch}.wav');
               final rate = (180 * speed).round().clamp(100, 350);
               final voiceName =
                   _resolveVoiceName(text, voiceId: voiceId, language: language);

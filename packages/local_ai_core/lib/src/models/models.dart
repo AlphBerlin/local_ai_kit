@@ -354,8 +354,9 @@ abstract final class Models {
     id: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
     type: ModelType.stt,
     provider: ModelProviders.sherpaCommunity,
-    displayName: 'SenseVoice Small',
-    description: 'Multilingual streaming speech recognition (1.04 GB).',
+    displayName: 'SenseVoice Small Multilingual',
+    description:
+        'High-accuracy multilingual speech recognition (EN, JA, ZH, KO, YUE - 234 MB).',
     delivery: ModelDelivery.download,
     minMemoryMB: 512,
     languages: ['zh', 'en', 'ja', 'ko', 'yue'],
@@ -365,11 +366,86 @@ abstract final class Models {
     catalogVersion: 1,
     files: [
       ModelFile(
-        name: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2',
+        name: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2',
         url:
-            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2',
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2',
         sha256: kPlaceholderSha256,
-        sizeBytes: 1047870769,
+        sizeBytes: 245366784,
+      ),
+    ],
+  );
+
+  /// Whisper Base English speech recognition.
+  static const LocalModelManifest whisperBase = LocalModelManifest(
+    id: 'sherpa-onnx-whisper-base.en',
+    type: ModelType.stt,
+    provider: ModelProviders.sherpaCommunity,
+    displayName: 'Whisper Base English',
+    description: 'High-accuracy speech recognition by OpenAI (75 MB).',
+    delivery: ModelDelivery.download,
+    minMemoryMB: 256,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {ModelCapability.asrStreaming},
+    license: 'MIT',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'sherpa-onnx-whisper-base.en.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 74846467,
+      ),
+    ],
+  );
+
+  /// Whisper Tiny English speech recognition.
+  static const LocalModelManifest whisperTiny = LocalModelManifest(
+    id: 'sherpa-onnx-whisper-tiny.en',
+    type: ModelType.stt,
+    provider: ModelProviders.sherpaCommunity,
+    displayName: 'Whisper Tiny English',
+    description: 'Ultra-fast speech recognition by OpenAI (40 MB).',
+    delivery: ModelDelivery.download,
+    minMemoryMB: 128,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {ModelCapability.asrStreaming},
+    license: 'MIT',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'sherpa-onnx-whisper-tiny.en.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 39828551,
+      ),
+    ],
+  );
+
+  /// Moonshine Tiny English next-generation speech recognition.
+  static const LocalModelManifest moonshineTiny = LocalModelManifest(
+    id: 'sherpa-onnx-moonshine-tiny-en',
+    type: ModelType.stt,
+    provider: ModelProviders.sherpaCommunity,
+    displayName: 'Moonshine Tiny English',
+    description: 'Next-gen sub-100ms speech recognition (30 MB).',
+    delivery: ModelDelivery.download,
+    minMemoryMB: 128,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {ModelCapability.asrStreaming},
+    license: 'MIT',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'sherpa-onnx-moonshine-tiny-en-int8.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-en-int8.tar.bz2',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 30000000,
       ),
     ],
   );
@@ -670,6 +746,9 @@ abstract final class Models {
     sileroVad,
     zipformerSmall,
     senseVoiceSmall,
+    whisperBase,
+    whisperTiny,
+    moonshineTiny,
     vitsPiper,
     supertonic,
     kokoroTts,
