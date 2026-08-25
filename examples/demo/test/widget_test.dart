@@ -83,6 +83,8 @@ void main() {
           'Capture 16 kHz mono microphone audio. Stop recording to produce one stable transcription for the captured utterance.'),
       findsOneWidget,
     );
+    expect(find.text('Live hypothesis is provisional while recording.'),
+        findsOneWidget);
     expect(find.text('Clear Transcript'), findsOneWidget);
   });
 
