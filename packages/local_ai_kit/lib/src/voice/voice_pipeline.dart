@@ -136,7 +136,8 @@ class VoiceSession {
 
   void _onAudioFrame(AudioFrame frame) {
     _preBuffer.add(frame);
-    if (_preBuffer.length > 8) _preBuffer.removeAt(0); // ~rolling pre-buffer
+    if (_preBuffer.length > 20)
+      _preBuffer.removeAt(0); // ~rolling pre-buffer (up to 1s)
     if (_inSpeech) _utterance.add(frame);
   }
 
@@ -153,6 +154,7 @@ class VoiceSession {
         _utterance
           ..clear()
           ..addAll(_preBuffer);
+        _preBuffer.clear();
         _events.add(const VoiceSpeechStarted());
       case VadSpeechEnded():
         if (!_inSpeech) return;

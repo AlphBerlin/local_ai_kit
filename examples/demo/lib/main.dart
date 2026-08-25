@@ -689,19 +689,26 @@ class _DemoHomePageState extends State<DemoHomePage>
         setState(() {
           switch (event) {
             case VoiceListening():
-              _voiceStatus = '🎙️ Listening for speech (VAD active)…';
+              _voiceStatus = '🎙️ Listening: Speak into your microphone now.';
             case VoiceSpeechStarted():
-              _voiceStatus = '🗣️ User speech detected!';
+              _voiceStatus = '🗣️ User speaking… recording utterance';
+            case VoiceSpeechEnded():
+              _voiceStatus = '⏳ Transcribing speech (STT)…';
             case VoiceTranscriptUpdated(:final text):
               _voiceTranscript = text;
               _voiceStatus = '📝 Heard: "$text"';
             case VoiceThinking():
-              _voiceStatus = '🧠 Thinking / LLM reasoning…';
+              _voiceStatus = '🧠 Generating reply with LLM…';
+              _voiceReply = '';
+            case VoiceResponseStarted():
+              _voiceStatus = '🔊 Assistant replying…';
             case VoiceResponseDelta(:final textDelta):
               _voiceReply += textDelta;
-              _voiceStatus = '🔊 Assistant speaking…';
+              _voiceStatus = '🔊 Assistant replying…';
             case VoiceSpeaking():
               _voiceStatus = '🔊 Speaking response…';
+            case VoiceFinished():
+              _voiceStatus = '🎙️ Listening: Speak into your microphone now.';
             case VoiceInterrupted():
               _voiceStatus = '⚡ Barge-in: Interrupted by user!';
             case VoiceErrorOccurred(:final error):

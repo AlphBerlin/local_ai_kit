@@ -139,10 +139,17 @@ def main():
             tokens = glob.glob(os.path.join(model_dir, '**', '*tokens*.txt'), recursive=True)
             
             if encoders and decoders and joiners and tokens:
+                int8_enc = [e for e in encoders if 'int8' in e]
+                int8_dec = [d for d in decoders if 'int8' in d]
+                int8_join = [j for j in joiners if 'int8' in j]
+                enc_file = int8_enc[0] if int8_enc else encoders[0]
+                dec_file = int8_dec[0] if int8_dec else decoders[0]
+                join_file = int8_join[0] if int8_join else joiners[0]
+                
                 recognizer = sherpa_onnx.OnlineRecognizer.from_transducer(
-                    encoder=encoders[0],
-                    decoder=decoders[0],
-                    joiner=joiners[0],
+                    encoder=enc_file,
+                    decoder=dec_file,
+                    joiner=join_file,
                     tokens=tokens[0],
                     num_threads=4,
                 )
@@ -198,10 +205,13 @@ def main():
             samples = np.frombuffer(raw_bytes, dtype=np.float32)
             
             text = ''
-            if recognizer is not None:
+            if recognizer is not None and len(samples) > 0:
                 stream = recognizer.create_stream()
                 if is_online:
                     stream.accept_waveform(sample_rate, samples)
+                    silence_pad = np.zeros(int(sample_rate * 0.25), dtype=np.float32)
+                    stream.accept_waveform(sample_rate, silence_pad)
+                    stream.input_finished()
                     while recognizer.is_ready(stream):
                         recognizer.decode_stream(stream)
                     res = recognizer.get_result(stream)
@@ -228,9 +238,7 @@ if __name__ == '__main__':
   Future<void> _startServer(String modelDir) async {
     try {
       final scriptFile = File('/tmp/sherpa_stt_server.py');
-      if (!scriptFile.existsSync()) {
-        await scriptFile.writeAsString(_sttServerScript);
-      }
+      await scriptFile.writeAsString(_sttServerScript);
 
       final uvPath = File('/Users/ajithberlin/.local/bin/uv').existsSync()
           ? '/Users/ajithberlin/.local/bin/uv'
