@@ -69,6 +69,7 @@ export 'src/runtime/memory_policy.dart';
 // STT
 export 'src/stt/local_stt.dart';
 export 'src/stt/transcript.dart';
+export 'src/stt/transcript_cleanup.dart';
 
 // Testing fakes
 export 'src/testing/fake_llm.dart';
@@ -81,4 +82,3 @@ export 'src/tts/local_tts.dart';
 
 // VAD
 export 'src/vad/local_vad.dart';
-
