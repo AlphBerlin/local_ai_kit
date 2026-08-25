@@ -178,6 +178,39 @@ class _DelayedStopAudioOutput implements LocalAudioOutput {
   }
 }
 
+class _FailingAudioOutput implements LocalAudioOutput {
+  final error = StateError('playback failed');
+
+  @override
+  Future<void> play(Stream<AudioChunk> audio) async {
+    await audio.drain<void>();
+    throw error;
+  }
+
+  @override
+  Future<void> stop() async {}
+}
+
+class _OpenLlm extends FakeLlm {
+  _OpenLlm() {
+    _controller = StreamController<LlmChunk>(
+      onCancel: () {
+        if (!cancelled.isCompleted) cancelled.complete();
+      },
+    );
+  }
+
+  late final StreamController<LlmChunk> _controller;
+  final cancelled = Completer<void>();
+
+  @override
+  Stream<LlmChunk> generateStream(LlmRequest request) => _controller.stream;
+
+  void add(LlmChunk chunk) => _controller.add(chunk);
+
+  Future<void> close() => _controller.close();
+}
+
 /// Records every synthesis request's text, in call order.
 class _RecordingTts implements LocalTts {
   final List<String> synthesizedTexts = [];
@@ -325,6 +358,78 @@ void main() {
     await harness.dispose();
   });
 
+  test('starts TTS when a streamed chunk ends with terminal punctuation',
+      () async {
+    final llm = _OpenLlm();
+    final harness = _Harness(llm: llm, audioOutput: _InstantAudioOutput());
+    await harness.start();
+    addTearDown(() async {
+      await llm.close();
+      await harness.dispose();
+    });
+
+    harness.driveOneUtterance();
+    await _waitUntil(
+        () => harness.events.whereType<VoiceThinking>().isNotEmpty);
+    llm.add(const LlmChunk(textDelta: 'Hello.'));
+
+    await _waitUntil(() => harness.tts.synthesizedTexts.isNotEmpty);
+    expect(harness.tts.synthesizedTexts, ['Hello.']);
+  });
+
+  test('barge-in cancels an open LLM stream and finishes the old turn',
+      () async {
+    final llm = _OpenLlm();
+    final harness = _Harness(llm: llm, audioOutput: _InstantAudioOutput());
+    await harness.start();
+    addTearDown(() async {
+      await llm.close();
+      await harness.dispose();
+    });
+
+    harness.driveOneUtterance();
+    await _waitUntil(
+        () => harness.events.whereType<VoiceThinking>().isNotEmpty);
+    llm.add(const LlmChunk(textDelta: 'Hello. '));
+    await _waitUntil(() => harness.tts.synthesizedTexts.isNotEmpty);
+
+    harness.triggerBargeIn();
+
+    await _waitUntil(() => llm.cancelled.isCompleted);
+    await _waitUntil(() {
+      final interruptedAt =
+          harness.events.indexWhere((event) => event is VoiceInterrupted);
+      return interruptedAt >= 0 &&
+          harness.events
+              .skip(interruptedAt + 1)
+              .any((event) => event is VoiceListening);
+    });
+    expect(harness.events.whereType<VoiceInterrupted>(), hasLength(1));
+  });
+
+  test('reports playback failure while the LLM stream remains open', () async {
+    final llm = _OpenLlm();
+    final output = _FailingAudioOutput();
+    final harness = _Harness(llm: llm, audioOutput: output);
+    await harness.start();
+    addTearDown(() async {
+      await llm.close();
+      await harness.dispose();
+    });
+
+    harness.driveOneUtterance();
+    await _waitUntil(
+        () => harness.events.whereType<VoiceThinking>().isNotEmpty);
+    llm.add(const LlmChunk(textDelta: 'Hello. '));
+
+    await _waitUntil(
+        () => harness.events.whereType<VoiceErrorOccurred>().isNotEmpty);
+    final error = harness.events.whereType<VoiceErrorOccurred>().single.error;
+    expect(error, isA<NativeRuntimeError>());
+    expect((error as NativeRuntimeError).cause, same(output.error));
+    await _waitUntil(() => llm.cancelled.isCompleted);
+  });
+
   test('barge-in mid-chain cancels remaining queued sentences', () async {
     final llm = FakeLlm(handler: (request) async* {
       yield const LlmChunk(textDelta: 'One. Two.');
@@ -364,6 +469,10 @@ void main() {
     final output = _DelayedStopAudioOutput();
     final harness = _Harness(llm: llm, audioOutput: output);
     await harness.start();
+    addTearDown(() async {
+      output.finishStop();
+      await harness.dispose();
+    });
 
     harness.driveOneUtterance();
     await _waitUntil(() => harness.tts.synthesizedTexts.isNotEmpty);
@@ -378,10 +487,25 @@ void main() {
     // Playback has ended, but stop is deliberately pending: token
     // cancellation must already prevent the queued sentence from starting.
     expect(harness.tts.synthesizedTexts, ['One.']);
+    expect(
+      harness.events
+          .where(
+              (event) => event is VoiceInterrupted || event is VoiceListening)
+          .toList(),
+      isEmpty,
+    );
 
     output.finishStop();
     await _waitUntil(
         () => harness.events.whereType<VoiceInterrupted>().isNotEmpty);
-    await harness.dispose();
+    await _waitUntil(
+        () => harness.events.whereType<VoiceListening>().isNotEmpty);
+    final lifecycle = harness.events
+        .where((event) => event is VoiceInterrupted || event is VoiceListening)
+        .toList();
+    expect(lifecycle, hasLength(2));
+    expect(lifecycle[0], isA<VoiceInterrupted>());
+    expect(lifecycle[1], isA<VoiceListening>());
+    expect(harness.events.whereType<VoiceInterrupted>(), hasLength(1));
   });
 }

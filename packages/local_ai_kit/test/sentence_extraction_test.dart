@@ -21,6 +21,18 @@ void main() {
       expect(result.remainder, 'Hello there');
     });
 
+    test('preserves trailing whitespace in an incomplete remainder', () {
+      final result = extractSentences('Hello ');
+      expect(result.sentences, isEmpty);
+      expect(result.remainder, 'Hello ');
+    });
+
+    test('extracts a sentence ending at the end of the buffer', () {
+      final result = extractSentences('Hello.');
+      expect(result.sentences, ['Hello.']);
+      expect(result.remainder, '');
+    });
+
     test('does not split on a decimal point', () {
       final result = extractSentences('3.14 is pi. ');
       expect(result.sentences, ['3.14 is pi.']);

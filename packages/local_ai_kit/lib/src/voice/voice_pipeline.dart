@@ -10,15 +10,15 @@ import 'package:local_ai_core/local_ai_core.dart';
 import '../runtime/runtime_scheduler.dart';
 
 /// Extracts complete sentences from [buffer] — text ending in `.`/`!`/`?`
-/// immediately followed by whitespace. Returns the sentences found, in
-/// order, and the unconsumed remainder so the caller can keep accumulating
-/// it against the next chunk of streamed text.
+/// immediately followed by whitespace or the end of the buffer. Returns the
+/// sentences found, in order, and the unconsumed remainder so the caller can
+/// keep accumulating it against the next chunk of streamed text.
 ///
 /// Not `_`-prefixed so `sentence_extraction_test.dart` can exercise it
 /// directly; it is an internal pipelining detail, not intended as stable
 /// public API beyond this package.
 ({List<String> sentences, String remainder}) extractSentences(String buffer) {
-  final boundary = RegExp(r'[.!?]+(?=\s)');
+  final boundary = RegExp(r'[.!?]+(?=\s|$)');
   final sentences = <String>[];
   var consumedUpTo = 0;
   for (final match in boundary.allMatches(buffer)) {
@@ -26,10 +26,54 @@ import '../runtime/runtime_scheduler.dart';
     if (sentence.isNotEmpty) sentences.add(sentence);
     consumedUpTo = match.end;
   }
+  final remainder = buffer.substring(consumedUpTo);
   return (
     sentences: sentences,
-    remainder: buffer.substring(consumedUpTo).trimRight(),
+    remainder: consumedUpTo > 0 && remainder.trim().isEmpty ? '' : remainder,
   );
+}
+
+final class _VoiceTurn {
+  final token = CancelToken();
+  Timer? timer;
+  _BargeInLifecycle? bargeIn;
+}
+
+final class _BargeInLifecycle {
+  final readyForCleanup = Completer<void>();
+  final cleanupDone = Completer<void>();
+}
+
+final class _PlaybackFailure {
+  const _PlaybackFailure(this.error, this.stackTrace);
+
+  final Object error;
+  final StackTrace stackTrace;
+}
+
+enum _TurnWaitKind { llm, cancelled, playbackFailed, llmFailed }
+
+final class _TurnWaitResult {
+  const _TurnWaitResult._(
+    this.kind, {
+    this.hasNext,
+    this.failure,
+  });
+
+  const _TurnWaitResult.llm(bool hasNext)
+      : this._(_TurnWaitKind.llm, hasNext: hasNext);
+
+  const _TurnWaitResult.cancelled() : this._(_TurnWaitKind.cancelled);
+
+  const _TurnWaitResult.playbackFailed(_PlaybackFailure failure)
+      : this._(_TurnWaitKind.playbackFailed, failure: failure);
+
+  const _TurnWaitResult.llmFailed(_PlaybackFailure failure)
+      : this._(_TurnWaitKind.llmFailed, failure: failure);
+
+  final _TurnWaitKind kind;
+  final bool? hasNext;
+  final _PlaybackFailure? failure;
 }
 
 /// Creates [VoiceSession]s bound to the configured audio + model stack.
@@ -106,8 +150,7 @@ class VoiceSession {
   Stream<VoiceEvent> get events => _events.stream;
 
   final List<String> _lockedModelIds = [];
-  CancelToken? _turnToken;
-  Timer? _maxTurnTimer;
+  _VoiceTurn? _turn;
   bool _speaking = false;
   bool _stopped = false;
 
@@ -215,11 +258,15 @@ class VoiceSession {
 
   /// One full assistant turn for a captured utterance.
   Future<void> _runTurn(List<AudioFrame> frames) async {
-    final turnToken = _turnToken = CancelToken();
-    _maxTurnTimer = Timer(sessionConfig.maxTurnDuration, () {
+    final turn = _VoiceTurn();
+    final turnToken = turn.token;
+    _turn = turn;
+    turn.timer = Timer(sessionConfig.maxTurnDuration, () {
+      if (!identical(_turn, turn) || turnToken.isCancelled) return;
       turnToken.cancel();
       _events.add(const VoiceInterrupted(reason: InterruptReason.timeout));
     });
+    StreamIterator<LlmChunk>? chunkIterator;
     try {
       // STT ---------------------------------------------------------------
       final stt = _runtime.adapter<LocalStt>(_config.stt!.modelId);
@@ -247,10 +294,32 @@ class VoiceSession {
       // generating the rest in the background (architecture §5.3 extension).
       var sentenceBuffer = '';
       var playbackChain = Future<void>.value();
+      final playbackFailure = Completer<_PlaybackFailure>();
       var hasSentence = false;
       var first = true;
-      await for (final chunk in chunks) {
-        turnToken.throwIfCancelled();
+      void queueSentence(String sentence) {
+        hasSentence = true;
+        playbackChain = playbackChain.then((_) async {
+          if (playbackFailure.isCompleted) return;
+          try {
+            await _speakSentence(sentence, turnToken);
+            turnToken.throwIfCancelled();
+          } on Object catch (error, stackTrace) {
+            if (error is CancelledError && turnToken.isCancelled) return;
+            if (!playbackFailure.isCompleted) {
+              playbackFailure.complete(_PlaybackFailure(error, stackTrace));
+            }
+          }
+        });
+      }
+
+      final iterator = chunkIterator = StreamIterator<LlmChunk>(chunks);
+      while (await _moveNextOrInterrupt(
+        iterator,
+        turnToken,
+        playbackFailure.future,
+      )) {
+        final chunk = iterator.current;
         if (first) {
           first = false;
           _events.add(const VoiceResponseStarted());
@@ -261,18 +330,14 @@ class VoiceSession {
           final extracted = extractSentences(sentenceBuffer);
           sentenceBuffer = extracted.remainder;
           for (final sentence in extracted.sentences) {
-            hasSentence = true;
-            playbackChain =
-                playbackChain.then((_) => _speakSentence(sentence, turnToken));
+            queueSentence(sentence);
           }
         }
       }
       turnToken.throwIfCancelled();
       final remainder = sentenceBuffer.trim();
       if (remainder.isNotEmpty) {
-        hasSentence = true;
-        playbackChain =
-            playbackChain.then((_) => _speakSentence(remainder, turnToken));
+        queueSentence(remainder);
       }
       if (!hasSentence) {
         _events.add(const VoiceListening());
@@ -281,6 +346,10 @@ class VoiceSession {
 
       // TTS playback (queued above as sentences were detected) ------------
       await playbackChain;
+      if (playbackFailure.isCompleted) {
+        final failure = await playbackFailure.future;
+        Error.throwWithStackTrace(failure.error, failure.stackTrace);
+      }
       turnToken.throwIfCancelled();
       _events.add(const VoiceFinished());
     } on CancelledError {
@@ -288,14 +357,72 @@ class VoiceSession {
     } on Object catch (e) {
       _emitError(e);
     } finally {
-      _maxTurnTimer?.cancel();
-      _speaking = false;
-      _rollingRing.clear();
-      _utterance.clear();
-      _inSpeech = false;
-      _ignoreAudioUntil = DateTime.now().add(const Duration(milliseconds: 500));
-      _turnToken = null;
-      if (!_stopped) _events.add(const VoiceListening());
+      final iterator = chunkIterator;
+      if (iterator != null) {
+        unawaited(iterator.cancel().catchError((Object _) {}));
+      }
+      final bargeIn = turn.bargeIn;
+      if (bargeIn != null) await bargeIn.readyForCleanup.future;
+      turn.timer?.cancel();
+      try {
+        if (identical(_turn, turn)) {
+          _turn = null;
+          _speaking = false;
+          if (bargeIn == null) {
+            _rollingRing.clear();
+            _utterance.clear();
+            _inSpeech = false;
+            _ignoreAudioUntil =
+                DateTime.now().add(const Duration(milliseconds: 500));
+          }
+          if (!_stopped) _events.add(const VoiceListening());
+        }
+      } finally {
+        if (bargeIn != null && !bargeIn.cleanupDone.isCompleted) {
+          bargeIn.cleanupDone.complete();
+        }
+      }
+    }
+  }
+
+  Future<bool> _moveNextOrInterrupt(
+    StreamIterator<LlmChunk> iterator,
+    CancelToken turnToken,
+    Future<_PlaybackFailure> playbackFailure,
+  ) async {
+    turnToken.throwIfCancelled();
+    final cancelled = Completer<_TurnWaitResult>();
+    void onCancelled() {
+      if (!cancelled.isCompleted) {
+        cancelled.complete(const _TurnWaitResult.cancelled());
+      }
+    }
+
+    turnToken.addListener(onCancelled);
+    try {
+      final result = await Future.any<_TurnWaitResult>([
+        iterator.moveNext().then(
+              _TurnWaitResult.llm,
+              onError: (Object error, StackTrace stackTrace) =>
+                  _TurnWaitResult.llmFailed(
+                _PlaybackFailure(error, stackTrace),
+              ),
+            ),
+        cancelled.future,
+        playbackFailure.then(_TurnWaitResult.playbackFailed),
+      ]);
+      switch (result.kind) {
+        case _TurnWaitKind.llm:
+          return result.hasNext!;
+        case _TurnWaitKind.cancelled:
+          throw const CancelledError();
+        case _TurnWaitKind.playbackFailed:
+        case _TurnWaitKind.llmFailed:
+          final failure = result.failure!;
+          Error.throwWithStackTrace(failure.error, failure.stackTrace);
+      }
+    } finally {
+      turnToken.removeListener(onCancelled);
     }
   }
 
@@ -345,10 +472,22 @@ class VoiceSession {
       return; // wait for speech to persist (filters clicks/echo blips)
     }
 
-    // 1. Cancel LLM/TTS via the turn token. 2. Truncate playback.
-    // 3. Emit interrupted; the loop returns to Listening.
-    _turnToken?.cancel();
-    await _audioOutput.stop();
+    final turn = _turn;
+    if (turn == null || turn.bargeIn != null) return;
+    final lifecycle = turn.bargeIn = _BargeInLifecycle();
+
+    // Cancel before the asynchronous stop so no queued synthesis can begin.
+    turn.token.cancel();
+    try {
+      await _audioOutput.stop();
+    } on Object catch (error) {
+      _emitError(error);
+    }
+
+    if (!identical(_turn, turn) || _stopped) {
+      lifecycle.readyForCleanup.complete();
+      return;
+    }
     _speaking = false;
     _inSpeech = true; // the interrupting speech becomes the next utterance
     final preRoll = _rollingRing.length > 30
@@ -358,7 +497,9 @@ class VoiceSession {
       ..clear()
       ..addAll(preRoll);
     _events.add(const VoiceInterrupted(reason: InterruptReason.bargeIn));
-    _events.add(const VoiceSpeechStarted());
+    lifecycle.readyForCleanup.complete();
+    await lifecycle.cleanupDone.future;
+    if (!_stopped) _events.add(const VoiceSpeechStarted());
   }
 
   Future<void> _cancelled(CancelToken token) {
@@ -379,8 +520,8 @@ class VoiceSession {
   Future<void> stop() async {
     if (_stopped) return;
     _stopped = true;
-    _maxTurnTimer?.cancel();
-    _turnToken?.cancel();
+    _turn?.timer?.cancel();
+    _turn?.token.cancel();
     await _audioOutput.stop();
     await _audioSource.stop();
     for (final id in _lockedModelIds) {
