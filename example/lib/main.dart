@@ -1,20 +1,20 @@
 /// LocalAI Kit interactive demo:
-/// - Fast on-device LLMs: Qwen 2.5 0.5B (Fast 546MB), DeepSeek R1 1.5B, SmolLM2 360M, Gemma 3n
-/// - Real-time model downloader with live MB / speed / ETA tracking
-/// - Embedded live Debug Log Viewer directly on the main screen
+/// - Categorized tabs: Text Generation (LLM), Text-to-Speech (TTS), Voice Pipeline (VAD+STT+LLM+TTS), Model Catalog & Storage, Live Terminal
+/// - Fast on-device LLMs: SmolLM2 360M (LiteRT-LM for macOS & Mobile), Qwen 2.5 0.5B, DeepSeek R1 1.5B
+/// - On-device TTS: Piper TTS Lessac Low, Supertonic TTS, Kokoro TTS v0.19 with Audio Player
+/// - Real-time model downloader with live MB / speed / ETA tracking & uninstalled model notifications
 /// - Full-duplex voice chat session (Mic -> VAD -> STT -> LLM -> TTS)
 library;
 
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_ai_gemma/local_ai_gemma.dart';
 import 'package:local_ai_kit/local_ai_kit.dart';
 import 'package:local_ai_sherpa/local_ai_sherpa.dart';
 
-import 'log_viewer_sheet.dart';
 import 'logger.dart';
-import 'models_sheet.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,50 +65,92 @@ class DemoHomePage extends StatefulWidget {
   State<DemoHomePage> createState() => _DemoHomePageState();
 }
 
-class _DemoHomePageState extends State<DemoHomePage> {
+class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   LocalAI? _ai;
   VoiceSession? _voiceSession;
 
+  // Selected Model IDs for different subsystems
+  String _selectedLlmId = 'smollm2-360m-instruct';
+  String _selectedVadId = 'silero-vad';
+  String _selectedSttId = 'sherpa-onnx-streaming-zipformer-en-20m';
+  String _selectedTtsId = 'supertonic-tts';
+
+  // 1. Text generation state
   final TextEditingController _promptController = TextEditingController(
     text: 'Explain on-device AI in one sentence.',
   );
   final TextEditingController _systemPromptController = TextEditingController(
     text: 'You are a concise on-device assistant.',
   );
-  final ScrollController _logScrollController = ScrollController();
-
+  final ScrollController _outputScrollController = ScrollController();
   final StringBuffer _output = StringBuffer();
-  String _status = 'Initializing LocalAI Kit…';
-  double _downloadProgress = 0.0;
-  String _downloadFile = '';
-  bool _isDownloading = false;
-  bool _isInstalled = false;
+  String _outputText = '';
   bool _isGenerating = false;
-  bool _showLogs = true;
-
-  String _selectedModelId = 'smollm2-360m-instruct'; // Default to LiteRT-LM desktop/mobile model
-
   int _tokenCount = 0;
   DateTime? _generationStartTime;
   double _tokensPerSecond = 0.0;
+  CancelToken? _currentCancelToken;
 
+  // 2. TTS Generation & Audio Player state
+  final TextEditingController _ttsTextController = TextEditingController(
+    text: 'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
+  );
+  double _ttsSpeed = 1.0;
+  double _ttsPitch = 1.0;
+  bool _isTtsSynthesizing = false;
+  bool _isTtsPlaying = false;
+  int _ttsAudioChunks = 0;
+  int _ttsSampleCount = 0;
+  String _ttsStatus = 'Ready to synthesize speech.';
+  double _ttsPlaybackProgress = 0.0;
+  Timer? _ttsProgressTimer;
+
+  // 3. Voice session state
+  String _voiceStatus = 'Voice session idle. Press Start to speak.';
+  String _voiceTranscript = '';
+  String _voiceReply = '';
+  bool _isVoiceDownloading = false;
+  String _voiceDownloadStatus = '';
+
+  // App status & model management
+  String _status = 'Initializing LocalAI Kit…';
+  bool _isLlmInstalled = false;
+  bool _isLlmDownloading = false;
+  double _llmDownloadProgress = 0.0;
+  String _llmDownloadFile = '';
+
+  // Catalog status cache for all models
+  List<LocalModelManifest> _catalogModels = [];
+  final Map<String, ModelStatus> _modelStatuses = {};
+  final Map<String, double> _modelDownloadProgress = {};
+  final Map<String, String> _modelDownloadSpeed = {};
+
+  // Logs & stream subscriptions
+  final ScrollController _logScrollController = ScrollController();
+  final TextEditingController _logSearchController = TextEditingController();
+  String _logFilter = '';
   StreamSubscription<ModelDownloadProgress>? _downloadSub;
   StreamSubscription<ModelStatus>? _statusSub;
-  CancelToken? _currentCancelToken;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 5, vsync: this);
     _bootstrap();
+  }
+
+  bool _isModelInstalled(String modelId) {
+    return _modelStatuses[modelId]?.isInstalled ?? false;
   }
 
   Future<void> _bootstrap() async {
     setState(() {
-      _status = 'Initializing LocalAI engine…';
-      _downloadProgress = 0.0;
-      _isDownloading = false;
+      _status = 'Initializing LocalAI for $_selectedLlmId…';
+      _isLlmDownloading = false;
+      _llmDownloadProgress = 0.0;
     });
-    AppLogger.info('INIT', 'Bootstrapping LocalAI for model: $_selectedModelId');
+    AppLogger.info('INIT', 'Bootstrapping LocalAI: LLM=$_selectedLlmId, VAD=$_selectedVadId, STT=$_selectedSttId, TTS=$_selectedTtsId');
 
     try {
       await _downloadSub?.cancel();
@@ -117,15 +159,14 @@ class _DemoHomePageState extends State<DemoHomePage> {
       _voiceSession = null;
       await _ai?.dispose();
 
-      // Configure kit with selected LLM model
       final config = LocalAIConfig(
         llm: LlmConfig(
-          modelId: _selectedModelId,
+          modelId: _selectedLlmId,
           runtime: RuntimePreference.auto,
         ),
-        vad: const VadConfig(modelId: 'silero-vad'),
-        stt: const SttConfig(modelId: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue'),
-        tts: const TtsConfig(modelId: 'supertonic-tts'),
+        vad: VadConfig(modelId: _selectedVadId),
+        stt: SttConfig(modelId: _selectedSttId),
+        tts: TtsConfig(modelId: _selectedTtsId),
       );
 
       final ai = await LocalAI.initialize(
@@ -136,28 +177,32 @@ class _DemoHomePageState extends State<DemoHomePage> {
         ],
       );
 
-      // Check if current model is already installed
-      final installed = await ai.models.isInstalled(_selectedModelId);
-      final initialStatus = await ai.models.getStatus(_selectedModelId);
+      if (!mounted) return;
+      _ai = ai;
+      await _refreshCatalog();
 
-      _statusSub = ai.models.watchStatus(_selectedModelId).listen((status) {
+      // Check current LLM status
+      final installed = await ai.models.isInstalled(_selectedLlmId);
+      final initialStatus = await ai.models.getStatus(_selectedLlmId);
+
+      _statusSub = ai.models.watchStatus(_selectedLlmId).listen((status) {
         if (!mounted) return;
-        AppLogger.info('STATUS', 'Model "$_selectedModelId" state -> ${status.state.name}');
+        AppLogger.info('STATUS', 'LLM "$_selectedLlmId" state -> ${status.state.name}');
         setState(() {
-          _isInstalled = status.isInstalled;
+          _isLlmInstalled = status.isInstalled;
           if (status.state == ModelInstallState.installed) {
-            _status = 'Model $_selectedModelId is installed & ready';
-            _isDownloading = false;
-            _downloadProgress = 0.0;
+            _status = '$_selectedLlmId is installed & ready';
+            _isLlmDownloading = false;
+            _llmDownloadProgress = 0.0;
           } else if (status.state == ModelInstallState.failed) {
             _status = 'Download failed: ${status.error?.message ?? 'Network error'}';
-            _isDownloading = false;
-            _downloadProgress = 0.0;
+            _isLlmDownloading = false;
+            _llmDownloadProgress = 0.0;
           }
         });
       });
 
-      _downloadSub = ai.models.downloadProgress(_selectedModelId).listen((progress) {
+      _downloadSub = ai.models.downloadProgress(_selectedLlmId).listen((progress) {
         if (!mounted) return;
         final speedMB = progress.bytesPerSecond > 0
             ? '${(progress.bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s'
@@ -166,78 +211,169 @@ class _DemoHomePageState extends State<DemoHomePage> {
         final totalMB = (progress.totalBytes / (1024 * 1024)).toStringAsFixed(1);
 
         setState(() {
-          _isDownloading = progress.fraction < 1.0;
-          _downloadProgress = progress.fraction;
-          _downloadFile = progress.currentFile ?? _selectedModelId;
-          _status = 'Downloading $_downloadFile: $receivedMB / $totalMB MB '
+          _isLlmDownloading = progress.fraction < 1.0;
+          _llmDownloadProgress = progress.fraction;
+          _llmDownloadFile = progress.currentFile ?? _selectedLlmId;
+          _status = 'Downloading $_llmDownloadFile: $receivedMB / $totalMB MB '
               '(${(progress.fraction * 100).toStringAsFixed(0)}%) $speedMB';
         });
-        AppLogger.info('DOWNLOAD', '$_downloadFile: $receivedMB/$totalMB MB (${(progress.fraction * 100).toStringAsFixed(1)}%) $speedMB');
+        AppLogger.info('DOWNLOAD', '$_llmDownloadFile: $receivedMB/$totalMB MB (${(progress.fraction * 100).toStringAsFixed(1)}%) $speedMB');
       });
 
-      if (mounted) {
-        setState(() {
-          _ai = ai;
-          _isInstalled = installed || initialStatus.isInstalled;
-          _status = _isInstalled
-              ? 'Ready (Model $_selectedModelId is installed)'
-              : 'Model not installed yet. Click "Download Model" to install.';
-        });
-        AppLogger.success('INIT', 'LocalAI initialized (installed: $_isInstalled)');
-      }
+      setState(() {
+        _isLlmInstalled = installed || initialStatus.isInstalled;
+        _status = _isLlmInstalled
+            ? 'Ready (Model $_selectedLlmId installed)'
+            : 'Model $_selectedLlmId not installed. Click "Download" to install.';
+      });
+      AppLogger.success('INIT', 'LocalAI initialization complete');
     } on LocalAIError catch (e, st) {
       AppLogger.error('INIT', 'LocalAI initialization failed: ${e.message}', error: e, stackTrace: st);
-      if (mounted) {
-        setState(() => _status = 'Init failed: ${e.message}');
-      }
+      if (mounted) setState(() => _status = 'Init failed: ${e.message}');
     } catch (e, st) {
       AppLogger.error('INIT', 'Unexpected init error', error: e, stackTrace: st);
+      if (mounted) setState(() => _status = 'Unexpected error: $e');
+    }
+  }
+
+  Future<void> _refreshCatalog() async {
+    final ai = _ai;
+    if (ai == null) return;
+    try {
+      final list = await ai.catalog.list();
+      if (!mounted) return;
+      setState(() => _catalogModels = list);
+
+      for (final m in list) {
+        ai.models.getStatus(m.id).then((status) {
+          if (mounted) setState(() => _modelStatuses[m.id] = status);
+        }).catchError((_) {});
+
+        ai.models.watchStatus(m.id).listen((status) {
+          if (mounted) setState(() => _modelStatuses[m.id] = status);
+        });
+
+        ai.models.downloadProgress(m.id).listen((progress) {
+          if (mounted) {
+            final speed = progress.bytesPerSecond > 0
+                ? '${(progress.bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s'
+                : '';
+            setState(() {
+              _modelDownloadProgress[m.id] = progress.fraction;
+              _modelDownloadSpeed[m.id] = speed;
+            });
+          }
+        });
+      }
+    } catch (e, st) {
+      AppLogger.error('CATALOG', 'Failed to refresh catalog', error: e, stackTrace: st);
+    }
+  }
+
+  Future<void> _installModel(String modelId) async {
+    final ai = _ai;
+    if (ai == null) return;
+    AppLogger.info('DOWNLOAD', 'Starting download for: $modelId');
+    try {
+      setState(() => _modelDownloadProgress[modelId] = 0.01);
+      await ai.models.install(modelId);
+      final status = await ai.models.getStatus(modelId);
       if (mounted) {
-        setState(() => _status = 'Unexpected error: $e');
+        setState(() {
+          _modelStatuses[modelId] = status;
+          _modelDownloadProgress.remove(modelId);
+          _modelDownloadSpeed.remove(modelId);
+          if (modelId == _selectedLlmId) {
+            _isLlmInstalled = status.isInstalled;
+            _status = 'Model $modelId installed successfully!';
+          }
+        });
+        AppLogger.success('DOWNLOAD', 'Model installed: $modelId');
+      }
+    } catch (e, st) {
+      AppLogger.error('DOWNLOAD', 'Install failed for $modelId: $e', error: e, stackTrace: st);
+      if (mounted) {
+        setState(() => _modelDownloadProgress.remove(modelId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed for $modelId: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     }
   }
 
-  Future<void> _downloadCurrentModel() async {
+  Future<void> _downloadMissingVoiceModels() async {
     final ai = _ai;
     if (ai == null) return;
 
+    final missingModels = <String>[];
+    if (!_isModelInstalled(_selectedVadId)) missingModels.add(_selectedVadId);
+    if (!_isModelInstalled(_selectedSttId)) missingModels.add(_selectedSttId);
+    if (!_isModelInstalled(_selectedLlmId)) missingModels.add(_selectedLlmId);
+    if (!_isModelInstalled(_selectedTtsId)) missingModels.add(_selectedTtsId);
+
+    if (missingModels.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All voice models are already installed!')),
+      );
+      return;
+    }
+
     setState(() {
-      _isDownloading = true;
-      _downloadProgress = 0.01;
-      _status = 'Starting download for $_selectedModelId…';
+      _isVoiceDownloading = true;
+      _voiceDownloadStatus = 'Downloading ${missingModels.length} missing models…';
     });
 
-    AppLogger.info('DOWNLOAD', 'Starting direct model download: $_selectedModelId');
+    for (var i = 0; i < missingModels.length; i++) {
+      final id = missingModels[i];
+      setState(() {
+        _voiceDownloadStatus = 'Downloading [${i + 1}/${missingModels.length}]: $id…';
+      });
+      AppLogger.info('VOICE_INIT', 'Downloading voice model: $id');
+      try {
+        await _installModel(id);
+      } catch (e) {
+        AppLogger.error('VOICE_INIT', 'Failed to install $id: $e');
+      }
+    }
+
+    setState(() {
+      _isVoiceDownloading = false;
+      _voiceDownloadStatus = 'All missing voice models installed successfully!';
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('All required voice models downloaded and ready!')),
+    );
+  }
+
+  Future<void> _uninstallModel(String modelId) async {
+    final ai = _ai;
+    if (ai == null) return;
     try {
-      await ai.models.install(_selectedModelId);
-      final installed = await ai.models.isInstalled(_selectedModelId);
+      AppLogger.info('MODELS', 'Removing model: $modelId');
+      await ai.models.remove(modelId);
+      final status = await ai.models.getStatus(modelId);
       if (mounted) {
         setState(() {
-          _isInstalled = installed;
-          _isDownloading = false;
-          _status = 'Model $_selectedModelId downloaded & installed successfully!';
+          _modelStatuses[modelId] = status;
+          if (modelId == _selectedLlmId) {
+            _isLlmInstalled = false;
+            _status = 'Model $modelId removed';
+          }
         });
-        AppLogger.success('DOWNLOAD', 'Installation finished for $_selectedModelId');
+        AppLogger.success('MODELS', 'Model removed: $modelId');
       }
     } catch (e, st) {
-      AppLogger.error('DOWNLOAD', 'Download failed: $e', error: e, stackTrace: st);
-      if (mounted) {
-        setState(() {
-          _isDownloading = false;
-          _downloadProgress = 0.0;
-          _status = 'Download failed: $e';
-        });
-      }
+      AppLogger.error('MODELS', 'Failed to remove model $modelId', error: e, stackTrace: st);
     }
   }
 
   Future<void> _generate() async {
     final ai = _ai;
-    if (ai == null) {
-      AppLogger.warn('GENERATE', 'Generate called before LocalAI initialization');
-      return;
-    }
+    if (ai == null) return;
 
     if (_isGenerating) {
       _currentCancelToken?.cancel();
@@ -251,14 +387,15 @@ class _DemoHomePageState extends State<DemoHomePage> {
 
     setState(() {
       _output.clear();
-      _status = 'Generating response from $_selectedModelId…';
+      _outputText = '';
+      _status = 'Generating response from $_selectedLlmId…';
       _isGenerating = true;
       _tokenCount = 0;
       _tokensPerSecond = 0.0;
       _generationStartTime = DateTime.now();
     });
 
-    AppLogger.info('GENERATE', 'Prompt: "$prompt" (Model: $_selectedModelId)');
+    AppLogger.info('GENERATE', 'Prompt: "$prompt" (Model: $_selectedLlmId)');
     final cancelToken = _currentCancelToken = CancelToken();
 
     try {
@@ -272,14 +409,21 @@ class _DemoHomePageState extends State<DemoHomePage> {
       await for (final chunk in chunks) {
         if (cancelToken.isCancelled) break;
         if (chunk.textDelta.isNotEmpty) {
+          _output.write(chunk.textDelta);
+          final currentText = _output.toString();
+          _tokenCount++;
+          final elapsed = DateTime.now().difference(_generationStartTime!).inMilliseconds;
+          final tps = elapsed > 0 ? (_tokenCount / (elapsed / 1000.0)) : 0.0;
+
           setState(() {
-            _output.write(chunk.textDelta);
-            _tokenCount++;
-            final elapsed = DateTime.now().difference(_generationStartTime!).inMilliseconds;
-            if (elapsed > 0) {
-              _tokensPerSecond = (_tokenCount / (elapsed / 1000.0));
-            }
+            _outputText = currentText;
+            _tokensPerSecond = tps;
+            _status = 'Streaming ($_tokenCount tokens, ${tps.toStringAsFixed(1)} tok/s)…';
           });
+
+          if (_outputScrollController.hasClients) {
+            _outputScrollController.jumpTo(_outputScrollController.position.maxScrollExtent);
+          }
         }
       }
 
@@ -309,6 +453,127 @@ class _DemoHomePageState extends State<DemoHomePage> {
     }
   }
 
+  Future<void> _synthesizeTts() async {
+    final ai = _ai;
+    if (ai == null) return;
+
+    final text = _ttsTextController.text.trim();
+    if (text.isEmpty) return;
+
+    // Check if TTS model is installed
+    if (!_isModelInstalled(_selectedTtsId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Model "$_selectedTtsId" is not installed. Please download it first.'),
+          action: SnackBarAction(
+            label: 'Download',
+            onPressed: () => _installModel(_selectedTtsId),
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isTtsSynthesizing = true;
+      _isTtsPlaying = true;
+      _ttsAudioChunks = 0;
+      _ttsSampleCount = 0;
+      _ttsPlaybackProgress = 0.0;
+      _ttsStatus = 'Synthesizing speech with $_selectedTtsId…';
+    });
+
+    AppLogger.info('TTS', 'Speaking: "$text" (Model: $_selectedTtsId, Speed: $_ttsSpeed, Pitch: $_ttsPitch)');
+    final stopwatch = Stopwatch()..start();
+
+    // Start progress simulation for visual audio player
+    _ttsProgressTimer?.cancel();
+    _ttsProgressTimer = Timer.periodic(const Duration(milliseconds: 100), (t) {
+      if (!mounted || !_isTtsPlaying) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _ttsPlaybackProgress = min(1.0, _ttsPlaybackProgress + 0.04);
+      });
+    });
+
+    try {
+      // 1. Synthesize audio stream and collect chunks
+      final chunkStream = await ai.tts.synthesizeStream(
+        text,
+        speed: _ttsSpeed,
+        pitch: _ttsPitch,
+      );
+
+      await for (final chunk in chunkStream) {
+        if (!mounted) break;
+        if (chunk.samples.isNotEmpty) {
+          setState(() {
+            _ttsAudioChunks++;
+            _ttsSampleCount += chunk.samples.length;
+            _ttsStatus = 'Synthesizing: Chunk #$_ttsAudioChunks ($_ttsSampleCount samples)…';
+          });
+        }
+      }
+
+      // 2. Play audio stream through system speaker output
+      setState(() => _ttsStatus = '🔊 Playing audio through device speakers…');
+      await ai.tts.speak(text, speed: _ttsSpeed, pitch: _ttsPitch);
+
+      stopwatch.stop();
+      _ttsProgressTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _isTtsSynthesizing = false;
+          _isTtsPlaying = false;
+          _ttsPlaybackProgress = 1.0;
+          _ttsStatus = 'Audio playback complete: $_ttsAudioChunks audio chunks ($_ttsSampleCount samples) in ${stopwatch.elapsedMilliseconds}ms.';
+        });
+        AppLogger.success('TTS', 'Audio playback finished: $_ttsAudioChunks chunks in ${stopwatch.elapsedMilliseconds}ms');
+      }
+    } on LocalAIError catch (e, st) {
+      AppLogger.error('TTS', 'TTS synthesis failed: ${e.message}', error: e, stackTrace: st);
+      _ttsProgressTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _isTtsSynthesizing = false;
+          _isTtsPlaying = false;
+          _ttsStatus = 'TTS error: ${e.message}';
+        });
+      }
+    } catch (e, st) {
+      AppLogger.error('TTS', 'Unexpected TTS error', error: e, stackTrace: st);
+      _ttsProgressTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _isTtsSynthesizing = false;
+          _isTtsPlaying = false;
+          _ttsStatus = 'TTS error: $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _stopTts() async {
+    final ai = _ai;
+    if (ai == null) return;
+    _ttsProgressTimer?.cancel();
+    try {
+      await ai.tts.stopSpeaking();
+      if (mounted) {
+        setState(() {
+          _isTtsSynthesizing = false;
+          _isTtsPlaying = false;
+          _ttsStatus = 'Audio playback stopped.';
+        });
+      }
+      AppLogger.info('TTS', 'Audio playback stopped by user');
+    } catch (e) {
+      AppLogger.error('TTS', 'Failed to stop TTS: $e');
+    }
+  }
+
   Future<void> _toggleVoice() async {
     final ai = _ai;
     if (ai == null) return;
@@ -320,16 +585,44 @@ class _DemoHomePageState extends State<DemoHomePage> {
       if (mounted) {
         setState(() {
           _voiceSession = null;
-          _status = 'Voice session stopped';
+          _voiceStatus = 'Voice session stopped.';
         });
       }
+      return;
+    }
+
+    // Check all 4 models before starting
+    final uninstalled = <String>[];
+    if (!_isModelInstalled(_selectedVadId)) uninstalled.add('VAD ($_selectedVadId)');
+    if (!_isModelInstalled(_selectedSttId)) uninstalled.add('STT ($_selectedSttId)');
+    if (!_isModelInstalled(_selectedLlmId)) uninstalled.add('LLM ($_selectedLlmId)');
+    if (!_isModelInstalled(_selectedTtsId)) uninstalled.add('TTS ($_selectedTtsId)');
+
+    if (uninstalled.isNotEmpty) {
+      final msg = 'Cannot start Voice Assistant: ${uninstalled.join(', ')} not installed yet. Click "Download Missing Voice Models" above.';
+      AppLogger.warn('VOICE', msg);
+      setState(() => _voiceStatus = '⚠️ $msg');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Download All',
+            textColor: Colors.white,
+            onPressed: _downloadMissingVoiceModels,
+          ),
+        ),
+      );
       return;
     }
 
     try {
       AppLogger.info('VOICE', 'Starting voice session with barge-in…');
       setState(() {
-        _status = 'Starting voice session…';
+        _voiceStatus = 'Starting voice session…';
+        _voiceTranscript = '';
+        _voiceReply = '';
       });
 
       final session = await ai.voice.start(
@@ -342,53 +635,62 @@ class _DemoHomePageState extends State<DemoHomePage> {
 
       session.events.listen((event) {
         if (!mounted) return;
-        AppLogger.info('VOICE', 'Voice event: ${event.runtimeType}');
+        AppLogger.info('VOICE', 'Event: ${event.runtimeType}');
         setState(() {
-          _status = switch (event) {
-            VoiceListening() => '🎙️ Listening for speech…',
-            VoiceSpeechStarted() => '🗣️ Speech detected (VAD active)',
-            VoiceTranscriptUpdated(:final text) => '📝 Heard: "$text"',
-            VoiceThinking() => '🧠 Thinking / LLM inference…',
-            VoiceResponseDelta(:final textDelta) => () {
-                _output.write(textDelta);
-                return '🔊 Synthesizing & speaking…';
-              }(),
-            VoiceSpeaking() => '🔊 Assistant speaking',
-            VoiceInterrupted() => '⚡ Interrupted by user (barge-in triggered)',
-            VoiceErrorOccurred(:final error) => '❌ Voice error: ${error.message}',
-            _ => 'Voice: ${event.runtimeType}',
-          };
+          switch (event) {
+            case VoiceListening():
+              _voiceStatus = '🎙️ Listening for speech (VAD active)…';
+            case VoiceSpeechStarted():
+              _voiceStatus = '🗣️ User speech detected!';
+            case VoiceTranscriptUpdated(:final text):
+              _voiceTranscript = text;
+              _voiceStatus = '📝 Heard: "$text"';
+            case VoiceThinking():
+              _voiceStatus = '🧠 Thinking / LLM reasoning…';
+            case VoiceResponseDelta(:final textDelta):
+              _voiceReply += textDelta;
+              _voiceStatus = '🔊 Assistant speaking…';
+            case VoiceSpeaking():
+              _voiceStatus = '🔊 Speaking response…';
+            case VoiceInterrupted():
+              _voiceStatus = '⚡ Barge-in: Interrupted by user!';
+            case VoiceErrorOccurred(:final error):
+              _voiceStatus = '❌ Voice error: ${error.message}';
+            default:
+              _voiceStatus = 'Voice event: ${event.runtimeType}';
+          }
         });
       });
 
       if (mounted) {
         setState(() {
           _voiceSession = session;
-          _status = '🎙️ Listening (Speak into your microphone)…';
+          _voiceStatus = '🎙️ Listening: Speak into your microphone now.';
         });
       }
     } on LocalAIError catch (e, st) {
       AppLogger.error('VOICE', 'Voice session failed: ${e.message}', error: e, stackTrace: st);
-      if (mounted) {
-        setState(() => _status = 'Voice unavailable: ${e.message}');
-      }
+      if (mounted) setState(() => _voiceStatus = 'Voice error: ${e.message}');
     } catch (e, st) {
       AppLogger.error('VOICE', 'Voice error', error: e, stackTrace: st);
-      if (mounted) {
-        setState(() => _status = 'Voice error: $e');
-      }
+      if (mounted) setState(() => _voiceStatus = 'Voice error: $e');
     }
   }
 
   @override
   void dispose() {
+    _ttsProgressTimer?.cancel();
+    _tabController.dispose();
     _downloadSub?.cancel();
     _statusSub?.cancel();
     _voiceSession?.stop();
     _ai?.dispose();
     _promptController.dispose();
     _systemPromptController.dispose();
+    _ttsTextController.dispose();
+    _outputScrollController.dispose();
     _logScrollController.dispose();
+    _logSearchController.dispose();
     super.dispose();
   }
 
@@ -398,404 +700,1180 @@ class _DemoHomePageState extends State<DemoHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LocalAI Kit Demo'),
-        actions: [
-          // Toggle Live Log Console visibility
-          IconButton(
-            tooltip: _showLogs ? 'Hide Live Terminal' : 'Show Live Terminal',
-            icon: Icon(_showLogs ? Icons.terminal : Icons.terminal_outlined),
-            onPressed: () => setState(() => _showLogs = !_showLogs),
-          ),
-          // Manage Models Catalog Sheet
-          IconButton(
-            tooltip: 'Model Catalog & Downloader',
-            icon: const Icon(Icons.hub_outlined),
-            onPressed: () {
-              ModelsSheet.show(
-                context,
-                ai: _ai,
-                selectedModelId: _selectedModelId,
-                onSelectModel: (modelId) {
-                  setState(() => _selectedModelId = modelId);
-                  Navigator.pop(context);
-                  _bootstrap();
-                },
-              );
-            },
-          ),
-          // Debug Logs Full Screen Sheet
-          ValueListenableBuilder<int>(
-            valueListenable: AppLogger.errorCountNotifier,
-            builder: (context, errorCount, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    tooltip: 'Full Debug Log Viewer',
-                    icon: const Icon(Icons.receipt_long),
-                    onPressed: () => LogViewerSheet.show(context),
-                  ),
-                  if (errorCount > 0)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text(
-                          '$errorCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
+        title: const Row(
+          children: [
+            Icon(Icons.hub_outlined, color: Colors.deepPurpleAccent),
+            SizedBox(width: 8),
+            Text('LocalAI Kit', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(icon: Icon(Icons.chat_bubble_outline), text: 'Text Generation (LLM)'),
+            Tab(icon: Icon(Icons.volume_up), text: 'Text-to-Speech (TTS)'),
+            Tab(icon: Icon(Icons.mic), text: 'Voice Assistant'),
+            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Model Catalog'),
+            Tab(icon: Icon(Icons.terminal), text: 'Live Logs'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildLlmChatTab(theme),
+          _buildTtsTab(theme),
+          _buildVoiceTab(theme),
+          _buildCatalogTab(theme),
+          _buildLogsTab(theme),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Model Selector Dropdown
-            Card(
-              elevation: 0,
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Row(
+    );
+  }
+
+  // ===========================================================================
+  // 1. LLM Chat Tab
+  // ===========================================================================
+  Widget _buildLlmChatTab(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // LLM Dropdown Selector
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.psychology, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedLlmId,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'smollm2-360m-instruct',
+                            child: Text('⚡ SmolLM2 360M (LiteRT-LM • macOS/iOS/Android • 373 MB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'qwen-3.5-0.8b-instruct',
+                            child: Text('🚀 Qwen 3.5 0.8B (LiteRT-LM • macOS/iOS/Android • 963 MB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'qwen-3.5-2b-instruct',
+                            child: Text('🧠 Qwen 3.5 2B (LiteRT-LM • macOS/iOS/Android • 2.11 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'qwen-3.5-4b-instruct',
+                            child: Text('🔥 Qwen 3.5 4B (LiteRT-LM • macOS/iOS/Android • 4.40 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'qwen-2.5-0.5b-instruct',
+                            child: Text('📱 Qwen 2.5 0.5B (MediaPipe • Android/iOS/Web • 546 MB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'deepseek-r1-1.5b-int4',
+                            child: Text('📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val == null || val == _selectedLlmId) return;
+                          setState(() => _selectedLlmId = val);
+                          _bootstrap();
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Status & Download Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _status.startsWith('Error')
+                  ? theme.colorScheme.errorContainer
+                  : theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    const Icon(Icons.psychology, size: 22),
-                    const SizedBox(width: 10),
+                    Icon(
+                      _isLlmDownloading
+                          ? Icons.downloading
+                          : _isLlmInstalled
+                              ? Icons.check_circle_outline
+                              : Icons.info_outline,
+                      size: 16,
+                      color: _status.startsWith('Error')
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: _selectedModelId,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'smollm2-360m-instruct',
-                              child: Text('🚀 SmolLM2 360M (LiteRT-LM - Desktop & Mobile 373 MB)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'qwen-2.5-0.5b-instruct',
-                              child: Text('⚡ Qwen 2.5 0.5B Instruct (MediaPipe - Android/iOS/Web 546 MB)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'deepseek-r1-1.5b-int4',
-                              child: Text('🧠 DeepSeek R1 Distill (MediaPipe - Android/iOS/Web 1.86 GB)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'gemma-3n-e2b-it-int4',
-                              child: Text('💎 Google Gemma 3n E2B (2.7 GB)'),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val == null || val == _selectedModelId) return;
-                            setState(() => _selectedModelId = val);
-                            _bootstrap();
-                          },
+                      child: Text(
+                        _status,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _status.startsWith('Error')
+                              ? theme.colorScheme.onErrorContainer
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
+                    if (!_isLlmInstalled && !_isLlmDownloading)
+                      FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: () => _installModel(_selectedLlmId),
+                        child: const Text('Download Model'),
+                      ),
                   ],
                 ),
+                if (_isLlmDownloading) ...[
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(value: _llmDownloadProgress > 0 ? _llmDownloadProgress : null),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Prompt Input Field
+          TextField(
+            controller: _promptController,
+            decoration: InputDecoration(
+              labelText: 'Prompt',
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () => _promptController.clear(),
               ),
             ),
-            const SizedBox(height: 6),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 6),
 
-            // 2. Status & Download / Progress Banner
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // Preset prompt chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ActionChip(
+                  label: const Text('Explain on-device AI'),
+                  onPressed: () => _promptController.text = 'Explain on-device AI in one sentence.',
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  label: const Text('Write a Haiku'),
+                  onPressed: () => _promptController.text = 'Write a haiku about local AI.',
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  label: const Text('Why offline privacy?'),
+                  onPressed: () => _promptController.text =
+                      'Why is offline on-device AI better for privacy and security?',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Action Buttons
+          Row(
+            children: [
+              FilledButton.icon(
+                onPressed: _isLlmDownloading ? null : _generate,
+                icon: Icon(_isGenerating ? Icons.stop : Icons.bolt),
+                label: Text(_isGenerating ? 'Stop' : 'Generate'),
+              ),
+              const Spacer(),
+              if (_outputText.isNotEmpty)
+                IconButton(
+                  tooltip: 'Copy Output',
+                  icon: const Icon(Icons.copy, size: 18),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _outputText));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied response to clipboard')),
+                    );
+                  },
+                ),
+              IconButton(
+                tooltip: 'Clear Output',
+                icon: const Icon(Icons.delete_outline, size: 18),
+                onPressed: () => setState(() {
+                  _output.clear();
+                  _outputText = '';
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Response output container
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
+              child: _outputText.isEmpty
+                  ? Center(
+                      child: Text(
+                        _isLlmDownloading
+                            ? 'Model is downloading… Output will appear once download completes.'
+                            : 'AI response output will stream here…',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      controller: _outputScrollController,
+                      child: SelectableText(
+                        _outputText,
+                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 2. Text-to-Speech (TTS) Tab with Audio Player
+  // ===========================================================================
+  Widget _buildTtsTab(ThemeData theme) {
+    final isTtsInstalled = _isModelInstalled(_selectedTtsId);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // TTS Model Selector Card
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.volume_up, color: Colors.deepPurpleAccent),
+                      const SizedBox(width: 8),
+                      Text('Text-to-Speech Model & Parameters', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDropdownRow(
+                    label: 'TTS Model',
+                    icon: Icons.graphic_eq,
+                    value: _selectedTtsId,
+                    items: const [
+                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic TTS (67 MB)')),
+                      DropdownMenuItem(value: 'vits-piper-en-lessac', child: Text('Piper TTS Lessac Low (67 MB)')),
+                      DropdownMenuItem(value: 'kokoro-en-tts', child: Text('Kokoro TTS v0.19 (319 MB)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedTtsId = val);
+                        _bootstrap();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // Model installation badge & download button
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isTtsInstalled ? Colors.green.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isTtsInstalled ? Colors.green.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isTtsInstalled ? Icons.check_circle : Icons.warning_amber_rounded,
+                          size: 16,
+                          color: isTtsInstalled ? Colors.green : Colors.amber.shade800,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            isTtsInstalled
+                                ? '$_selectedTtsId is installed and ready for speech playback.'
+                                : '⚠️ $_selectedTtsId is not downloaded yet.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isTtsInstalled ? Colors.green.shade800 : Colors.amber.shade900,
+                            ),
+                          ),
+                        ),
+                        if (!isTtsInstalled)
+                          FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            ),
+                            onPressed: () => _installModel(_selectedTtsId),
+                            child: const Text('Download Model', style: TextStyle(fontSize: 11)),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Speed slider
+                  Row(
+                    children: [
+                      const Icon(Icons.speed, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Speed: ${_ttsSpeed.toStringAsFixed(1)}x', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Expanded(
+                        child: Slider(
+                          value: _ttsSpeed,
+                          min: 0.5,
+                          max: 2.0,
+                          divisions: 15,
+                          label: '${_ttsSpeed.toStringAsFixed(1)}x',
+                          onChanged: (val) => setState(() => _ttsSpeed = val),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Pitch slider
+                  Row(
+                    children: [
+                      const Icon(Icons.tune, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Expanded(
+                        child: Slider(
+                          value: _ttsPitch,
+                          min: 0.5,
+                          max: 1.5,
+                          divisions: 10,
+                          label: '${_ttsPitch.toStringAsFixed(1)}x',
+                          onChanged: (val) => setState(() => _ttsPitch = val),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Text to synthesize input
+          TextField(
+            controller: _ttsTextController,
+            decoration: InputDecoration(
+              labelText: 'Text to Synthesize',
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () => _ttsTextController.clear(),
+              ),
+            ),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 8),
+
+          // Preset text chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ActionChip(
+                  label: const Text('Welcome message'),
+                  onPressed: () => _ttsTextController.text = 'Welcome to LocalAI Kit! Running 100% offline text to speech.',
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  label: const Text('Privacy & speed'),
+                  onPressed: () => _ttsTextController.text = 'On-device neural synthesis guarantees complete privacy with ultra-low latency.',
+                ),
+                const SizedBox(width: 6),
+                ActionChip(
+                  label: const Text('Antigravity power'),
+                  onPressed: () => _ttsTextController.text = 'Antigravity enables modular inference with streaming audio synthesis.',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Action Buttons
+          Row(
+            children: [
+              FilledButton.icon(
+                onPressed: _isTtsSynthesizing ? _stopTts : _synthesizeTts,
+                icon: Icon(_isTtsSynthesizing ? Icons.stop : Icons.volume_up),
+                label: Text(_isTtsSynthesizing ? 'Stop Playback' : 'Synthesize & Play Speech'),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () => setState(() {
+                  _ttsTextController.clear();
+                  _ttsAudioChunks = 0;
+                  _ttsSampleCount = 0;
+                  _ttsPlaybackProgress = 0.0;
+                  _ttsStatus = 'Ready to synthesize speech.';
+                }),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Clear'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Dedicated Interactive Audio Player Card
+          Card(
+            elevation: 2,
+            color: theme.colorScheme.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: _isTtsPlaying ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+                width: _isTtsPlaying ? 2 : 1,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        width: 10,
-                        height: 10,
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isGenerating || _voiceSession != null
-                              ? Colors.green
-                              : (_isDownloading
-                                  ? Colors.orange
-                                  : (_isInstalled ? Colors.blue : Colors.grey)),
+                          color: _isTtsPlaying ? Colors.deepPurpleAccent : theme.colorScheme.primaryContainer,
+                        ),
+                        child: Icon(
+                          _isTtsPlaying ? Icons.graphic_eq : Icons.play_arrow,
+                          color: _isTtsPlaying ? Colors.white : theme.colorScheme.onPrimaryContainer,
+                          size: 22,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          _status,
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      if (!_isInstalled && !_isDownloading)
-                        FilledButton.tonalIcon(
-                          onPressed: _downloadCurrentModel,
-                          icon: const Icon(Icons.download, size: 16),
-                          label: const Text('Download Model'),
-                        ),
-                    ],
-                  ),
-                  if (_isDownloading) ...[
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(value: _downloadProgress > 0 ? _downloadProgress : null),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // 3. Prompt Input
-            TextField(
-              controller: _promptController,
-              decoration: InputDecoration(
-                labelText: 'Prompt',
-                hintText: 'Enter a prompt for the on-device AI…',
-                border: const OutlineInputBorder(),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                suffixIcon: IconButton(
-                  tooltip: 'Clear prompt',
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => _promptController.clear(),
-                ),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 6),
-
-            // 4. Sample Prompt Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  ActionChip(
-                    label: const Text('Explain on-device AI'),
-                    onPressed: () =>
-                        _promptController.text = 'Explain on-device AI in one sentence.',
-                  ),
-                  const SizedBox(width: 6),
-                  ActionChip(
-                    label: const Text('Write a Haiku'),
-                    onPressed: () => _promptController.text = 'Write a haiku about local AI.',
-                  ),
-                  const SizedBox(width: 6),
-                  ActionChip(
-                    label: const Text('Why offline privacy?'),
-                    onPressed: () => _promptController.text =
-                        'Why is offline on-device AI better for privacy and security?',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // 5. Action Buttons (Generate, Voice Chat, Clear)
-            Row(
-              children: [
-                FilledButton.icon(
-                  onPressed: _isDownloading ? null : _generate,
-                  icon: Icon(_isGenerating ? Icons.stop : Icons.bolt),
-                  label: Text(_isGenerating ? 'Stop' : 'Generate'),
-                ),
-                const SizedBox(width: 10),
-                FilledButton.tonalIcon(
-                  onPressed: _isDownloading ? null : _toggleVoice,
-                  icon: Icon(_voiceSession == null ? Icons.mic : Icons.mic_off),
-                  label: Text(_voiceSession == null ? 'Voice Chat' : 'Stop Voice'),
-                ),
-                const Spacer(),
-                if (_output.isNotEmpty)
-                  IconButton(
-                    tooltip: 'Copy Output',
-                    icon: const Icon(Icons.copy, size: 18),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: _output.toString()));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Copied response to clipboard')),
-                      );
-                    },
-                  ),
-                IconButton(
-                  tooltip: 'Clear Output',
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  onPressed: () => setState(() => _output.clear()),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // 6. Response Output Area
-            Expanded(
-              flex: 3,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: _output.isEmpty
-                    ? Center(
-                        child: Text(
-                          _isDownloading
-                              ? 'Model is downloading… Output will appear once download completes.'
-                              : 'AI response output will stream here…',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        child: SelectableText(
-                          _output.toString(),
-                          style: const TextStyle(fontSize: 14, height: 1.4),
-                        ),
-                      ),
-              ),
-            ),
-
-            // 7. Embedded Live Debug Log Viewer (Always visible on-screen!)
-            if (_showLogs) ...[
-              const SizedBox(height: 8),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: theme.colorScheme.outlineVariant),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade900,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-                        ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.terminal, color: Colors.greenAccent, size: 16),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Live Debug Log Console',
+                            Text(
+                              _isTtsPlaying ? '🔊 Audio Player: Playing Speech…' : 'Audio Player: Ready',
+                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              _ttsStatus,
                               style: TextStyle(
-                                color: Colors.white70,
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
+                                color: _isTtsPlaying ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                               ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              tooltip: 'Clear Console',
-                              icon: const Icon(Icons.clear_all, color: Colors.white70, size: 16),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onPressed: () => AppLogger.clear(),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              tooltip: 'Full Screen Logs',
-                              icon: const Icon(Icons.open_in_full, color: Colors.white70, size: 14),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onPressed: () => LogViewerSheet.show(context),
                             ),
                           ],
                         ),
                       ),
-                      Expanded(
-                        child: StreamBuilder<List<LogEntry>>(
-                          stream: AppLogger.stream,
-                          initialData: AppLogger.logs,
-                          builder: (context, snapshot) {
-                            final logs = snapshot.data ?? [];
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (_logScrollController.hasClients) {
-                                _logScrollController.jumpTo(
-                                  _logScrollController.position.maxScrollExtent,
-                                );
-                              }
-                            });
-                            return ListView.builder(
-                              controller: _logScrollController,
-                              padding: const EdgeInsets.all(8),
-                              itemCount: logs.length,
-                              itemBuilder: (context, index) {
-                                final l = logs[index];
-                                final color = switch (l.level) {
-                                  LogLevel.info => Colors.lightBlueAccent,
-                                  LogLevel.success => Colors.greenAccent,
-                                  LogLevel.warning => Colors.orangeAccent,
-                                  LogLevel.error => Colors.redAccent,
-                                };
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: SelectableText.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: '[${l.formatTime()}] ',
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 11,
-                                            fontFamily: 'monospace',
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: '[${l.tag}] ',
-                                          style: TextStyle(
-                                            color: color,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11,
-                                            fontFamily: 'monospace',
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: l.message,
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(alpha: 0.9),
-                                            fontSize: 11,
-                                            fontFamily: 'monospace',
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Animated Waveform Display
+                  Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: List.generate(28, (index) {
+                        final factor = sin((index * 0.4) + (_ttsPlaybackProgress * 12)).abs();
+                        final barHeight = _isTtsPlaying ? (8.0 + (factor * 32.0)) : 10.0;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          width: 4,
+                          height: barHeight,
+                          decoration: BoxDecoration(
+                            color: _isTtsPlaying
+                                ? (index / 28 <= _ttsPlaybackProgress ? Colors.deepPurpleAccent : Colors.deepPurple.shade200)
+                                : theme.colorScheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Player Progress Bar
+                  LinearProgressIndicator(
+                    value: _ttsPlaybackProgress > 0 ? _ttsPlaybackProgress : 0.0,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _isTtsPlaying ? Colors.deepPurpleAccent : theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Stat Badges
+                  Row(
+                    children: [
+                      _buildStatChip('Audio Chunks', '$_ttsAudioChunks'),
+                      const SizedBox(width: 8),
+                      _buildStatChip('Float32 Samples', '$_ttsSampleCount'),
+                      const SizedBox(width: 8),
+                      _buildStatChip('Format', 'PCM 22kHz Mono'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.deepPurpleAccent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent)),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 3. Voice Pipeline Tab (VAD -> STT -> LLM -> TTS)
+  // ===========================================================================
+  Widget _buildVoiceTab(ThemeData theme) {
+    final isVoiceActive = _voiceSession != null;
+
+    final isVadInstalled = _isModelInstalled(_selectedVadId);
+    final isSttInstalled = _isModelInstalled(_selectedSttId);
+    final isLlmInstalled = _isModelInstalled(_selectedLlmId);
+    final isTtsInstalled = _isModelInstalled(_selectedTtsId);
+    final allVoiceModelsInstalled = isVadInstalled && isSttInstalled && isLlmInstalled && isTtsInstalled;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Voice Pipeline Setup Card
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.settings_voice, color: Colors.deepPurpleAccent),
+                      const SizedBox(width: 8),
+                      Text('Voice Pipeline Configuration', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // VAD Selector
+                  _buildDropdownRow(
+                    label: '1. Voice Activity Detection (VAD)',
+                    icon: Icons.graphic_eq,
+                    value: _selectedVadId,
+                    items: const [
+                      DropdownMenuItem(value: 'silero-vad', child: Text('Silero VAD (643 KB)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedVadId = val);
+                        _bootstrap();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // STT Selector
+                  _buildDropdownRow(
+                    label: '2. Speech-to-Text (STT)',
+                    icon: Icons.record_voice_over,
+                    value: _selectedSttId,
+                    items: const [
+                      DropdownMenuItem(value: 'sherpa-onnx-streaming-zipformer-en-20m', child: Text('Zipformer Small English (70 MB)')),
+                      DropdownMenuItem(value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue', child: Text('SenseVoice Multilingual (1.04 GB)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedSttId = val);
+                        _bootstrap();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // LLM Selector
+                  _buildDropdownRow(
+                    label: '3. LLM Reasoning',
+                    icon: Icons.psychology,
+                    value: _selectedLlmId,
+                    items: const [
+                      DropdownMenuItem(value: 'smollm2-360m-instruct', child: Text('SmolLM2 360M (LiteRT-LM 373 MB)')),
+                      DropdownMenuItem(value: 'qwen-3.5-0.8b-instruct', child: Text('Qwen 3.5 0.8B (LiteRT-LM 963 MB)')),
+                      DropdownMenuItem(value: 'qwen-3.5-2b-instruct', child: Text('Qwen 3.5 2B (LiteRT-LM 2.11 GB)')),
+                      DropdownMenuItem(value: 'qwen-3.5-4b-instruct', child: Text('Qwen 3.5 4B (LiteRT-LM 4.40 GB)')),
+                      DropdownMenuItem(value: 'qwen-2.5-0.5b-instruct', child: Text('Qwen 2.5 0.5B (MediaPipe 546 MB)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedLlmId = val);
+                        _bootstrap();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // TTS Selector
+                  _buildDropdownRow(
+                    label: '4. Text-to-Speech (TTS)',
+                    icon: Icons.volume_up,
+                    value: _selectedTtsId,
+                    items: const [
+                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic TTS (67 MB)')),
+                      DropdownMenuItem(value: 'vits-piper-en-lessac', child: Text('Piper TTS Lessac (67 MB)')),
+                      DropdownMenuItem(value: 'kokoro-en-tts', child: Text('Kokoro TTS v0.19 (319 MB)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedTtsId = val);
+                        _bootstrap();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Model Readiness Checks & Notification Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: allVoiceModelsInstalled ? Colors.green.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: allVoiceModelsInstalled ? Colors.green.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      allVoiceModelsInstalled ? Icons.check_circle : Icons.warning_amber_rounded,
+                      color: allVoiceModelsInstalled ? Colors.green : Colors.amber.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        allVoiceModelsInstalled
+                            ? 'All voice pipeline models are installed and ready!'
+                            : '⚠️ Some voice pipeline models are missing. Download required to start.',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: allVoiceModelsInstalled ? Colors.green.shade800 : Colors.amber.shade900,
                         ),
+                      ),
+                    ),
+                    if (!allVoiceModelsInstalled)
+                      FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                        ),
+                        onPressed: _isVoiceDownloading ? null : _downloadMissingVoiceModels,
+                        child: Text(_isVoiceDownloading ? 'Downloading…' : 'Download Missing'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _buildModelStatusPill('VAD', isVadInstalled),
+                    _buildModelStatusPill('STT', isSttInstalled),
+                    _buildModelStatusPill('LLM', isLlmInstalled),
+                    _buildModelStatusPill('TTS', isTtsInstalled),
+                  ],
+                ),
+                if (_isVoiceDownloading) ...[
+                  const SizedBox(height: 8),
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 4),
+                  Text(_voiceDownloadStatus, style: TextStyle(fontSize: 11, color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Central Microphone Action Orb
+          Center(
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: _toggleVoice,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isVoiceActive
+                          ? Colors.redAccent
+                          : (allVoiceModelsInstalled ? theme.colorScheme.primary : Colors.grey),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isVoiceActive ? Colors.redAccent : theme.colorScheme.primary).withValues(alpha: 0.4),
+                          blurRadius: isVoiceActive ? 20 : 8,
+                          spreadRadius: isVoiceActive ? 4 : 1,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isVoiceActive ? Icons.stop : Icons.mic,
+                      color: Colors.white,
+                      size: 42,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isVoiceActive
+                      ? 'Voice Assistant Active (Click to Stop)'
+                      : (allVoiceModelsInstalled ? 'Tap Microphone to Start Voice Chat' : 'Download Missing Models to Enable Voice Chat'),
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _voiceStatus,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isVoiceActive ? Colors.greenAccent.shade700 : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Live Transcript & Assistant Spoken Output Box
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.record_voice_over, size: 18, color: Colors.blueAccent),
+                      const SizedBox(width: 8),
+                      Text('User Transcript', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _voiceTranscript.isNotEmpty ? _voiceTranscript : 'Awaiting speech input…',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _voiceTranscript.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                      fontStyle: _voiceTranscript.isEmpty ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.volume_up, size: 18, color: Colors.deepPurpleAccent),
+                      const SizedBox(width: 8),
+                      Text('Assistant Spoken Response', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _voiceReply.isNotEmpty ? _voiceReply : 'Awaiting response synthesis…',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _voiceReply.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                      fontStyle: _voiceReply.isEmpty ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelStatusPill(String component, bool installed) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: installed ? Colors.green.withValues(alpha: 0.15) : Colors.red.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: installed ? Colors.green.withValues(alpha: 0.4) : Colors.red.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        '$component: ${installed ? 'Installed ✅' : 'Missing ⚠️'}',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: installed ? Colors.green.shade900 : Colors.red.shade900,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownRow({
+    required String label,
+    required IconData icon,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required void Function(String?) onChanged,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        const Spacer(),
+        DropdownButton<String>(
+          value: items.any((i) => i.value == value) ? value : items.first.value,
+          items: items,
+          onChanged: onChanged,
+          isDense: true,
+        ),
+      ],
+    );
+  }
+
+  // ===========================================================================
+  // 4. Model Catalog & Storage Manager Tab
+  // ===========================================================================
+  Widget _buildCatalogTab(ThemeData theme) {
+    if (_catalogModels.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            const Text('Loading model catalog…'),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: _refreshCatalog,
+              child: const Text('Reload Catalog'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final llmModels = _catalogModels.where((m) => m.type == ModelType.llm).toList();
+    final vadModels = _catalogModels.where((m) => m.type == ModelType.vad).toList();
+    final sttModels = _catalogModels.where((m) => m.type == ModelType.stt).toList();
+    final ttsModels = _catalogModels.where((m) => m.type == ModelType.tts).toList();
+
+    return RefreshIndicator(
+      onRefresh: _refreshCatalog,
+      child: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          _buildCategorySection('🧠 Large Language Models (LLM)', llmModels, theme),
+          const SizedBox(height: 12),
+          _buildCategorySection('🎙️ Voice Activity Detection (VAD)', vadModels, theme),
+          const SizedBox(height: 12),
+          _buildCategorySection('🗣️ Speech Recognition (STT)', sttModels, theme),
+          const SizedBox(height: 12),
+          _buildCategorySection('📢 Text-to-Speech (TTS)', ttsModels, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySection(String title, List<LocalModelManifest> models, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          child: Text(
+            '$title (${models.length})',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+          ),
+        ),
+        ...models.map((model) => _buildModelCard(model, theme)),
+      ],
+    );
+  }
+
+  Widget _buildModelCard(LocalModelManifest model, ThemeData theme) {
+    final status = _modelStatuses[model.id];
+    final progress = _modelDownloadProgress[model.id];
+    final speed = _modelDownloadSpeed[model.id] ?? '';
+    final isInstalled = status?.isInstalled ?? false;
+    final isDownloading = progress != null;
+
+    final sizeMB = (model.totalSizeBytes / (1024 * 1024)).toStringAsFixed(model.totalSizeBytes > 100 * 1024 * 1024 ? 0 : 1);
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        model.displayName ?? model.id,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      Text(
+                        'ID: ${model.id} • Provider: ${model.provider} • Size: $sizeMB MB',
+                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
                 ),
+                if (isInstalled)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text('Installed ✅', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+            if (model.description != null) ...[
+              const SizedBox(height: 4),
+              Text(model.description!, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+            ],
+            if (isDownloading) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: progress > 0 ? progress : null),
+              const SizedBox(height: 4),
+              Text(
+                'Downloading ${(progress * 100).toStringAsFixed(0)}% $speed',
+                style: TextStyle(fontSize: 11, color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
               ),
             ],
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (isInstalled)
+                  OutlinedButton.icon(
+                    onPressed: () => _uninstallModel(model.id),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('Delete / Free Space'),
+                  )
+                else
+                  FilledButton.tonalIcon(
+                    onPressed: isDownloading ? null : () => _installModel(model.id),
+                    icon: const Icon(Icons.download, size: 16),
+                    label: Text(isDownloading ? 'Downloading…' : 'Download ($sizeMB MB)'),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  // ===========================================================================
+  // 5. Live Debug Terminal Tab
+  // ===========================================================================
+  Widget _buildLogsTab(ThemeData theme) {
+    return StreamBuilder<List<LogEntry>>(
+      stream: AppLogger.stream,
+      initialData: AppLogger.logs,
+      builder: (context, snapshot) {
+        final logs = snapshot.data ?? [];
+        final filteredLogs = _logFilter.isEmpty
+            ? logs
+            : logs.where((l) => l.tag.toLowerCase().contains(_logFilter.toLowerCase()) || l.message.toLowerCase().contains(_logFilter.toLowerCase())).toList();
+
+        return Container(
+          color: Colors.black,
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              // Search / Action toolbar
+              Row(
+                children: [
+                  const Icon(Icons.terminal, color: Colors.greenAccent),
+                  const SizedBox(width: 8),
+                  const Text('Live Debug Terminal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Copy all logs',
+                    icon: const Icon(Icons.copy, color: Colors.white70, size: 18),
+                    onPressed: () {
+                      final text = logs.map((l) => '[${l.formatTime()}] [${l.tag}] ${l.message}').join('\n');
+                      Clipboard.setData(ClipboardData(text: text));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('All logs copied to clipboard')),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    tooltip: 'Clear terminal',
+                    icon: const Icon(Icons.delete_outline, color: Colors.white70, size: 18),
+                    onPressed: () {
+                      AppLogger.clear();
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white24),
+              // Search input
+              TextField(
+                controller: _logSearchController,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: 'Filter logs by tag (INIT, GENERATE, VOICE, TTS, DOWNLOAD, ERROR)…',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, color: Colors.white38, size: 16),
+                  suffixIcon: _logFilter.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white38, size: 16),
+                          onPressed: () {
+                            _logSearchController.clear();
+                            setState(() => _logFilter = '');
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (val) => setState(() => _logFilter = val),
+              ),
+              const SizedBox(height: 8),
+              // Log content
+              Expanded(
+                child: filteredLogs.isEmpty
+                    ? const Center(child: Text('No logs matching filter', style: TextStyle(color: Colors.white38)))
+                    : ListView.builder(
+                        controller: _logScrollController,
+                        itemCount: filteredLogs.length,
+                        itemBuilder: (context, index) {
+                          final log = filteredLogs[index];
+                          final color = switch (log.level) {
+                            LogLevel.error => Colors.redAccent,
+                            LogLevel.warning => Colors.orangeAccent,
+                            LogLevel.success => Colors.greenAccent,
+                            LogLevel.info => Colors.lightBlueAccent,
+                          };
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '[${log.formatTime()}] ',
+                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.grey),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: Text(
+                                    log.tag,
+                                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: color),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    log.message,
+                                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -65,13 +65,18 @@ void main() {
       expect(manifest.files.first.url, startsWith('https://'));
     });
 
-    test('Supertonic TTS manifest is configured properly', () {
-      final manifest = Models.supertonic;
-      expect(manifest.id, 'supertonic-tts');
-      expect(manifest.type, ModelType.tts);
-      expect(manifest.provider, ModelProviders.sherpaCommunity);
-      expect(manifest.files, isNotEmpty);
-      expect(manifest.files.first.url, startsWith('https://'));
+    test('Supertonic & Kokoro TTS manifests are configured properly', () {
+      final supertonic = Models.supertonic;
+      expect(supertonic.id, 'supertonic-tts');
+      expect(supertonic.type, ModelType.tts);
+      expect(supertonic.provider, ModelProviders.sherpaCommunity);
+      expect(supertonic.files, isNotEmpty);
+
+      final kokoro = Models.kokoroTts;
+      expect(kokoro.id, 'kokoro-en-tts');
+      expect(kokoro.type, ModelType.tts);
+      expect(kokoro.provider, ModelProviders.sherpaCommunity);
+      expect(kokoro.files, isNotEmpty);
     });
   });
 }

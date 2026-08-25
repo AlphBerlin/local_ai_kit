@@ -171,27 +171,51 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
       final p when p.endsWith('.task') => fg.ModelFileType.task,
       _ => fg.ModelFileType.binary,
     };
-    await fg.FlutterGemma.installModel(
-      modelType: modelType,
-      fileType: fileType,
-    ).fromFile(path).install();
+    try {
+      await fg.FlutterGemma.installModel(
+        modelType: modelType,
+        fileType: fileType,
+      ).fromFile(path).install();
+    } catch (e) {
+      if (fileType == fg.ModelFileType.task &&
+          (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+        throw NativeRuntimeError(
+          'Model "${options.modelId}" (.task format) is built for Android, iOS, and Web. '
+          'On ${Platform.operatingSystem}, please select a .litertlm model (e.g. Qwen 3.5 0.8B/2B/4B or SmolLM2 360M) for native LiteRT-LM hardware acceleration.',
+          cause: e,
+        );
+      }
+      rethrow;
+    }
     final backend = switch (options.runtime) {
       RuntimePreference.gpu => fg.PreferredBackend.gpu,
       RuntimePreference.cpu => fg.PreferredBackend.cpu,
       _ => fg.PreferredBackend.gpu,
     };
     try {
-      return await gemma.createModel(
-        modelType: modelType,
-        preferredBackend: backend,
-        maxTokens: options.maxContextTokens ?? 4096,
-      );
-    } catch (_) {
-      if (backend == fg.PreferredBackend.gpu) {
+      try {
         return await gemma.createModel(
           modelType: modelType,
-          preferredBackend: fg.PreferredBackend.cpu,
+          preferredBackend: backend,
           maxTokens: options.maxContextTokens ?? 4096,
+        );
+      } catch (_) {
+        if (backend == fg.PreferredBackend.gpu) {
+          return await gemma.createModel(
+            modelType: modelType,
+            preferredBackend: fg.PreferredBackend.cpu,
+            maxTokens: options.maxContextTokens ?? 4096,
+          );
+        }
+        rethrow;
+      }
+    } catch (e) {
+      if (fileType == fg.ModelFileType.task &&
+          (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+        throw NativeRuntimeError(
+          'Model "${options.modelId}" (.task format) is built for Android, iOS, and Web. '
+          'On ${Platform.operatingSystem}, please select a .litertlm model (e.g. Qwen 3.5 0.8B/2B/4B or SmolLM2 360M) for native LiteRT-LM hardware acceleration.',
+          cause: e,
         );
       }
       rethrow;
@@ -230,9 +254,22 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     ));
 
     final stream = chat.generateChatResponseAsync();
-    await for (final token in stream) {
-      if (token != null && token.isNotEmpty) {
-        yield token;
+    await for (final response in stream) {
+      if (response == null) continue;
+      String? text;
+      if (response is fg.TextResponse) {
+        text = response.token;
+      } else if (response is String) {
+        text = response;
+      } else {
+        try {
+          text = (response as dynamic).token?.toString() ?? response.toString();
+        } catch (_) {
+          text = response.toString();
+        }
+      }
+      if (text.isNotEmpty) {
+        yield text;
       }
     }
   }

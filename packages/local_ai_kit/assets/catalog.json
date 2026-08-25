@@ -1,20 +1,116 @@
 {
-  "catalogVersion": 3,
-  "updatedAt": "2026-08-24T00:00:00Z",
+  "catalogVersion": 4,
+  "updatedAt": "2026-08-25T00:00:00Z",
   "comment": "Built-in offline model catalog with direct high-speed weights for lightweight on-device models.",
   "models": [
+    {
+      "id": "qwen-3.5-0.8b-instruct",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Qwen 3.5 0.8B Instruct (LiteRT-LM)",
+      "description": "Fast, high-quality on-device reasoning LLM (963 MB) with LiteRT-LM acceleration.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 4096,
+      "minMemoryMB": 1024,
+      "languages": ["en", "zh", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "Qwen3.5-0.8B_int8.litertlm",
+          "url": "https://huggingface.co/litert-community/Qwen3.5-0.8B/resolve/main/Qwen3.5-0.8B_int8.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 963184864
+        }
+      ]
+    },
+    {
+      "id": "qwen-3.5-2b-instruct",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Qwen 3.5 2B Instruct (LiteRT-LM)",
+      "description": "Balanced on-device instruction LLM (2.11 GB) with LiteRT-LM acceleration.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 4096,
+      "minMemoryMB": 3072,
+      "languages": ["en", "zh", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "Qwen3.5-2B_int8.litertlm",
+          "url": "https://huggingface.co/litert-community/Qwen3.5-2B/resolve/main/Qwen3.5-2B_int8.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2116592816
+        }
+      ]
+    },
+    {
+      "id": "qwen-3.5-4b-instruct",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Qwen 3.5 4B Instruct (LiteRT-LM)",
+      "description": "High-capability on-device reasoning LLM (4.40 GB) with LiteRT-LM acceleration.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 4096,
+      "minMemoryMB": 6144,
+      "languages": ["en", "zh", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "Qwen3.5-4B_int8.litertlm",
+          "url": "https://huggingface.co/litert-community/Qwen3.5-4B/resolve/main/Qwen3.5-4B_int8.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 4407428464
+        }
+      ]
+    },
+    {
+      "id": "smollm2-360m-instruct",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "SmolLM2 360M Instruct (Ultra-Light)",
+      "description": "Smallest on-device LLM (373 MB download) for rapid responses with LiteRT-LM acceleration.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 2048,
+      "minMemoryMB": 512,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "SmolLM2_360M_instruct.litertlm",
+          "url": "https://huggingface.co/litert-community/SmolLM2-360M-Instruct/resolve/main/SmolLM2_360M_instruct.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 373719040
+        }
+      ]
+    },
     {
       "id": "qwen-2.5-0.5b-instruct",
       "type": "llm",
       "provider": "google-gemma",
       "displayName": "Qwen 2.5 0.5B Instruct (Fast)",
-      "description": "Ultra-lightweight on-device chat model (546 MB download) for rapid responses.",
+      "description": "Ultra-lightweight on-device chat model (546 MB download) for MediaPipe on mobile and web.",
       "delivery": "download",
       "quantization": "int8",
       "contextLength": 4096,
       "minMemoryMB": 1024,
       "languages": ["en", "zh"],
-      "platforms": ["android", "ios", "macos"],
+      "platforms": ["android", "ios", "web"],
       "capabilities": ["chat", "streaming"],
       "license": "apache-2.0",
       "catalogVersion": 1,
@@ -32,13 +128,13 @@
       "type": "llm",
       "provider": "google-gemma",
       "displayName": "DeepSeek R1 Distill (1.5B)",
-      "description": "Reasoning on-device LLM with DeepSeek R1 distillation (1.86 GB download).",
+      "description": "Reasoning on-device LLM with DeepSeek R1 distillation (1.86 GB download) for MediaPipe.",
       "delivery": "download",
       "quantization": "int8",
       "contextLength": 4096,
       "minMemoryMB": 2048,
       "languages": ["en", "zh"],
-      "platforms": ["android", "ios", "macos"],
+      "platforms": ["android", "ios", "web"],
       "capabilities": ["chat", "streaming"],
       "license": "apache-2.0",
       "catalogVersion": 1,
@@ -52,34 +148,11 @@
       ]
     },
     {
-      "id": "smollm2-360m-instruct",
-      "type": "llm",
-      "provider": "google-gemma",
-      "displayName": "SmolLM2 360M Instruct (Ultra-Light)",
-      "description": "Smallest on-device LLM (373 MB download) for rapid responses.",
-      "delivery": "download",
-      "quantization": "int8",
-      "contextLength": 2048,
-      "minMemoryMB": 512,
-      "languages": ["en"],
-      "platforms": ["android", "ios", "macos"],
-      "capabilities": ["chat", "streaming"],
-      "license": "apache-2.0",
-      "catalogVersion": 1,
-      "files": [
-        {
-          "name": "SmolLM2_360M_instruct.litertlm",
-          "url": "https://huggingface.co/litert-community/SmolLM2-360M-Instruct/resolve/main/SmolLM2_360M_instruct.litertlm",
-          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 373719040
-        }
-      ]
-    },
-    {
       "id": "silero-vad",
       "type": "vad",
       "provider": "sherpa-community",
       "displayName": "Silero VAD",
+      "description": "Lightweight voice activity detection (643 KB).",
       "delivery": "bundledIfSmall",
       "minMemoryMB": 64,
       "languages": ["multilingual"],
@@ -101,6 +174,7 @@
       "type": "stt",
       "provider": "sherpa-community",
       "displayName": "Zipformer Small ASR (20M)",
+      "description": "English streaming speech recognition (70 MB).",
       "delivery": "download",
       "minMemoryMB": 128,
       "languages": ["en"],
@@ -118,10 +192,33 @@
       ]
     },
     {
+      "id": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "SenseVoice Small ASR",
+      "description": "Multilingual streaming speech recognition (1.04 GB).",
+      "delivery": "download",
+      "minMemoryMB": 512,
+      "languages": ["zh", "en", "ja", "ko", "yue"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrStreaming", "multilingual"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 1047870769
+        }
+      ]
+    },
+    {
       "id": "vits-piper-en-lessac",
       "type": "tts",
       "provider": "sherpa-community",
       "displayName": "Piper TTS (Lessac Low)",
+      "description": "Fast streaming text-to-speech (67 MB).",
       "delivery": "download",
       "minMemoryMB": 128,
       "languages": ["en"],
@@ -135,6 +232,50 @@
           "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
           "sizeBytes": 67097098
+        }
+      ]
+    },
+    {
+      "id": "supertonic-tts",
+      "type": "tts",
+      "provider": "sherpa-community",
+      "displayName": "Supertonic TTS",
+      "description": "Fast streaming text-to-speech voice synthesis.",
+      "delivery": "download",
+      "minMemoryMB": 128,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["ttsStreaming"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "vits-piper-en_US-lessac-low.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 67097098
+        }
+      ]
+    },
+    {
+      "id": "kokoro-en-tts",
+      "type": "tts",
+      "provider": "sherpa-community",
+      "displayName": "Kokoro TTS (v0.19)",
+      "description": "High-quality fast streaming text-to-speech (319 MB).",
+      "delivery": "download",
+      "minMemoryMB": 256,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["ttsStreaming"],
+      "license": "Apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "kokoro-en-v0_19.tar.bz2",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-en-v0_19.tar.bz2",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 319625534
         }
       ]
     }

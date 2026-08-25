@@ -6,7 +6,6 @@
 /// a stale placeholder fails closed, never open.
 library;
 
-import 'local_voice.dart';
 import 'manifest.dart';
 import 'model_delivery.dart';
 import 'model_file.dart';
@@ -79,6 +78,96 @@ abstract final class Models {
             'https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
         sha256: kPlaceholderSha256,
         sizeBytes: 546660344,
+      ),
+    ],
+  );
+
+  /// Qwen 3.5 0.8B int8 LiteRT-LM model (fast on-device LLM ~960MB).
+  static const LocalModelManifest qwen35_08b = LocalModelManifest(
+    id: 'qwen-3.5-0.8b-instruct',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'Qwen 3.5 0.8B Instruct (LiteRT-LM)',
+    description: 'Fast, high-quality on-device reasoning LLM (963 MB).',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 4096,
+    minMemoryMB: 1024,
+    languages: ['en', 'zh', 'multilingual'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'Qwen3.5-0.8B_int8.litertlm',
+        url:
+            'https://huggingface.co/litert-community/Qwen3.5-0.8B/resolve/main/Qwen3.5-0.8B_int8.litertlm',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 963184864,
+      ),
+    ],
+  );
+
+  /// Qwen 3.5 2B int8 LiteRT-LM model (balanced on-device LLM ~2.1GB).
+  static const LocalModelManifest qwen35_2b = LocalModelManifest(
+    id: 'qwen-3.5-2b-instruct',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'Qwen 3.5 2B Instruct (LiteRT-LM)',
+    description: 'Balanced on-device instruction LLM (2.11 GB).',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 4096,
+    minMemoryMB: 3072,
+    languages: ['en', 'zh', 'multilingual'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'Qwen3.5-2B_int8.litertlm',
+        url:
+            'https://huggingface.co/litert-community/Qwen3.5-2B/resolve/main/Qwen3.5-2B_int8.litertlm',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 2116592816,
+      ),
+    ],
+  );
+
+  /// Qwen 3.5 4B int8 LiteRT-LM model (high capability on-device LLM ~4.4GB).
+  static const LocalModelManifest qwen35_4b = LocalModelManifest(
+    id: 'qwen-3.5-4b-instruct',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'Qwen 3.5 4B Instruct (LiteRT-LM)',
+    description: 'High-capability on-device reasoning LLM (4.40 GB).',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 4096,
+    minMemoryMB: 6144,
+    languages: ['en', 'zh', 'multilingual'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'Qwen3.5-4B_int8.litertlm',
+        url:
+            'https://huggingface.co/litert-community/Qwen3.5-4B/resolve/main/Qwen3.5-4B_int8.litertlm',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 4407428464,
       ),
     ],
   );
@@ -168,101 +257,146 @@ abstract final class Models {
     ],
   );
 
+  /// Zipformer Small English streaming speech recognition.
+  static const LocalModelManifest zipformerSmall = LocalModelManifest(
+    id: 'sherpa-onnx-streaming-zipformer-en-20m',
+    type: ModelType.stt,
+    provider: ModelProviders.sherpaCommunity,
+    displayName: 'Zipformer Small ASR (20M)',
+    description: 'English streaming speech recognition (70 MB).',
+    delivery: ModelDelivery.download,
+    minMemoryMB: 128,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {ModelCapability.asrStreaming},
+    license: 'Apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 70000000,
+      ),
+    ],
+  );
+
   /// SenseVoice Small multilingual streaming ASR.
   static const LocalModelManifest senseVoiceSmall = LocalModelManifest(
     id: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
     type: ModelType.stt,
     provider: ModelProviders.sherpaCommunity,
     displayName: 'SenseVoice Small',
-    description: 'Multilingual streaming speech recognition.',
+    description: 'Multilingual streaming speech recognition (1.04 GB).',
     delivery: ModelDelivery.download,
     minMemoryMB: 512,
     languages: ['zh', 'en', 'ja', 'ko', 'yue'],
-    platforms: ['android', 'ios'],
+    platforms: ['android', 'ios', 'macos'],
     capabilities: {ModelCapability.asrStreaming, ModelCapability.multilingual},
     license: 'MIT',
     catalogVersion: 1,
     files: [
       ModelFile(
-        name: 'model.int8.onnx',
+        name: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2',
         url:
-            'https://storage.example.com/models/sense-voice-small/model.int8.onnx',
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2',
         sha256: kPlaceholderSha256,
-        sizeBytes: 234000000,
-      ),
-      ModelFile(
-        name: 'tokens.txt',
-        url: 'https://storage.example.com/models/sense-voice-small/tokens.txt',
-        sha256: kPlaceholderSha256,
-        sizeBytes: 420000,
+        sizeBytes: 1047870769,
       ),
     ],
   );
 
-  /// Supertonic streaming TTS base model with two downloadable voices.
-  static const LocalModelManifest supertonic = LocalModelManifest(
-    id: 'supertonic-tts',
+  /// Piper fast streaming TTS model.
+  static const LocalModelManifest vitsPiper = LocalModelManifest(
+    id: 'vits-piper-en-lessac',
     type: ModelType.tts,
     provider: ModelProviders.sherpaCommunity,
-    displayName: 'Supertonic TTS',
-    description: 'Fast streaming text-to-speech.',
+    displayName: 'Piper TTS (Lessac Low)',
+    description: 'Fast streaming text-to-speech (67 MB).',
     delivery: ModelDelivery.download,
-    minMemoryMB: 256,
+    minMemoryMB: 128,
     languages: ['en'],
-    platforms: ['android', 'ios'],
+    platforms: ['android', 'ios', 'macos'],
     capabilities: {ModelCapability.ttsStreaming},
     license: 'MIT',
     catalogVersion: 1,
     files: [
       ModelFile(
-        name: 'supertonic.onnx',
-        url: 'https://storage.example.com/models/supertonic/supertonic.onnx',
+        name: 'vits-piper-en_US-lessac-low.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2',
         sha256: kPlaceholderSha256,
-        sizeBytes: 90000000,
+        sizeBytes: 67097098,
       ),
     ],
-    voices: [
-      LocalVoice(
-        id: 'supertonic-en-female-1',
-        name: 'Emma (English, female)',
-        language: 'en',
-        gender: 'female',
-        files: [
-          ModelFile(
-            name: 'voice-emma.bin',
-            url: 'https://storage.example.com/models/supertonic/voice-emma.bin',
-            sha256: kPlaceholderSha256,
-            sizeBytes: 8000000,
-          ),
-        ],
+  );
+
+  /// Supertonic streaming TTS model (alias / fallback).
+  static const LocalModelManifest supertonic = LocalModelManifest(
+    id: 'supertonic-tts',
+    type: ModelType.tts,
+    provider: ModelProviders.sherpaCommunity,
+    displayName: 'Supertonic TTS',
+    description: 'Streaming text-to-speech voice synthesis.',
+    delivery: ModelDelivery.download,
+    minMemoryMB: 128,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {ModelCapability.ttsStreaming},
+    license: 'MIT',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'vits-piper-en_US-lessac-low.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-low.tar.bz2',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 67097098,
       ),
-      LocalVoice(
-        id: 'supertonic-en-male-1',
-        name: 'James (English, male)',
-        language: 'en',
-        gender: 'male',
-        files: [
-          ModelFile(
-            name: 'voice-james.bin',
-            url:
-                'https://storage.example.com/models/supertonic/voice-james.bin',
-            sha256: kPlaceholderSha256,
-            sizeBytes: 8000000,
-          ),
-        ],
+    ],
+  );
+
+  /// Kokoro streaming TTS high-quality multi-voice model.
+  static const LocalModelManifest kokoroTts = LocalModelManifest(
+    id: 'kokoro-en-tts',
+    type: ModelType.tts,
+    provider: ModelProviders.sherpaCommunity,
+    displayName: 'Kokoro TTS (v0.19)',
+    description: 'High-quality fast streaming text-to-speech (319 MB).',
+    delivery: ModelDelivery.download,
+    minMemoryMB: 256,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {ModelCapability.ttsStreaming},
+    license: 'Apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'kokoro-en-v0_19.tar.bz2',
+        url:
+            'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-en-v0_19.tar.bz2',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 319625534,
       ),
     ],
   );
 
   /// All built-in manifests, keyed by id.
   static const List<LocalModelManifest> all = [
+    qwen35_08b,
+    qwen35_2b,
+    qwen35_4b,
+    smollm2,
     qwen25_05b,
     deepseekR1,
-    smollm2,
     gemma3nE2b,
     sileroVad,
+    zipformerSmall,
     senseVoiceSmall,
+    vitsPiper,
     supertonic,
+    kokoroTts,
   ];
 
   /// Lookup helper; returns `null` for unknown ids.

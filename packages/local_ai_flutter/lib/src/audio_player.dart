@@ -25,6 +25,7 @@ class FlutterAudioPlayer implements LocalAudioOutput {
   final String cacheDir;
 
   AudioPlayer? _player;
+  Process? _activeProcess;
   bool _stopped = false;
 
   @override
@@ -46,15 +47,22 @@ class FlutterAudioPlayer implements LocalAudioOutput {
         File('$cacheDir/tts-${DateTime.now().microsecondsSinceEpoch}.wav');
     await file.writeAsBytes(wav, flush: true);
     try {
-      await player.play(DeviceFileSource(file.path));
-      // Wait for playback completion (watchdog timeout; barge-in stop()
-      // releases via the finally block).
-      try {
-        await player.onPlayerComplete.first.timeout(const Duration(minutes: 5));
-      } on TimeoutException {
-        // Give up waiting; the player is stopped below regardless.
+      if (Platform.isMacOS) {
+        final proc = await Process.start('afplay', [file.path]);
+        _activeProcess = proc;
+        await proc.exitCode;
+      } else {
+        await player.play(DeviceFileSource(file.path));
+        // Wait for playback completion (watchdog timeout; barge-in stop()
+        // releases via the finally block).
+        try {
+          await player.onPlayerComplete.first.timeout(const Duration(minutes: 5));
+        } on TimeoutException {
+          // Give up waiting; the player is stopped below regardless.
+        }
       }
     } finally {
+      _activeProcess = null;
       await file.delete().catchError((_) => file);
     }
   }
@@ -62,6 +70,8 @@ class FlutterAudioPlayer implements LocalAudioOutput {
   @override
   Future<void> stop() async {
     _stopped = true;
+    _activeProcess?.kill();
+    _activeProcess = null;
     final player = _player;
     _player = null;
     await player?.stop();
