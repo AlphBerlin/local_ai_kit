@@ -86,12 +86,26 @@ class SherpaTtsAdapter implements LocalTts {
       eventSub = worker.events.listen((event) {
         switch (event.kind) {
           case 'audio':
-            final data = (event.data as TransferableTypedData)
-                .materialize()
-                .asFloat32List();
+            Float32List data;
+            int sampleRate = 44100;
+            if (event.data is Map) {
+              final map = event.data as Map;
+              final transferable = map['samples'] as TransferableTypedData;
+              data = transferable.materialize().asFloat32List();
+              sampleRate = map['sampleRate'] as int? ?? 44100;
+            } else {
+              data = (event.data as TransferableTypedData)
+                  .materialize()
+                  .asFloat32List();
+            }
+            final format = AudioFormat(
+              sampleRate: sampleRate,
+              channels: 1,
+              type: AudioSampleType.float32,
+            );
             controller.add(AudioChunk(
               samples: data,
-              format: AudioFormat.pcm44kMonoFloat,
+              format: format,
             ));
           case 'done':
             controller.add(AudioChunk(
@@ -143,6 +157,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         'run',
         '--with',
         'supertonic',
+        '--with',
+        'sherpa-onnx',
         'python3',
         '/tmp/supertonic_server.py',
         onnxDir,
@@ -168,9 +184,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
       case 'initTts':
         _modelDir = (command.payload as Map)['modelDir'] as String?;
         _tts = Object();
-        if (_modelDir != null &&
-            File('$_modelDir/duration_predictor.onnx').existsSync() &&
-            File('$_modelDir/vocoder.onnx').existsSync()) {
+        if (_modelDir != null) {
           await _startServer(_modelDir!);
         }
         reply(command, true);
@@ -188,22 +202,22 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         }
 
         Float32List? samples;
+        var sampleRate = 44100;
 
-        // 1. Try authentic Supertonic 3 ONNX Neural Inference via persistent server
+        // 1. Try ONNX Neural Inference via persistent server (Supertonic / Kokoro / Piper)
         final onnxDir = _modelDir;
         final server = _serverProcess;
         final iterator = _lineIterator;
         if (onnxDir != null && server != null && iterator != null) {
           try {
-            final tmpPcm = File('/tmp/supertonic_${DateTime.now().microsecondsSinceEpoch}.pcm');
+            final tmpPcm = File('/tmp/tts_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
             final vStyle = (voiceId ?? 'F1').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
-            final styleName = (vStyle.startsWith('F') || vStyle.startsWith('M')) ? vStyle : 'F1';
             final langCode = (language ?? 'en').toLowerCase().split('-').first.split('_').first;
 
             final reqJson = jsonEncode({
               'text': text,
               'language': langCode,
-              'voice_style': styleName,
+              'voice_style': vStyle,
               'speed': speed,
               'total_step': 8,
               'output_path': tmpPcm.path,
@@ -215,6 +229,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
             if (await iterator.moveNext()) {
               final respLine = iterator.current.trim();
               if (respLine.isNotEmpty && await tmpPcm.exists()) {
+                final resp = jsonDecode(respLine) as Map<String, dynamic>;
+                sampleRate = resp['sample_rate'] as int? ?? 44100;
                 final bytes = await tmpPcm.readAsBytes();
                 await tmpPcm.delete().catchError((_) => tmpPcm);
                 if (bytes.isNotEmpty) {
@@ -231,7 +247,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
           } catch (_) {}
         }
 
-        // 2. Fallback: macOS Native Multi-Voice Neural Speech Synthesis
+        // 2. Fallback: macOS Native Studio Neural Speech Synthesis
         if (samples == null || samples.isEmpty) {
           if (Platform.isMacOS) {
             try {
@@ -256,7 +272,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
                 final bytes = await tmpFile.readAsBytes();
                 await tmpFile.delete().catchError((_) => tmpFile);
                 if (bytes.length > 44) {
-                  // Read float32 samples from 44-byte WAV header
+                  sampleRate = 44100;
                   final byteData = ByteData.sublistView(bytes, 44);
                   final count = (bytes.length - 44) ~/ 4;
                   final floatList = Float32List(count);
@@ -273,6 +289,7 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         // 3. Fallback: On-device formant harmonic vocal synthesizer
         if (samples == null || samples.isEmpty) {
           samples = _synthesizeVocalWaveform(text, speed: speed, pitch: pitch);
+          sampleRate = 44100;
         }
 
         // Stream audio in 4096-sample chunks for low latency
@@ -283,7 +300,10 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
               ? offset + chunkSize
               : samples.length;
           final chunk = samples.sublist(offset, end);
-          emit('audio', data: TransferableTypedData.fromList([chunk]));
+          emit('audio', data: {
+            'samples': TransferableTypedData.fromList([chunk]),
+            'sampleRate': sampleRate,
+          });
           await Future<void>.delayed(const Duration(milliseconds: 5));
         }
         emit('done');
@@ -328,131 +348,44 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
 
     final v = (voiceId ?? 'default').toLowerCase().trim();
 
-    // 2. Japanese Language Voices (Distinct F1-F5, M1-M5)
+    // 2. Japanese Language Voices
     if (lang.startsWith('ja')) {
-      return switch (v) {
-        'f1' => 'Kyoko',
-        'f2' => 'Flo (Japanese (Japan))',
-        'f3' => 'Sandy (Japanese (Japan))',
-        'f4' => 'Shelley (Japanese (Japan))',
-        'f5' => 'Grandma (Japanese (Japan))',
-        'm1' => 'Eddy (Japanese (Japan))',
-        'm2' => 'Reed (Japanese (Japan))',
-        'm3' => 'Rocko (Japanese (Japan))',
-        'm4' => 'Grandpa (Japanese (Japan))',
-        'm5' => 'Otoya',
-        _ => 'Kyoko',
-      };
+      return (v.startsWith('m') || v == 'adam' || v == 'michael') ? 'Otoya' : 'Kyoko';
     }
 
-    // 3. Korean Language Voices (Distinct F1-F5, M1-M5)
+    // 3. Korean Language Voices
     if (lang.startsWith('ko')) {
-      return switch (v) {
-        'f1' => 'Yuna',
-        'f2' => 'Flo (Korean (South Korea))',
-        'f3' => 'Sandy (Korean (South Korea))',
-        'f4' => 'Shelley (Korean (South Korea))',
-        'f5' => 'Grandma (Korean (South Korea))',
-        'm1' => 'Eddy (Korean (South Korea))',
-        'm2' => 'Reed (Korean (South Korea))',
-        'm3' => 'Rocko (Korean (South Korea))',
-        'm4' => 'Grandpa (Korean (South Korea))',
-        _ => 'Yuna',
-      };
+      return 'Yuna';
     }
 
-    // 4. Chinese Language Voices (Distinct F1-F5, M1-M5)
+    // 4. Chinese Language Voices
     if (lang.startsWith('zh')) {
-      return switch (v) {
-        'f1' => 'Tingting',
-        'f2' => 'Flo (Chinese (China mainland))',
-        'f3' => 'Sandy (Chinese (China mainland))',
-        'f4' => 'Shelley (Chinese (China mainland))',
-        'f5' => 'Meijia',
-        'm1' => 'Eddy (Chinese (China mainland))',
-        'm2' => 'Reed (Chinese (China mainland))',
-        'm3' => 'Rocko (Chinese (China mainland))',
-        'm4' => 'Grandpa (Chinese (China mainland))',
-        _ => 'Tingting',
-      };
+      return (v == 'f5' || v == 'sarah') ? 'Meijia' : 'Tingting';
     }
 
-    // 5. Spanish Language Voices (Distinct F1-F5, M1-M5)
+    // 5. Spanish Language Voices
     if (lang.startsWith('es')) {
-      return switch (v) {
-        'f1' => 'Mónica',
-        'f2' => 'Flo (Spanish (Spain))',
-        'f3' => 'Sandy (Spanish (Spain))',
-        'f4' => 'Paulina',
-        'f5' => 'Shelley (Spanish (Spain))',
-        'm1' => 'Eddy (Spanish (Spain))',
-        'm2' => 'Reed (Spanish (Spain))',
-        'm3' => 'Rocko (Spanish (Spain))',
-        'm4' => 'Grandpa (Spanish (Spain))',
-        _ => 'Mónica',
-      };
+      return (v == 'f4' || v == 'nicole') ? 'Paulina' : 'Mónica';
     }
 
-    // 6. French Language Voices (Distinct F1-F5, M1-M5)
+    // 6. French Language Voices
     if (lang.startsWith('fr')) {
-      return switch (v) {
-        'f1' => 'Amélie',
-        'f2' => 'Flo (French (France))',
-        'f3' => 'Sandy (French (France))',
-        'f4' => 'Shelley (French (France))',
-        'f5' => 'Grandma (French (France))',
-        'm1' => 'Thomas',
-        'm2' => 'Jacques',
-        'm3' => 'Eddy (French (France))',
-        'm4' => 'Rocko (French (France))',
-        _ => 'Amélie',
-      };
+      return (v.startsWith('m') || v == 'adam' || v == 'michael') ? 'Thomas' : 'Amélie';
     }
 
-    // 7. German Language Voices (Distinct F1-F5, M1-M5)
+    // 7. German Language Voices
     if (lang.startsWith('de')) {
-      return switch (v) {
-        'f1' => 'Anna',
-        'f2' => 'Flo (German (Germany))',
-        'f3' => 'Sandy (German (Germany))',
-        'f4' => 'Shelley (German (Germany))',
-        'f5' => 'Grandma (German (Germany))',
-        'm1' => 'Eddy (German (Germany))',
-        'm2' => 'Reed (German (Germany))',
-        'm3' => 'Rocko (German (Germany))',
-        'm4' => 'Grandpa (German (Germany))',
-        _ => 'Anna',
-      };
+      return 'Anna';
     }
 
-    // 8. Italian Language Voices (Distinct F1-F5, M1-M5)
+    // 8. Italian Language Voices
     if (lang.startsWith('it')) {
-      return switch (v) {
-        'f1' => 'Alice',
-        'f2' => 'Flo (Italian (Italy))',
-        'f3' => 'Sandy (Italian (Italy))',
-        'f4' => 'Shelley (Italian (Italy))',
-        'f5' => 'Grandma (Italian (Italy))',
-        'm1' => 'Eddy (Italian (Italy))',
-        'm2' => 'Reed (Italian (Italy))',
-        'm3' => 'Rocko (Italian (Italy))',
-        'm4' => 'Grandpa (Italian (Italy))',
-        _ => 'Alice',
-      };
+      return 'Alice';
     }
 
     // 9. Portuguese Language Voices
     if (lang.startsWith('pt')) {
-      return switch (v) {
-        'f1' => 'Luciana',
-        'f2' => 'Flo (Portuguese (Brazil))',
-        'f3' => 'Sandy (Portuguese (Brazil))',
-        'f4' => 'Shelley (Portuguese (Brazil))',
-        'm1' => 'Eddy (Portuguese (Brazil))',
-        'm2' => 'Reed (Portuguese (Brazil))',
-        'm3' => 'Rocko (Portuguese (Brazil))',
-        _ => 'Luciana',
-      };
+      return 'Luciana';
     }
 
     // 10. Russian
@@ -486,23 +419,23 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
     if (lang.startsWith('ms')) return 'Amira';
     if (lang.startsWith('bn')) return 'Piya';
 
-    // English (Default)
+    // English (Default) - Clean, premium Apple voices
     return switch (v) {
       'f1' => 'Samantha',
-      'f2' => 'Flo (English (US))',
-      'f3' => 'Sandy (English (US))',
-      'f4' => 'Karen',
-      'f5' => 'Shelley (English (US))',
-      'm1' => 'Daniel',
-      'm2' => 'Eddy (English (US))',
-      'm3' => 'Reed (English (US))',
-      'm4' => 'Rocko (English (US))',
-      'm5' => 'Albert',
-      'bella' => 'Sandy (English (US))',
-      'nicole' => 'Flo (English (US))',
-      'sarah' => 'Karen',
-      'adam' => 'Daniel',
-      'michael' => 'Reed (English (US))',
+      'f2' => 'Karen',
+      'f3' => 'Moira',
+      'f4' => 'Tessa',
+      'f5' => 'Victoria',
+      'm1' => 'Alex',
+      'm2' => 'Daniel',
+      'm3' => 'Oliver',
+      'm4' => 'Thomas',
+      'm5' => 'Rishi',
+      'bella' => 'Samantha',
+      'nicole' => 'Karen',
+      'sarah' => 'Moira',
+      'adam' => 'Alex',
+      'michael' => 'Daniel',
       _ => 'Samantha',
     };
   }
