@@ -34,6 +34,12 @@
 - Create: `packages/local_ai_sherpa/README.md`
 - Create: `packages/local_ai_kit/README.md`
 - Create: `packages/local_ai_genkit/README.md`
+- Create: `packages/local_ai_core/LICENSE`
+- Create: `packages/local_ai_flutter/LICENSE`
+- Create: `packages/local_ai_gemma/LICENSE`
+- Create: `packages/local_ai_sherpa/LICENSE`
+- Create: `packages/local_ai_kit/LICENSE`
+- Create: `packages/local_ai_genkit/LICENSE`
 - Create: `packages/local_ai_core/CHANGELOG.md`
 - Create: `packages/local_ai_flutter/CHANGELOG.md`
 - Create: `packages/local_ai_gemma/CHANGELOG.md`
@@ -87,7 +93,7 @@ Do not change third-party dependency versions or the root `pubspec.yaml`.
 
 - [ ] **Step 3: Add package-local page content.**
 
-Each README must identify the package’s role, include its primary import, link to the repository and relevant root documentation, and state whether it is pure Dart, Flutter platform, adapter, facade, or optional orchestration. Each changelog must contain:
+Each package must include the repository’s Apache-2.0 `LICENSE` text at its package root because package archives do not include files from the workspace root. Each README must identify the package’s role, include its primary import, link to the repository and relevant root documentation, and state whether it is pure Dart, Flutter platform, adapter, facade, or optional orchestration. Each changelog must contain:
 
 ```markdown
 # Changelog
@@ -97,7 +103,7 @@ Each README must identify the package’s role, include its primary import, link
 - Initial public release.
 ```
 
-The `local_ai_kit` README should include the basic initialization example from the root README; adapter READMEs should show their plugin registration; `local_ai_core` should state that it has no Flutter/native runtime dependency.
+The `local_ai_kit` README should include the basic initialization example from the root README; adapter READMEs should show their plugin registration; `local_ai_core` should state that it has no Flutter/native runtime dependency. Add `local_ai_sherpa: ^0.0.1` to `local_ai_kit`’s `dev_dependencies` because its existing Flutter test imports that adapter package; do not add it to runtime dependencies.
 
 - [ ] **Step 4: Re-run the metadata validation.**
 
