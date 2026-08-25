@@ -138,7 +138,9 @@ Requires `tts` in the config (e.g. `LocalAIConfig.voiceAssistant()`):
 
 ```dart
 // Downloads the voice on first use, then plays through the speaker.
-await ai.tts.installVoice('supertonic-en-female-1');
+// Supertonic voice ids are 'f1'-'f5' (female) / 'm1'-'m5' (male) — see
+// Model Registry & Catalog.
+await ai.tts.installVoice('f1');
 await ai.speak('Hello from your device.');
 ```
 

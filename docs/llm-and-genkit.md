@@ -42,14 +42,17 @@ await for (final chunk in chunks) {
 |---|---|---|---|
 | `topK` | `int` | `40` | Limits sampling to top K most probable tokens (filters low-probability tail). |
 | `topP` | `double` | `0.9` | Nucleus sampling threshold (cumulative probability mass). |
-| `temperature` | `double` | `0.7` | Controls randomness (lower = deterministic, higher = creative). |
-| `maxTokens` | `int` | `512` | Max tokens generated per request. |
+| `temperature` | `double` | `0.8` | Controls randomness (lower = deterministic, higher = creative). |
+
+`maxTokens` is a per-request field on `LlmRequest`, not on `LlmLoadOptions` — see `generateStream` above (`null` = model default).
 
 ### Streaming repetition guard
-To prevent smaller quantized models (0.5B–4B) from falling into degenerative loops or repeat loops, the adapter integrates an automated 3-tier streaming guard:
+To prevent smaller quantized models (0.5B–4B) from falling into degenerative loops or repeat loops, the Gemma adapter integrates an automated 3-tier streaming guard:
 1. **Line-level repetition detector**: Truncates repetitive phrases across multi-line outputs.
-2. **N-gram cycle breaker**: Detects repeating 3-word and 4-word cycles and terminates the turn cleanly.
-3. **Single-token burst guard**: Prevents runaway loops on punctuation or whitespace bursts.
+2. **N-gram cycle breaker**: Detects repeating 3-word cycles (three consecutive matching 3-word windows) and terminates the turn cleanly.
+3. **Repeated-word guard**: Prevents runaway loops where the last 6 words are all identical.
+
+Note: the shipped `GemmaLlmAdapter` always reports `finishReason: stop` on the final chunk (even when the repetition guard cut generation short) and never populates `promptTokens`/`completionTokens` — those fields are part of the interface for adapters that can provide them, not guarantees from every adapter.
 
 ## Structured output & JsonSchema
 

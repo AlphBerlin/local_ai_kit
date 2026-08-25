@@ -149,20 +149,27 @@ final ai = await LocalAI.initialize(
 
 Bridges `flutter_gemma` and Google's LiteRT-LM runtime to `LocalLlm`:
 - **Dual Inference Backends**: Automatically selects between `MediaPipeEngine` (for Gemma/Paligemma `.task` models) and `LiteRtLmEngine` (for `.litertlm` / `.bin` models like Qwen 3.5, SmolLM2, and DeepSeek R1).
-- **Prompt Templating & Role Alignment**: Automatically structures system prompts and turn markers (`<|im_start|>`, `<|user|>`, `<|assistant|>`) based on detected model family.
-- **Repetition Guard & Balanced Sampling**: Default `topK = 40`, `topP = 0.9`, and `temperature = 0.7` with a real-time streaming 3-layer guard (line cycle, n-gram repeat, token burst) to guarantee stable, natural generation.
+- **Model-family detection**: passes `systemInstruction`/turn role flags to `flutter_gemma`'s chat API based on the detected model family (deepseek / qwen / llama-style / gemma-it); it does not itself inject literal turn-marker tokens like `<|im_start|>` — any such templating happens inside `flutter_gemma`, not this adapter.
+- **Repetition Guard & Balanced Sampling**: Default `topK = 40`, `topP = 0.9`, `temperature = 0.8`, with a real-time streaming 3-layer guard (line-level repetition, 3-word n-gram cycle detection, 6-identical-word burst guard) to reduce degenerate loops on small quantized models.
 
-### 2. `SherpaTtsAdapter` (`local_ai_sherpa`)
+### 2. `SherpaTtsAdapter` / `SherpaSttAdapter` / `SherpaVadAdapter` (`local_ai_sherpa`) — implementation notice
 
-Bridges Sherpa-ONNX and Supertonic to `LocalTts`:
-- **Supertonic 3 4-Stage Flow Matching**: Pre-loads `duration_predictor.onnx`, `text_encoder.onnx`, `vector_estimator.onnx`, and `vocoder.onnx` into memory for sub-second flow-matching synthesis.
-- **Zero-Shot Voice Styles**: Full support for 10 distinct voice styles (`F1`–`F5` female, `M1`–`M5` male) across 31+ languages with exact duration slicing.
-- **Studio 44.1 kHz Audio**: Emits raw `AudioFormat.pcm44kMonoFloat` chunks without format conversion losses.
-- **Zero-Dependency Native Fallback**: Seamless automatic fallback to native macOS/iOS multi-voice neural speech synthesis (`Kyoko`, `Samantha`, `Yuna`, `Tingting`, etc.).
+Despite the package name, pubspec description and this doc's architecture diagram, **none of the three Sherpa adapters currently call into the `sherpa_onnx` Dart package** — it isn't imported anywhere under `packages/local_ai_sherpa/lib`. What they actually do today:
+
+- **`SherpaSttAdapter` / `SherpaTtsAdapter`**: the worker isolate spawns an external process — `uv run --with sherpa-onnx ... python3 <embedded script>` — and talks to it over stdin/stdout JSON lines (`sherpa_stt_adapter.dart`, `sherpa_tts_adapter.dart`). The `uv` binary path has a hardcoded developer-machine fallback (`/Users/ajithberlin/.local/bin/uv`) if it isn't found on `PATH`. This only works where a Python 3 runtime and `uv` are reachable as a subprocess — realistically **macOS/desktop only**; Android and iOS sandboxing do not permit spawning arbitrary subprocesses, so these adapters are not expected to function there today despite the platform lists in the manifests. `SherpaTtsAdapter` has two further fallbacks: native macOS voices via `/usr/bin/say` (`Platform.isMacOS` only, not iOS), and — if neither the Python path nor `say` is available — a hand-rolled sawtooth/formant waveform synthesizer (`_synthesizeVocalWaveform`) that produces audible but non-neural speech-like output.
+- **`SherpaVadAdapter`**: does **not** run Silero VAD or any ONNX model. `load()` computes a `modelPath` and sends it to the worker, but the worker's `initVad` handler never reads it. Voice activity is instead detected by a plain RMS-energy heuristic with adaptive noise-floor tracking, implemented entirely in Dart (`sherpa_vad_adapter.dart`). It works and is lightweight, but it is not the Silero model advertised by the class doc-comment, the package description, or the top-level README.
+- **Voice-style support** (`F1`–`F5`/`M1`–`M5`, 31+ languages) and the general streaming/isolate architecture (§ above) are real; the specific "4-stage flow matching" internals and the exact set of `.onnx` filenames are implementation details of the external `supertonic` Python package this adapter shells out to, not something verifiable from this repo. The adapter itself only checks for `duration_predictor.onnx`'s existence before invoking it.
+- TTS output sample rate is **not** always 44.1 kHz — the adapter picks `AudioFormat` from whatever rate the underlying engine reports at runtime (24 kHz for Kokoro, 22.05/16 kHz for some paths, 44.1 kHz as the fallback default for anything else).
+
+If you're building on this package, treat the STT/TTS/VAD adapters as a working prototype/desktop demo rather than a production on-device (especially mobile) pipeline until they're re-implemented against the actual `sherpa_onnx` FFI bindings.
+
+## Embedding capability: interface-only, no adapter ships yet
+
+`LocalEmbedding`, `EmbeddingConfig`, `ModelType.embedding`, `ModelCapability.embedding` and the `models/embedding/<id>/` storage directory all exist end-to-end in `local_ai_core`, and `registerEmbedding(...)` exists on `AdapterRegistry` — but no package in this repo implements `LocalEmbedding` (no real adapter, no `FakeEmbedding`). "Embeddings" listed as a feature elsewhere in the docs/README describes the scaffolding, not a working capability yet; write your own adapter (following the pattern above) if you need it today.
 
 ## Testability: fakes
 
-`local_ai_core` ships in-memory fakes implementing every capability, so app and pipeline tests need no device and no native runtime:
+`local_ai_core` ships in-memory fakes for the four capabilities that have a real adapter (LLM/STT/TTS/VAD — no `FakeEmbedding` exists), so app and pipeline tests need no device and no native runtime:
 
 | Fake | Behavior |
 |---|---|

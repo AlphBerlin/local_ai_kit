@@ -14,7 +14,7 @@ When the remote catalog carries a higher `catalogVersion` with changed file hash
 
 Three layers of defense:
 
-1. **Pre-check** — `ai.runtime.checkCompatibility(manifest)` compares `minMemoryMB` with available RAM before you even offer a download.
+1. **Pre-check** — `ai.runtime.checkCompatibility(manifest)` compares `minMemoryMB` with available RAM before you even offer a download. **Caveat:** on the shipped `FlutterDeviceProbe`, RAM and free-disk figures are currently hardcoded placeholders (4096 MB total / 2048 MB available / 100 GB free) rather than a real platform probe — see the `TODO(verify)` comments in `packages/local_ai_flutter/lib/src/device_probe.dart`. The check runs, but it isn't yet reading your actual device's memory.
 2. **LRU policy** — `RuntimeMemoryPolicy.maxLoadedModels` caps simultaneously loaded models; the least-recently-used unlocked model is evicted first, idle models are swept after `unloadUnusedAfter`, and backgrounding trims everything unlocked.
 3. **Fallback** — if a `gpu`/`npu` load fails, the scheduler retries on `cpu` and reports `RuntimeBackendFallback`.
 
@@ -31,9 +31,11 @@ Downloads are resilient to app lifecycle: progress is persisted in `downloads/<i
 | `local_ai_core` | ✅ | ✅ | ✅ | Any pure-Dart target |
 | `local_ai_flutter` (platform layer) | ✅ | ✅ | ✅ | — |
 | Gemma LLM adapter | ✅ | ✅ | — | per flutter_gemma |
-| Sherpa VAD/STT/TTS adapters | ✅ | ✅ | ✅ | per sherpa_onnx |
+| Sherpa VAD/STT/TTS adapters | ⚠️ | ⚠️ | ✅ | see caveat below |
 
 Each manifest also declares its own `platforms` list; `checkCompatibility` enforces it at runtime.
+
+**Sherpa adapter caveat:** the manifests list Android/iOS as supported platforms, but the current `local_ai_sherpa` implementation does not use the `sherpa_onnx` Dart package at all — STT/TTS shell out to a `uv run python3` subprocess (desktop-only; Android/iOS sandboxing doesn't allow spawning arbitrary subprocesses) and VAD is a pure-Dart RMS-energy heuristic, not Silero. Treat Android/iOS support for these three adapters as unverified until they're re-implemented against real FFI bindings — see [Adapters → Built-in adapter implementations](adapters.md) for details.
 
 ## Why do I have to register adapter plugins explicitly?
 

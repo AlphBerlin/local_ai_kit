@@ -66,7 +66,7 @@ Each `run()` executes one pass: capture one VAD-segmented utterance (or consume 
 | Event | Payload | Emitted by |
 |---|---|---|
 | `PipelineInputStarted` | — | Input stage begins. |
-| `PipelineVadSpeech` | `started` | VAD speech onset/offset. |
+| `PipelineVadSpeech` | `started` | Defined for VAD speech onset/offset, but not currently emitted — `_captureUtterance()` consumes the VAD stream internally to segment one utterance without surfacing those events on the pipeline's own stream. Use [Voice Pipeline](voice-pipeline.md)'s `VoiceSpeechStarted`/`VoiceSpeechEnded` if you need live onset/offset events. |
 | `PipelineTranscript` | `text`, `isFinal` | STT stage. |
 | `PipelineLlmDelta` | `textDelta` | LLM streaming tokens. |
 | `PipelineAudioChunk` | `chunk` (`AudioChunk`) | TTS stage when using `.output.events()`. |

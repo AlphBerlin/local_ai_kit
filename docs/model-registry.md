@@ -30,17 +30,21 @@ Computed helpers: `totalSizeBytes`, `totalSizeMB`. Serialization: `toJson()` / `
 
 | Constant | id | Type | Delivery | Notes |
 |---|---|---|---|---|
-| `Models.qwen35_08b` | `qwen-3.5-0.8b-instruct` | LLM | `download` | Qwen 3.5 0.8B Instruct (int8 LiteRT-LM), 32k context, ~950 MB. |
-| `Models.qwen35_2b` | `qwen-3.5-2b-instruct` | LLM | `download` | Qwen 3.5 2B Instruct (int8 LiteRT-LM), 32k context, ~2.1 GB. |
-| `Models.qwen35_4b` | `qwen-3.5-4b-instruct` | LLM | `download` | Qwen 3.5 4B Instruct (int8 LiteRT-LM), 32k context, ~4.1 GB. |
-| `Models.smollm2` | `smollm2-360m-instruct` | LLM | `download` | SmolLM2 360M Instruct (LiteRT-LM int8), ~400 MB. |
+| `Models.qwen25_05b` | `qwen-2.5-0.5b-instruct` | LLM | `download` | Qwen 2.5 0.5B Instruct (int8), 4k context, ~547 MB — fastest/lightest chat model. |
+| `Models.qwen35_08b` | `qwen-3.5-0.8b-instruct` | LLM | `download` | Qwen 3.5 0.8B Instruct (int8 LiteRT-LM), 4k context, ~963 MB. |
+| `Models.qwen35_2b` | `qwen-3.5-2b-instruct` | LLM | `download` | Qwen 3.5 2B Instruct (int8 LiteRT-LM), 4k context, ~2.1 GB. |
+| `Models.qwen35_4b` | `qwen-3.5-4b-instruct` | LLM | `download` | Qwen 3.5 4B Instruct (int8 LiteRT-LM), 4k context, ~4.4 GB. |
+| `Models.smollm2` | `smollm2-360m-instruct` | LLM | `download` | SmolLM2 360M Instruct (LiteRT-LM int8), 2k context, ~374 MB. |
 | `Models.deepseekR1` | `deepseek-r1-1.5b-int4` | LLM | `download` | DeepSeek R1 Distill Qwen 1.5B (LiteRT-LM), ~1.86 GB. |
 | `Models.gemma4E2b` | `gemma-4-e2b-it` | LLM | `download` | Gemma 4 E2B IT (LiteRT-LM), 8k context, ~2.59 GB. |
 | `Models.gemma4E4b` | `gemma-4-e4b-it` | LLM | `download` | Gemma 4 E4B IT (LiteRT-LM), 8k context, ~3.66 GB. |
 | `Models.gemma3nE2b` | `gemma-3n-e2b-it-int4` | LLM | `download` | Gemma 3n E2B IT (LiteRT-LM), 32k context, ~2.59 GB. |
-| `Models.sileroVad` | `silero-vad` | VAD | `bundledIfSmall` | Silero VAD, ~2.3 MB — bundled under the smart policy. |
+| `Models.sileroVad` | `silero-vad` | VAD | `bundledIfSmall` | Silero VAD, ~0.6 MB — bundled under the smart policy. |
 | `Models.senseVoiceSmall` | `sherpa-onnx-sense-voice-zh-en-ja-ko-yue` | STT | `download` | SenseVoice Small multilingual ASR (zh/en/ja/ko/yue), ~234 MB + tokens. |
-| `Models.zipformerSmall` | `sherpa-onnx-streaming-zipformer-en-20m` | STT | `download` | Fast streaming English Zipformer ASR, ~79 MB. |
+| `Models.zipformerSmall` | `sherpa-onnx-streaming-zipformer-en-20m` | STT | `download` | Fast streaming English Zipformer ASR, ~70 MB. |
+| `Models.whisperBase` | `sherpa-onnx-whisper-base.en` | STT | `download` | Whisper Base English ASR (OpenAI), ~75 MB. |
+| `Models.whisperTiny` | `sherpa-onnx-whisper-tiny.en` | STT | `download` | Whisper Tiny English ASR (OpenAI), ~40 MB. |
+| `Models.moonshineTiny` | `sherpa-onnx-moonshine-tiny-en` | STT | `download` | Moonshine Tiny English ASR, sub-100ms latency, ~30 MB. |
 | `Models.supertonic` | `supertonic-tts` | TTS | `download` | Supertonic 3 (Supertone Inc.), 31+ languages, 10 voice styles (`F1`–`F5`, `M1`–`M5`), 44.1 kHz neural flow matching (~398 MB). |
 | `Models.kokoroTts` | `kokoro-en-tts` | TTS | `download` | Kokoro TTS v0.19 fast streaming text-to-speech (~319 MB). |
 | `Models.vitsPiper` | `vits-piper-en-lessac` | TTS | `download` | Piper VITS Lessac offline voice (~65 MB). |

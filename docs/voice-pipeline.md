@@ -81,7 +81,7 @@ Without acoustic echo cancellation, speaker output can look like speech to the V
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `bargeIn` | `bool` | `true` | Allow the user to interrupt playback by speaking. |
-| `duplex` | `DuplexMode` | `full` | `full` keeps mic+VAD active during playback; `half` mutes while speaking. |
+| `duplex` | `DuplexMode` | `full` | Declared for future half/full-duplex switching, but not currently read anywhere in `VoiceSession` — mic suppression during playback is presently unconditional regardless of this setting. Treat `half` as a no-op for now. |
 | `systemPrompt` | `String?` | `null` | Prepended to every turn. |
 | `interruptConfidenceThreshold` | `double` | `0.7` | VAD confidence needed to trigger barge-in while speaking. |
 | `interruptMinSpeechMs` | `int` | `120` | Minimum speech persistence to count as barge-in. |
@@ -91,7 +91,7 @@ Without acoustic echo cancellation, speaker output can look like speech to the V
 ## Audio formats and resource behavior
 
 - **Microphone & VAD/STT Capture**: Operates at `AudioFormat.pcm16kMono` (16 kHz mono float32) for optimal Silero VAD and Zipformer/SenseVoice feature extraction.
-- **Speech Synthesis (TTS) Output**: Streams at pristine `AudioFormat.pcm44kMonoFloat` (44.1 kHz mono float32) for studio quality Supertonic 3 and Kokoro playback without pitch shifts or downsampling loss.
+- **Speech Synthesis (TTS) Output**: Streams at whatever mono float32 `AudioFormat` matches the engine's reported sample rate — `pcm44kMonoFloat` (44.1 kHz) for Supertonic 3, `pcm24kMonoFloat` (24 kHz) for Kokoro's native rate, with `pcm44kMonoFloat` as the fallback for any other rate — never resampled, so no pitch shift or downsampling loss either way.
 - **Multilingual Voice Routing**: `SpeakRequest` and `VoiceSession` support explicit BCP-47 `language` (e.g. `'ja'`, `'ko'`, `'en'`, `'zh'`) and `voiceId` parameters (e.g. `'f1'` through `'f5'`, `'m1'` through `'m5'`).
 - All four models stay locked in the runtime scheduler for the session; see [Runtime & Memory](runtime-memory.md).
 - Errors from any stage surface as `VoiceErrorOccurred`; non-cancellation failures are wrapped in `NativeRuntimeError`.

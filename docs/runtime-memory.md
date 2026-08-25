@@ -31,9 +31,10 @@ How the scheduler applies it:
 
 - Every `LoadedModel` tracks `lastUsedAt`; any generate/transcribe/speak call refreshes it (`touch`).
 - Loading a new model while `loadedModels.length >= maxLoadedModels` evicts the least-recently-used **unlocked** model first.
-- A periodic sweep unloads models idle longer than `unloadUnusedAfter`.
+- A periodic sweep (every 30 s by default, configurable via `RuntimeScheduler`'s `sweepInterval`) unloads models idle longer than `unloadUnusedAfter`.
 - When the app goes to background and `trimOnBackground` is true, all unlocked models are unloaded (`reason: 'backgroundTrim'`).
 - Models locked by an active voice session (`setLocked`) are never evicted.
+- `ai.runtime.dispose()` (called by `LocalAI.dispose()`) stops the sweep timer and unloads every loaded model, locked or not.
 
 ## load / unload / inspect
 

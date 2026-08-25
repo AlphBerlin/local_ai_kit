@@ -74,7 +74,7 @@ final config = LocalAIConfig.offlineChat().copyWith(
 | Preset | Components | Delivery / runtime notes |
 |---|---|---|
 | `LocalAIConfig.lowMemory()` | LLM only (`gemma-3n-e2b-it-int4`, 4096 ctx) | CPU-only; `RuntimeMemoryPolicy.lowMemory()` (max 1 loaded model, 2 min idle unload). For low-RAM devices. |
-| `LocalAIConfig.voiceAssistant()` | VAD (`silero-vad`) + STT (SenseVoice) + LLM (Gemma 3n) + TTS (Supertonic, `supertonic-en-female-1`) | Full voice stack; models download on first use. |
+| `LocalAIConfig.voiceAssistant()` | VAD (`silero-vad`) + STT (SenseVoice) + LLM (Gemma 3n) + TTS (Supertonic, `voiceId: 'supertonic-en-female-1'`) | Full voice stack; models download on first use. **Known bug:** the preset's default `voiceId` doesn't match any voice actually in the Supertonic manifest (real ids are `f1`–`f5`/`m1`–`m5`) — pass an explicit `voiceId: 'f1'` (or similar) via `copyWith`/a custom `TtsConfig` until this is fixed upstream. |
 | `LocalAIConfig.offlineChat()` | LLM only | `smart(bundleBelowMB: 25)` delivery; text chat without audio. |
 | `LocalAIConfig.transcription()` | VAD + STT only | No LLM/TTS; smallest footprint for speech-to-text apps. |
 

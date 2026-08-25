@@ -8,7 +8,7 @@ Pluggable, offline-first, streaming-first on-device AI toolkit for Flutter: LLM 
 
 ## Features
 
-- **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding) are registered explicitly via `AdapterPlugin`s; unused native runtimes never enter your binary.
+- **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding) are registered explicitly via `AdapterPlugin`s; unused native runtimes never enter your binary. `embedding` is interface-only today (no adapter ships yet); the built-in STT/TTS/VAD adapters currently run via a desktop Python subprocess and a Dart heuristic rather than native `sherpa_onnx` FFI — see [Adapters](adapters.md) and the [FAQ](faq.md) for the exact status.
 - **Offline-first** — the built-in model catalog works without network; an optional remote catalog is merged by `catalogVersion` (never deletes installed models, flags updates instead of overwriting).
 - **Streaming-first** — generation, transcription, synthesis and download progress are all `Stream`s; one-shot results are folded streams.
 - **Resumable downloads** — HTTP `Range` resume, `.part` temp files, atomic `meta.json` writes, streamed sha256 verification, exponential backoff retry, and atomic same-partition install.

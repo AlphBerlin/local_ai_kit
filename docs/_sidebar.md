@@ -16,5 +16,6 @@
   - [Runtime & Memory](runtime-memory.md)
   - [Adapters](adapters.md)
   - [Storage Layout](storage.md)
+  - [Platform Layer](platform-layer.md)
 
 - [FAQ](faq.md)

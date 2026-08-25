@@ -67,9 +67,13 @@ multiple files, so grep won't surface the full picture on its own):
 - **Download/install state machine** (`packages/local_ai_kit/lib/src/download/`):
   `notInstalled → queued → downloading ⇄ paused → verifying → extracting →
   installing → installed → loading → ready`. Resumable via HTTP `Range`,
-  atomic `meta.json` writes, streamed sha256 verification per file, and a
-  same-partition atomic rename from `downloads/<id>` to `models/<type>/<id>`
-  only after every file verifies.
+  atomic `meta.json` writes, chunked constant-memory sha256 verification
+  per file (computed after each file finishes downloading, not
+  concurrently with it), and a same-partition atomic rename from
+  `downloads/<id>` to `models/<type>/<id>` only after every file verifies.
+  Crash recovery (`ModelInstaller.recoverFromCrash()`) actually scans
+  `models/` for directories missing `installed.json` or payload files —
+  not `downloads/`, which is left alone so in-progress downloads resume.
 - **RuntimeScheduler** (`packages/local_ai_kit/lib/src/runtime/runtime_scheduler.dart`):
   LRU eviction across loaded models (default max 2), idle-timeout unload
   (default 5 min), background trim via `AppLifecycleObserver`, and automatic
@@ -92,17 +96,27 @@ multiple files, so grep won't surface the full picture on its own):
   an installed model's manifest entry, and never silently overwrites an
   installed model's files even on a version bump (it flips the model to
   `updating` and waits for an explicit `update()` call instead).
-- **sherpa_onnx FFI isolation** (`packages/local_ai_sherpa/lib/src/isolate/sherpa_worker.dart`):
-  every sherpa component (VAD/STT/TTS) runs its FFI calls inside a
-  dedicated worker `Isolate` so the UI isolate never blocks; audio frames
-  cross the isolate boundary via `TransferableTypedData` for a zero-copy
-  transfer.
+- **Sherpa adapters run in a worker isolate, but not on `sherpa_onnx` FFI** (`packages/local_ai_sherpa/lib/src/isolate/sherpa_worker.dart`):
+  every sherpa component (VAD/STT/TTS) does its work inside a dedicated
+  worker `Isolate` so the UI isolate never blocks, and audio frames cross
+  the isolate boundary via `TransferableTypedData` for a zero-copy
+  transfer — but despite the package name and doc comments, `sherpa_onnx`
+  is never imported anywhere in this package. `SherpaSttAdapter`/
+  `SherpaTtsAdapter` actually shell out to a `uv run python3` subprocess
+  (desktop-only; has a hardcoded developer-machine fallback path for
+  `uv`), and `SherpaVadAdapter` is a pure-Dart RMS-energy heuristic that
+  never touches the Silero model it claims to load. Treat these three as
+  a desktop prototype, not production mobile STT/TTS/VAD, until they're
+  reimplemented against real `sherpa_onnx` FFI bindings.
 - **Gemma dual backend** (`packages/local_ai_gemma/lib/src/gemma_llm_adapter.dart`):
   picks between a `MediaPipeEngine` (for Gemma/Paligemma `.task` models)
   and a `LiteRtLmEngine` (for `.litertlm`/`.bin` models like Qwen 3.5,
   SmolLM2, DeepSeek R1) based on the resolved model file, plus a
-  streaming 3-layer repetition guard (line-cycle, n-gram repeat, token
-  burst) on top of default `topK=40`/`topP=0.9`/`temperature=0.7` sampling.
+  streaming 3-layer repetition guard (line-level repetition, 3-word
+  n-gram cycle detection, 6-identical-word burst) on top of default
+  `topK=40`/`topP=0.9`/`temperature=0.8` sampling. It always reports
+  `finishReason: stop` and never populates `promptTokens`/
+  `completionTokens`, regardless of how generation actually ended.
 - **Bundle-size policy** (`tools/verify_bundle_policy.dart`): any asset
   under `packages/local_ai_kit/assets` matching
   `.onnx`/`.tflite`/`.task`/`.bin` must stay under 25MB (kept in sync with

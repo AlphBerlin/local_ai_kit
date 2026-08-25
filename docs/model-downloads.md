@@ -46,15 +46,15 @@ Scratch state lives in `downloads/<modelId>/` as `*.part` files plus a `meta.jso
 }
 ```
 
-- **Resume** — each file resumes from `received` via a `Range: bytes=<received>-` request; if the server ignores ranges (HTTP 200), that file restarts from zero. Appends flush every N MB and `meta.json` updates are atomic (`meta.json.tmp` → rename).
+- **Resume** — each file resumes from `received` via a `Range: bytes=<received>-` request; if the server ignores ranges (HTTP 200), that file restarts from zero. Appends flush every 4 MB and `meta.json` updates are atomic (`meta.json.tmp` → rename).
 - **Retry** — network errors retry with exponential backoff (1 s / 2 s / 4 s, capped at 30 s, up to `DownloadPolicy.maxRetries`, default 5); HTTP 4xx fails immediately.
-- **Crash recovery** — on `initialize()`, the installer scans `downloads/` for resumable state and removes half-installed model directories without an `installed.json` marker.
+- **Crash recovery** — on `initialize()`, the installer scans `models/` (not `downloads/`) and deletes any model directory that's missing `installed.json` or has the marker but no payload files; `downloads/` scratch state is left untouched so an interrupted download resumes normally via its `meta.json`.
 
 ## Verification & atomic install
 
 1. **Pre-flight**: disk check against `sizeBytes × 1.2` headroom (throws `InsufficientDiskError` with `requiredMB`/`freeMB`) and network policy check.
-2. **Streamed sha256**: per-file digests are computed while downloading; any mismatch deletes and re-downloads that file (at most 2 full rounds, then `ModelCorruptedError`).
-3. **Atomic install**: once all files verify, `downloads/<modelId>` is `rename`d into `models/<type>/<modelId>/` — guaranteed atomic because both live under the same root partition. Finally `installed.json` (with `catalogVersion`, `installedAt`) is written as the completion marker.
+2. **Streamed sha256**: once a file finishes downloading, its digest is computed in a chunked, constant-memory pass over the completed `.part` file (not concurrently with the download itself); any mismatch deletes and re-downloads that file (at most 2 full rounds, then `ModelCorruptedError`).
+3. **Atomic install**: once all files verify, `downloads/<modelId>` is `rename`d into `models/<type>/<modelId>/` — guaranteed atomic because both live under the same root partition. Finally `installed.json` (with `catalogVersion`, `installedAt`) is written as the completion marker. A model only counts as installed once its directory has both the marker *and* non-empty payload files — `getStatus`/`isInstalled` check both.
 
 ## Progress streams
 
@@ -88,12 +88,15 @@ With `wifiOnly: true`, starting a download on a metered connection leaves it in 
 ## Voices and packs
 
 ```dart
-// Individual voice (files land in voices/<voiceId>/).
-await ai.tts.installVoice('supertonic-en-male-1');
+// Individual voice (files land in voices/<voiceId>/). Supertonic voice
+// ids are 'f1'-'f5' (female) / 'm1'-'m5' (male).
+await ai.tts.installVoice('m1');
 
 // Whole curated bundle.
 await ai.models.installPack('voice-assistant-pack');
 ```
+
+Install packs through `ai.models`, not `ai.catalog` — `ModelCatalogService.installPack` (reachable via `ai.catalog`) always throws `UnsupportedError` and points back to `ModelHub.installPack`.
 
 ## Compatibility checks
 
