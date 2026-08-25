@@ -230,17 +230,24 @@ class VoiceSession {
         _events.add(const VoiceListening());
         return;
       }
-      _events.add(VoiceTranscriptUpdated(text: transcript.text, isFinal: true));
+      final cleanedText = collapseRepeatedWords(transcript.text);
+      _events.add(VoiceTranscriptUpdated(text: cleanedText, isFinal: true));
 
       // LLM ---------------------------------------------------------------
       _events.add(const VoiceThinking());
       final llm = _runtime.adapter<LocalLlm>(_config.llm!.modelId);
       _runtime.touch(_config.llm!.modelId);
       final chunks = llm.generateStream(LlmRequest.prompt(
-        transcript.text,
+        cleanedText,
         systemPrompt: sessionConfig.systemPrompt,
       ));
-      final responseText = StringBuffer();
+
+      // LLM -> TTS pipelining: each completed sentence is queued for
+      // synthesis/playback as soon as it's detected, while the LLM keeps
+      // generating the rest in the background (architecture §5.3 extension).
+      var sentenceBuffer = '';
+      var playbackChain = Future<void>.value();
+      var hasSentence = false;
       var first = true;
       await for (final chunk in chunks) {
         turnToken.throwIfCancelled();
@@ -249,36 +256,31 @@ class VoiceSession {
           _events.add(const VoiceResponseStarted());
         }
         if (chunk.textDelta.isNotEmpty) {
-          responseText.write(chunk.textDelta);
           _events.add(VoiceResponseDelta(chunk.textDelta));
+          sentenceBuffer += chunk.textDelta;
+          final extracted = extractSentences(sentenceBuffer);
+          sentenceBuffer = extracted.remainder;
+          for (final sentence in extracted.sentences) {
+            hasSentence = true;
+            playbackChain =
+                playbackChain.then((_) => _speakSentence(sentence, turnToken));
+          }
         }
       }
       turnToken.throwIfCancelled();
-      final text = responseText.toString().trim();
-      if (text.isEmpty) {
+      final remainder = sentenceBuffer.trim();
+      if (remainder.isNotEmpty) {
+        hasSentence = true;
+        playbackChain =
+            playbackChain.then((_) => _speakSentence(remainder, turnToken));
+      }
+      if (!hasSentence) {
         _events.add(const VoiceListening());
         return;
       }
 
-      // TTS ---------------------------------------------------------------
-      _speaking = true;
-      _rollingRing.clear();
-      _utterance.clear();
-      _inSpeech = false;
-      _events.add(VoiceSpeaking(text: text));
-      final tts = _runtime.adapter<LocalTts>(_config.tts!.modelId);
-      _runtime.touch(_config.tts!.modelId);
-      final audio = tts.synthesizeStream(SpeakRequest(
-        text: text,
-        voiceId: _config.tts!.voiceId,
-        speed: _config.tts!.speed,
-      ));
-      // Cancellation races playback: barge-in stops the output and cancels
-      // this token, so the play() future is abandoned via the race.
-      await Future.any<void>([
-        _audioOutput.play(audio),
-        _cancelled(turnToken),
-      ]);
+      // TTS playback (queued above as sentences were detected) ------------
+      await playbackChain;
       turnToken.throwIfCancelled();
       _events.add(const VoiceFinished());
     } on CancelledError {
@@ -295,6 +297,39 @@ class VoiceSession {
       _turnToken = null;
       if (!_stopped) _events.add(const VoiceListening());
     }
+  }
+
+  /// Synthesizes and plays one sentence, racing playback against [turnToken]
+  /// exactly as the single-call path used to. On the first sentence of a
+  /// turn, flips the session into "speaking" state (mic suppression, ring
+  /// buffer reset) — later sentences in the same chain skip that since it's
+  /// already true.
+  Future<void> _speakSentence(String sentence, CancelToken turnToken) async {
+    turnToken.throwIfCancelled();
+    if (!_speaking) {
+      _speaking = true;
+      _rollingRing.clear();
+      _utterance.clear();
+      _inSpeech = false;
+    }
+    _events.add(VoiceSpeaking(text: sentence));
+    final tts = _runtime.adapter<LocalTts>(_config.tts!.modelId);
+    _runtime.touch(_config.tts!.modelId);
+    final audio = tts.synthesizeStream(SpeakRequest(
+      text: sentence,
+      voiceId: _config.tts!.voiceId,
+      speed: _config.tts!.speed,
+    ));
+    // Cancellation races playback: barge-in stops the output and cancels
+    // this token, so the play() future is abandoned via the race.
+    await Future.any<void>([
+      _audioOutput.play(audio),
+      _cancelled(turnToken),
+    ]);
+    // Let a concurrent barge-in finish cancelling after it has stopped the
+    // output, before the next queued sentence can begin.
+    await Future<void>.delayed(Duration.zero);
+    turnToken.throwIfCancelled();
   }
 
   // ---------------------------------------------------------------------------
