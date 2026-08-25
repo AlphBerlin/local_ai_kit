@@ -1,6 +1,33 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_ai_kit/local_ai_kit.dart';
+import 'package:local_ai_sherpa/local_ai_sherpa.dart';
+
+class _TestPaths implements LocalStoragePaths {
+  _TestPaths(this.rootDir);
+  @override
+  final String rootDir;
+  @override
+  String get modelsDir => '$rootDir/models';
+  @override
+  String modelDir(ModelType type, String modelId) =>
+      '$modelsDir/${type.name}/$modelId';
+  @override
+  String get downloadsDir => '$rootDir/downloads';
+  @override
+  String downloadDir(String modelId) => '$downloadsDir/$modelId';
+  @override
+  String get voicesDir => '$rootDir/voices';
+  @override
+  String voiceDir(String voiceId) => '$voicesDir/$voiceId';
+  @override
+  String get manifestsDir => '$rootDir/manifests';
+  @override
+  String get cacheDir => '$rootDir/cache';
+  @override
+  Future<void> ensureInitialized() async {}
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +39,6 @@ void main() {
         final testFile = File('${tempDir.path}/test.txt');
         await testFile.writeAsString('hello world\n');
         final digest = await DownloadManager.sha256OfFile(testFile);
-        // sha256("hello world\n") = d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5
         expect(digest,
             'a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447');
       } finally {
@@ -24,6 +50,31 @@ void main() {
   group('LocalPipelinePresets', () {
     test('presets exist and are accessible', () {
       expect(LocalPipeline.presets, isA<LocalPipelinePresets>());
+    });
+  });
+
+  group('SherpaSttAdapter transcription test', () {
+    test('decodes audio buffer and formats sentence case', () async {
+      final paths = _TestPaths(
+          '/Users/ajithberlin/Library/Application Support/com.localai.kit.example.localAiKitExample/local_ai');
+      final stt = SherpaSttAdapter(paths: paths);
+      await stt.load(const SttLoadOptions(
+          modelId: 'sherpa-onnx-streaming-zipformer-en-20m'));
+
+      final pcmFile = File('/tmp/test_stt_in.pcm');
+      if (pcmFile.existsSync()) {
+        final bytes = pcmFile.readAsBytesSync();
+        final samples = Float32List(bytes.length ~/ 4);
+        final byteData = ByteData.sublistView(bytes);
+        for (var i = 0; i < samples.length; i++) {
+          samples[i] = byteData.getFloat32(i * 4, Endian.little);
+        }
+        final transcript = await stt.transcribe(
+            AudioBuffer(samples: samples, format: AudioFormat.pcm16kMono));
+        expect(transcript.text.isNotEmpty, isTrue);
+        expect(transcript.text, contains('The yellow lamps'));
+      }
+      await stt.unload();
     });
   });
 }

@@ -87,12 +87,12 @@ class VoiceSession {
   bool _speaking = false;
   bool _stopped = false;
 
-  // Rolling pre-buffer so speech onset isn't clipped, plus the current
-  // utterance buffer.
-  final List<AudioFrame> _preBuffer = [];
+  // Continuous ring buffer so speech onset and offset are never clipped
+  final List<AudioFrame> _rollingRing = [];
   final List<AudioFrame> _utterance = [];
   bool _inSpeech = false;
   DateTime? _speechStartedAt;
+  DateTime _ignoreAudioUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
   Future<void> _start() async {
     final vadConfig = _config.vad!;
@@ -135,40 +135,49 @@ class VoiceSession {
   // ---------------------------------------------------------------------------
 
   void _onAudioFrame(AudioFrame frame) {
-    _preBuffer.add(frame);
-    if (_preBuffer.length > 20)
-      _preBuffer.removeAt(0); // ~rolling pre-buffer (up to 1s)
+    if (_speaking || DateTime.now().isBefore(_ignoreAudioUntil)) {
+      return; // Suppress microphone audio during assistant playback and room echo cooldown
+    }
+    _rollingRing.add(frame);
+    if (_rollingRing.length > 80) {
+      _rollingRing.removeAt(0); // ~2.5s continuous history
+    }
     if (_inSpeech) _utterance.add(frame);
   }
 
   void _onVadEvent(VadEvent event) {
-    if (_stopped) return;
+    if (_stopped || _speaking || DateTime.now().isBefore(_ignoreAudioUntil)) {
+      return;
+    }
     switch (event) {
       case VadSpeechStarted(:final confidence):
-        if (_speaking) {
-          unawaited(_maybeBargeIn(event.timestamp, confidence));
-          return;
-        }
         _inSpeech = true;
         _speechStartedAt = event.timestamp;
-        _utterance
-          ..clear()
-          ..addAll(_preBuffer);
-        _preBuffer.clear();
+        _utterance.clear();
+        // Grab pre-roll: up to 30 frames (~1.0s) leading up to speech start
+        final preRoll = _rollingRing.length > 30
+            ? _rollingRing.sublist(_rollingRing.length - 30)
+            : List<AudioFrame>.of(_rollingRing);
+        _utterance.addAll(preRoll);
         _events.add(const VoiceSpeechStarted());
       case VadSpeechEnded():
         if (!_inSpeech) return;
         _inSpeech = false;
         _speechStartedAt = null;
         _events.add(const VoiceSpeechEnded());
+        // Add trailing post-roll: up to 6 frames (~200ms)
+        final postRoll = _rollingRing.length > 6
+            ? _rollingRing.sublist(_rollingRing.length - 6)
+            : List<AudioFrame>.of(_rollingRing);
+        for (final f in postRoll) {
+          if (!_utterance.contains(f)) _utterance.add(f);
+        }
         final frames = List<AudioFrame>.of(_utterance);
         _utterance.clear();
         if (frames.isNotEmpty) {
           unawaited(_runTurn(frames));
         }
       case VadSpeechConfidence():
-        // Confidence stream is consumed by the barge-in threshold logic
-        // inside _maybeBargeIn (persistence check).
         break;
     }
   }
@@ -222,6 +231,9 @@ class VoiceSession {
 
       // TTS ---------------------------------------------------------------
       _speaking = true;
+      _rollingRing.clear();
+      _utterance.clear();
+      _inSpeech = false;
       _events.add(VoiceSpeaking(text: text));
       final tts = _runtime.adapter<LocalTts>(_config.tts!.modelId);
       _runtime.touch(_config.tts!.modelId);
@@ -245,6 +257,10 @@ class VoiceSession {
     } finally {
       _maxTurnTimer?.cancel();
       _speaking = false;
+      _rollingRing.clear();
+      _utterance.clear();
+      _inSpeech = false;
+      _ignoreAudioUntil = DateTime.now().add(const Duration(milliseconds: 500));
       _turnToken = null;
       if (!_stopped) _events.add(const VoiceListening());
     }
@@ -273,9 +289,12 @@ class VoiceSession {
     _turnToken?.cancel();
     _speaking = false;
     _inSpeech = true; // the interrupting speech becomes the next utterance
+    final preRoll = _rollingRing.length > 30
+        ? _rollingRing.sublist(_rollingRing.length - 30)
+        : List<AudioFrame>.of(_rollingRing);
     _utterance
       ..clear()
-      ..addAll(_preBuffer);
+      ..addAll(preRoll);
     _events.add(const VoiceInterrupted(reason: InterruptReason.bargeIn));
     _events.add(const VoiceSpeechStarted());
   }

@@ -102,9 +102,9 @@ class SherpaVadAdapter implements LocalVad {
 class _VadWorkerLoop extends SherpaWorkerLoop {
   _VadWorkerLoop(super.mainPort);
 
-  double _threshold = 0.004;
-  int _minSpeechDurationMs = 150;
-  int _minSilenceDurationMs = 450;
+  double _threshold = 0.0035;
+  int _minSpeechDurationMs = 120;
+  int _minSilenceDurationMs = 850;
   int _sampleRate = 16000;
 
   bool _inSpeech = false;
@@ -118,12 +118,12 @@ class _VadWorkerLoop extends SherpaWorkerLoop {
     switch (command.op) {
       case 'initVad':
         final args = (command.payload as Map).cast<String, Object?>();
-        _threshold = ((args['threshold'] as num?)?.toDouble() ?? 0.5) * 0.008;
+        _threshold = ((args['threshold'] as num?)?.toDouble() ?? 0.5) * 0.007;
         if (_threshold < 0.003) _threshold = 0.003;
         _minSpeechDurationMs =
-            (args['minSpeechDurationMs'] as num?)?.toInt() ?? 150;
+            (args['minSpeechDurationMs'] as num?)?.toInt() ?? 120;
         _minSilenceDurationMs =
-            (args['minSilenceDurationMs'] as num?)?.toInt() ?? 450;
+            (args['minSilenceDurationMs'] as num?)?.toInt() ?? 850;
         _sampleRate = (args['sampleRate'] as num?)?.toInt() ?? 16000;
         _inSpeech = false;
         _speechStartTime = null;

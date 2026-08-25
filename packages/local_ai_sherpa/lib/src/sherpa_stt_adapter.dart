@@ -208,9 +208,11 @@ def main():
             if recognizer is not None and len(samples) > 0:
                 stream = recognizer.create_stream()
                 if is_online:
+                    pre_silence = np.zeros(int(sample_rate * 0.25), dtype=np.float32)
+                    stream.accept_waveform(sample_rate, pre_silence)
                     stream.accept_waveform(sample_rate, samples)
-                    silence_pad = np.zeros(int(sample_rate * 0.25), dtype=np.float32)
-                    stream.accept_waveform(sample_rate, silence_pad)
+                    post_silence = np.zeros(int(sample_rate * 0.4), dtype=np.float32)
+                    stream.accept_waveform(sample_rate, post_silence)
                     stream.input_finished()
                     while recognizer.is_ready(stream):
                         recognizer.decode_stream(stream)
@@ -225,7 +227,23 @@ def main():
             # Clean ITN and formatting tags
             import re
             text = re.sub(r'<\|.*?\|>', '', text).strip()
-            text = ' '.join(text.split())
+            # Normalize casing for CTC/Transducer models (e.g. 'HELLO' -> 'Hello')
+            if text.isupper() and len(text) > 1:
+                words = text.split()
+                acronyms = {'AI', 'LLM', 'VAD', 'STT', 'TTS', 'CPU', 'GPU', 'UI', 'API', 'RAM', 'ML', 'ASR', 'OK'}
+                res_words = []
+                for i, w in enumerate(words):
+                    if w in acronyms:
+                        res_words.append(w)
+                    elif i == 0:
+                        res_words.append(w.capitalize())
+                    else:
+                        res_words.append(w.lower())
+                text = ' '.join(res_words)
+            elif len(text) == 1:
+                text = text.upper()
+            else:
+                text = ' '.join(text.split())
             
             print(json.dumps({'ok': True, 'text': text}), flush=True)
         except Exception as e:
