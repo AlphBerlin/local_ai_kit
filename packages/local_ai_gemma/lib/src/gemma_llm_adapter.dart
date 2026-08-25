@@ -38,10 +38,8 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
 
   final LocalStoragePaths _paths;
 
-  // TODO(verify): flutter_gemma API — the concrete session/model types
-  // below follow flutter_gemma 0.10 naming; adjust to the pinned version.
-  dynamic _model; // flutter_gemma InferenceModel
-  dynamic _session; // flutter_gemma InferenceChat / InferenceModelSession
+  fg.InferenceModel? _model;
+  fg.InferenceChat? _session;
 
   LlmLoadOptions? _options;
   bool _loaded = false;
@@ -73,8 +71,9 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     _options = options;
     await _ensureInitialized();
     final modelFile = _resolveModelFile(options.modelId);
-    _model = await _nativeCreateModel(modelFile.path, options);
-    _session = await _nativeCreateSession(_model, options);
+    final model = await _nativeCreateModel(modelFile.path, options);
+    _model = model;
+    _session = await _nativeCreateSession(model, options);
     _loaded = true;
   }
 
@@ -173,7 +172,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     return candidates.first;
   }
 
-  Future<dynamic> _nativeCreateModel(
+  Future<fg.InferenceModel> _nativeCreateModel(
       String path, LlmLoadOptions options) async {
     final gemma = fg.FlutterGemmaPlugin.instance;
     final idLower = options.modelId.toLowerCase();
@@ -238,16 +237,9 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     }
   }
 
-  Future<dynamic> _nativeCreateSession(
-      dynamic model, LlmLoadOptions options) async {
-    if (model is fg.InferenceModel) {
-      return model.createChat(
-        temperature: options.temperature,
-        topK: options.topK ?? 40,
-        topP: options.topP ?? 0.9,
-      );
-    }
-    return (model as dynamic).createChat(
+  Future<fg.InferenceChat> _nativeCreateSession(
+      fg.InferenceModel model, LlmLoadOptions options) {
+    return model.createChat(
       temperature: options.temperature,
       topK: options.topK ?? 40,
       topP: options.topP ?? 0.9,
@@ -274,26 +266,13 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     final topP = _options?.topP ?? 0.9;
 
     // Create a fresh chat session for this generation request
-    dynamic chat;
-    if (model is fg.InferenceModel) {
-      chat = await model.createChat(
-        temperature: temp,
-        topK: topK,
-        topP: topP,
-        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty
-            ? systemPrompt
-            : null,
-      );
-    } else {
-      chat = await (model as dynamic).createChat(
-        temperature: temp,
-        topK: topK,
-        topP: topP,
-        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty
-            ? systemPrompt
-            : null,
-      );
-    }
+    final fg.InferenceChat chat = await model.createChat(
+      temperature: temp,
+      topK: topK,
+      topP: topP,
+      systemInstruction:
+          systemPrompt != null && systemPrompt.isNotEmpty ? systemPrompt : null,
+    );
 
     // Add preceding turns in order
     for (var i = 0; i < turns.length - 1; i++) {
@@ -316,20 +295,8 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     final generatedBuffer = StringBuffer();
 
     await for (final response in stream) {
-      if (response == null) continue;
-      String? text;
-      if (response is fg.TextResponse) {
-        text = response.token;
-      } else if (response is String) {
-        text = response;
-      } else {
-        try {
-          text = (response as dynamic).token?.toString() ?? response.toString();
-        } catch (_) {
-          text = response.toString();
-        }
-      }
-      if (text.isNotEmpty) {
+      final text = textTokenForResponse(response);
+      if (text != null && text.isNotEmpty) {
         generatedBuffer.write(text);
         final full = generatedBuffer.toString();
 
@@ -376,12 +343,18 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     }
   }
 
-  Future<void> _nativeCloseSession(dynamic session) async {
+  Future<void> _nativeCloseSession(fg.InferenceChat? session) async {
     await session?.close();
   }
 
-  Future<void> _nativeCloseModel(dynamic model) async {
+  Future<void> _nativeCloseModel(fg.InferenceModel? model) async {
     await model?.close();
+  }
+
+  /// Returns text tokens and intentionally ignores thinking/function responses.
+  static String? textTokenForResponse(fg.ModelResponse response) {
+    if (response is fg.TextResponse) return response.token;
+    return null;
   }
 }
 

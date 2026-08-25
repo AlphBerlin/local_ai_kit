@@ -22,4 +22,15 @@ void main() {
       );
     });
   });
+
+  test('maps only text responses at the typed runtime boundary', () {
+    expect(
+      GemmaLlmAdapter.textTokenForResponse(const fg.TextResponse('hello')),
+      'hello',
+    );
+    expect(
+      GemmaLlmAdapter.textTokenForResponse(const fg.ThinkingResponse('hmm')),
+      isNull,
+    );
+  });
 }
