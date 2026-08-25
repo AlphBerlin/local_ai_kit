@@ -18,8 +18,7 @@ class LogViewerSheet extends StatefulWidget {
         minChildSize: 0.4,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) =>
-            const LogViewerSheet(),
+        builder: (context, scrollController) => const LogViewerSheet(),
       ),
     );
   }
@@ -112,7 +111,8 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
             final query = _searchQuery.toLowerCase();
             final matchMessage = l.message.toLowerCase().contains(query);
             final matchTag = l.tag.toLowerCase().contains(query);
-            final matchDetails = l.details?.toLowerCase().contains(query) ?? false;
+            final matchDetails =
+                l.details?.toLowerCase().contains(query) ?? false;
             return matchMessage || matchTag || matchDetails;
           }
           return true;
@@ -129,7 +129,8 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  color:
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -143,7 +144,8 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                   const SizedBox(width: 8),
                   Text(
                     'Debug Log Viewer (${filteredLogs.length}/${allLogs.length})',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
                   IconButton(
@@ -196,8 +198,10 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                                   },
                                 )
                               : null,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 0),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         onChanged: (val) => setState(() => _searchQuery = val),
                       ),
@@ -208,11 +212,14 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                     segments: const [
                       ButtonSegment(value: null, label: Text('All')),
                       ButtonSegment(value: LogLevel.info, label: Text('Info')),
-                      ButtonSegment(value: LogLevel.warning, label: Text('Warn')),
-                      ButtonSegment(value: LogLevel.error, label: Text('Error')),
+                      ButtonSegment(
+                          value: LogLevel.warning, label: Text('Warn')),
+                      ButtonSegment(
+                          value: LogLevel.error, label: Text('Error')),
                     ],
                     selected: {_selectedLevel},
-                    onSelectionChanged: (set) => setState(() => _selectedLevel = set.first),
+                    onSelectionChanged: (set) =>
+                        setState(() => _selectedLevel = set.first),
                     style: const ButtonStyle(
                       visualDensity: VisualDensity.compact,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -235,12 +242,14 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                     )
                   : ListView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       itemCount: filteredLogs.length,
                       itemBuilder: (context, index) {
                         final entry = filteredLogs[index];
                         final color = _levelColor(entry.level, context);
-                        final hasDetails = entry.details != null && entry.details!.isNotEmpty;
+                        final hasDetails =
+                            entry.details != null && entry.details!.isNotEmpty;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 4),
@@ -248,14 +257,16 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: color.withValues(alpha: 0.2)),
+                            border:
+                                Border.all(color: color.withValues(alpha: 0.2)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  Icon(_levelIcon(entry.level), size: 14, color: color),
+                                  Icon(_levelIcon(entry.level),
+                                      size: 14, color: color),
                                   const SizedBox(width: 6),
                                   Text(
                                     entry.formatTime(),
@@ -267,8 +278,8 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: color.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
@@ -298,7 +309,8 @@ class _LogViewerSheetState extends State<LogViewerSheet> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHighest,
+                                    color: theme
+                                        .colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: SelectableText(

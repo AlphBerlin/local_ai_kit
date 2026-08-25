@@ -52,9 +52,29 @@ class ModelInstaller {
     return target;
   }
 
-  /// Whether [type]/[modelId] is installed (marker file present).
-  bool isInstalled(ModelType type, String modelId) =>
-      File('${_paths.modelDir(type, modelId)}/$_installedMarker').existsSync();
+  /// Whether [manifest] is installed with all its required files present on disk.
+  bool isInstalled(LocalModelManifest manifest) {
+    final dir = _paths.modelDir(manifest.type, manifest.id);
+    final marker = File('$dir/$_installedMarker');
+    if (!marker.existsSync()) return false;
+    for (final file in manifest.files) {
+      final sub = file.relativePath != null ? '${file.relativePath}/' : '';
+      final target = File('$dir/$sub${file.name}');
+      if (!target.existsSync() || target.lengthSync() == 0) return false;
+    }
+    return true;
+  }
+
+  /// Fallback check by type and modelId (checks marker and that payload files exist).
+  bool isInstalledType(ModelType type, String modelId) {
+    final dir = Directory(_paths.modelDir(type, modelId));
+    if (!dir.existsSync()) return false;
+    final marker = File('${dir.path}/$_installedMarker');
+    if (!marker.existsSync()) return false;
+    final payloadFiles = dir.listSync().whereType<File>().where((f) =>
+        !f.path.endsWith(_installedMarker) && !f.path.endsWith('.DS_Store'));
+    return payloadFiles.isNotEmpty;
+  }
 
   /// The catalog version of the installed copy, or `null`.
   Future<int?> installedVersion(ModelType type, String modelId) async {
@@ -79,6 +99,8 @@ class ModelInstaller {
   /// Crash recovery at startup (architecture §5.1.5):
   ///  * deletes `models/**` directories missing `installed.json`
   ///    (half-installed leftovers)
+  ///  * deletes `models/**` directories that only contain `installed.json`
+  ///    with no actual weight/payload files
   ///  * leaves `downloads/*` in place so downloads resume
   Future<void> recoverFromCrash() async {
     final modelsRoot = Directory(_paths.modelsDir);
@@ -89,6 +111,13 @@ class ModelInstaller {
         if (modelDir is! Directory) continue;
         final marker = File('${modelDir.path}/$_installedMarker');
         if (!marker.existsSync()) {
+          await modelDir.delete(recursive: true);
+          continue;
+        }
+        final payloadFiles = modelDir.listSync().whereType<File>().where((f) =>
+            !f.path.endsWith(_installedMarker) &&
+            !f.path.endsWith('.DS_Store'));
+        if (payloadFiles.isEmpty) {
           await modelDir.delete(recursive: true);
         }
       }

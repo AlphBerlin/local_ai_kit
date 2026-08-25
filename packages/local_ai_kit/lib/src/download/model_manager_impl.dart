@@ -57,7 +57,7 @@ class ModelManagerImpl implements LocalModelManager {
   @override
   Future<bool> isInstalled(String modelId) async {
     final manifest = await _catalog.get(modelId);
-    return _installer.isInstalled(manifest.type, manifest.id);
+    return _installer.isInstalled(manifest);
   }
 
   @override
@@ -69,7 +69,7 @@ class ModelManagerImpl implements LocalModelManager {
       return cached;
     }
     final manifest = await _catalog.get(modelId);
-    if (_installer.isInstalled(manifest.type, manifest.id)) {
+    if (_installer.isInstalled(manifest)) {
       final version =
           await _installer.installedVersion(manifest.type, manifest.id);
       final newer = version != null && manifest.catalogVersion > version;
@@ -188,7 +188,7 @@ class ModelManagerImpl implements LocalModelManager {
   Future<bool> verify(String modelId) async {
     final manifest = await _catalog.get(modelId);
     final dir = Directory(_paths.modelDir(manifest.type, manifest.id));
-    if (!_installer.isInstalled(manifest.type, manifest.id)) return false;
+    if (!_installer.isInstalled(manifest)) return false;
     for (final file in manifest.files) {
       final sub = file.relativePath != null ? '${file.relativePath}/' : '';
       final target = File('${dir.path}/$sub${file.name}');

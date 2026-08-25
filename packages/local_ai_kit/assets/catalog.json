@@ -148,6 +148,78 @@
       ]
     },
     {
+      "id": "gemma-4-e2b-it",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Gemma 4 E2B IT (LiteRT-LM)",
+      "description": "Fast, high-quality on-device reasoning LLM (2.59 GB) with LiteRT-LM acceleration.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 8192,
+      "minMemoryMB": 3072,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["chat", "streaming", "functionCalling"],
+      "license": "gemma-terms-of-use",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "gemma-4-E2B-it.litertlm",
+          "url": "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2588147712
+        }
+      ]
+    },
+    {
+      "id": "gemma-4-e4b-it",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Gemma 4 E4B IT (LiteRT-LM)",
+      "description": "High-capability on-device reasoning LLM (3.66 GB) with LiteRT-LM acceleration.",
+      "delivery": "download",
+      "quantization": "int8",
+      "contextLength": 8192,
+      "minMemoryMB": 5120,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["chat", "streaming", "functionCalling"],
+      "license": "gemma-terms-of-use",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "gemma-4-E4B-it.litertlm",
+          "url": "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 3659530240
+        }
+      ]
+    },
+    {
+      "id": "gemma-3n-e2b-it-int4",
+      "type": "llm",
+      "provider": "google-gemma",
+      "displayName": "Gemma 3n E2B IT (LiteRT-LM)",
+      "description": "General purpose on-device chat model (2.59 GB download).",
+      "delivery": "download",
+      "quantization": "int4",
+      "contextLength": 32768,
+      "minMemoryMB": 3072,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["chat", "streaming", "functionCalling"],
+      "license": "gemma-terms-of-use",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "gemma-4-E2B-it.litertlm",
+          "url": "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2588147712
+        }
+      ]
+    },
+    {
       "id": "silero-vad",
       "type": "vad",
       "provider": "sherpa-community",

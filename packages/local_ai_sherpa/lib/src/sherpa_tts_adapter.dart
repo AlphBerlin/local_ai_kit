@@ -166,9 +166,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         onnxDir,
       ]);
       _serverProcess = proc;
-      final lines = proc.stdout
-          .transform(utf8.decoder)
-          .transform(const LineSplitter());
+      final lines =
+          proc.stdout.transform(utf8.decoder).transform(const LineSplitter());
       final iterator = StreamIterator(lines);
       _lineIterator = iterator;
       while (await iterator.moveNext()) {
@@ -212,9 +211,17 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         final iterator = _lineIterator;
         if (onnxDir != null && server != null && iterator != null) {
           try {
-            final tmpPcm = File('/tmp/tts_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
-            final vStyle = (voiceId ?? 'F1').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
-            final langCode = (language ?? 'en').toLowerCase().split('-').first.split('_').first;
+            final tmpPcm = File(
+                '/tmp/tts_pcm_${DateTime.now().microsecondsSinceEpoch}.pcm');
+            final vStyle = (voiceId ?? 'F1')
+                .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
+                .toUpperCase();
+            final langCode = (language ?? 'en')
+                .toLowerCase()
+                .split('-')
+                .first
+                .split('_')
+                .first;
 
             final reqJson = jsonEncode({
               'text': text,
@@ -253,10 +260,11 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         if (samples == null || samples.isEmpty) {
           if (Platform.isMacOS) {
             try {
-              final tmpFile = File(
-                  '/tmp/tts_${DateTime.now().microsecondsSinceEpoch}.wav');
+              final tmpFile =
+                  File('/tmp/tts_${DateTime.now().microsecondsSinceEpoch}.wav');
               final rate = (180 * speed).round().clamp(100, 350);
-              final voiceName = _resolveVoiceName(text, voiceId: voiceId, language: language);
+              final voiceName =
+                  _resolveVoiceName(text, voiceId: voiceId, language: language);
               final sayArgs = <String>[
                 '-o',
                 tmpFile.path,
@@ -317,7 +325,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
     }
   }
 
-  static String? _resolveVoiceName(String text, {String? voiceId, String? language}) {
+  static String? _resolveVoiceName(String text,
+      {String? voiceId, String? language}) {
     // 1. Detect language from explicit param or unicode script
     var lang = language?.toLowerCase().trim();
     if (lang == null || lang.isEmpty || lang == 'auto') {
@@ -352,7 +361,9 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
 
     // 2. Japanese Language Voices
     if (lang.startsWith('ja')) {
-      return (v.startsWith('m') || v == 'adam' || v == 'michael') ? 'Otoya' : 'Kyoko';
+      return (v.startsWith('m') || v == 'adam' || v == 'michael')
+          ? 'Otoya'
+          : 'Kyoko';
     }
 
     // 3. Korean Language Voices
@@ -372,7 +383,9 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
 
     // 6. French Language Voices
     if (lang.startsWith('fr')) {
-      return (v.startsWith('m') || v == 'adam' || v == 'michael') ? 'Thomas' : 'Amélie';
+      return (v.startsWith('m') || v == 'adam' || v == 'michael')
+          ? 'Thomas'
+          : 'Amélie';
     }
 
     // 7. German Language Voices
@@ -449,7 +462,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
     double pitch = 1.0,
   }) {
     const sampleRate = 44100;
-    final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final words =
+        text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final wordDurationSec = (0.28 / speed).clamp(0.1, 1.0);
     final totalSamples = (words.length * wordDurationSec * sampleRate).toInt();
     if (totalSamples == 0) return Float32List(0);
@@ -476,7 +490,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
             : (progress > 0.85 ? (1.0 - progress) / 0.15 : 1.0);
 
         // Vocal chord glottal pulse harmonic series + formant resonances
-        final h1 = 0.5 * (1.0 - (2.0 * ((t * baseF0) % 1.0))); // Sawtooth glottal
+        final h1 =
+            0.5 * (1.0 - (2.0 * ((t * baseF0) % 1.0))); // Sawtooth glottal
         final h2 = 0.3 * (1.0 - (2.0 * ((t * baseF0 * 2.0) % 1.0)));
         final h3 = 0.15 * (1.0 - (2.0 * ((t * baseF0 * 3.0) % 1.0)));
         final formant = 0.2 * (t * f1 % 1.0) + 0.1 * (t * f2 % 1.0);

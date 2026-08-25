@@ -139,9 +139,14 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
 
   File _resolveModelFile(String modelId) {
     final dir = _paths.modelDir(ModelType.llm, modelId);
+    final directory = Directory(dir);
+    if (!directory.existsSync()) {
+      throw InvalidStateError(
+          'Model files not found for "$modelId" at "$dir". Model is not installed on disk.');
+    }
     // The model manager installs files under their manifest names; the LLM
     // manifests in this kit ship exactly one weight file per model.
-    final candidates = Directory(dir)
+    final candidates = directory
         .listSync()
         .whereType<File>()
         .where((f) =>
@@ -151,7 +156,8 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
             f.path.endsWith('.litertlm'))
         .toList();
     if (candidates.isEmpty) {
-      throw ModelNotFoundError(modelId);
+      throw InvalidStateError(
+          'No valid model weight files (.litertlm, .task, .bin) found in "$dir" for model "$modelId".');
     }
     return candidates.first;
   }
@@ -244,12 +250,14 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     if (model == null) return;
 
     // Separate system instruction from conversation turns
-    final systemMsgs = request.messages.where((m) => m.role == LlmRole.system).toList();
+    final systemMsgs =
+        request.messages.where((m) => m.role == LlmRole.system).toList();
     final systemPrompt = systemMsgs.isNotEmpty
         ? systemMsgs.map((m) => m.content).join('\n').trim()
         : null;
 
-    final turns = request.messages.where((m) => m.role != LlmRole.system).toList();
+    final turns =
+        request.messages.where((m) => m.role != LlmRole.system).toList();
 
     // Use nucleus top-p / top-k sampling to avoid greedy repetition traps
     final temp = (_options?.temperature ?? 0.7).clamp(0.1, 1.2);
@@ -263,14 +271,18 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
         temperature: temp,
         topK: topK,
         topP: topP,
-        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty ? systemPrompt : null,
+        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty
+            ? systemPrompt
+            : null,
       );
     } else {
       chat = await (model as dynamic).createChat(
         temperature: temp,
         topK: topK,
         topP: topP,
-        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty ? systemPrompt : null,
+        systemInstruction: systemPrompt != null && systemPrompt.isNotEmpty
+            ? systemPrompt
+            : null,
       );
     }
 
@@ -284,7 +296,8 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     }
 
     // Add the final user query
-    final latest = turns.isNotEmpty ? turns.last : const LlmMessage.user('Hello');
+    final latest =
+        turns.isNotEmpty ? turns.last : const LlmMessage.user('Hello');
     await chat.addQueryChunk(fg.Message.text(
       text: latest.content,
       isUser: true,
@@ -312,7 +325,11 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
         final full = generatedBuffer.toString();
 
         // 1. Line-level repetition loop guard (e.g. repeated same line >= 3 times)
-        final lines = full.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+        final lines = full
+            .split('\n')
+            .map((l) => l.trim())
+            .where((l) => l.isNotEmpty)
+            .toList();
         if (lines.length >= 3) {
           final last = lines.last;
           if (last.length > 3) {
@@ -324,11 +341,14 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
         }
 
         // 2. Multi-word n-gram repetition loop guard (e.g. "with you with you with you" or "1. 1. 1. 1.")
-        final words = full.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+        final words =
+            full.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
         if (words.length >= 9) {
           final w1 = words.sublist(words.length - 3).join(' ');
-          final w2 = words.sublist(words.length - 6, words.length - 3).join(' ');
-          final w3 = words.sublist(words.length - 9, words.length - 6).join(' ');
+          final w2 =
+              words.sublist(words.length - 6, words.length - 3).join(' ');
+          final w3 =
+              words.sublist(words.length - 9, words.length - 6).join(' ');
           if (w1 == w2 && w2 == w3) {
             break;
           }

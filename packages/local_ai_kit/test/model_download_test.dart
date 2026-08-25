@@ -12,7 +12,8 @@ class _TestPaths implements LocalStoragePaths {
   @override
   String get modelsDir => '$rootDir/models';
   @override
-  String modelDir(ModelType type, String modelId) => '$modelsDir/${type.name}/$modelId';
+  String modelDir(ModelType type, String modelId) =>
+      '$modelsDir/${type.name}/$modelId';
   @override
   String get downloadsDir => '$rootDir/downloads';
   @override
@@ -71,7 +72,8 @@ void main() {
   });
 
   group('DownloadManager unit tests', () {
-    test('downloads Sherpa ONNX model and verifies SHA-256 integrity', () async {
+    test('downloads Sherpa ONNX model and verifies SHA-256 integrity',
+        () async {
       final dummyOnnxContent = utf8.encode('ONNX_MODEL_BINARY_MOCK_DATA_12345');
       final expectedSha = sha256.convert(dummyOnnxContent).toString();
 
@@ -108,18 +110,23 @@ void main() {
       expect(progressEvents.last.fraction, 1.0);
       expect(targetDir.path, contains('silero-vad'));
 
-      final downloadedFile = File('${paths.downloadDir('silero-vad')}/silero_vad.onnx.part');
+      final downloadedFile =
+          File('${paths.downloadDir('silero-vad')}/silero_vad.onnx.part');
       expect(await downloadedFile.exists(), isTrue);
       expect(await downloadedFile.readAsBytes(), dummyOnnxContent);
     });
 
-    test('downloads E2B / LiteRT model through HTTP redirect with placeholder SHA', () async {
-      final dummyModelContent = utf8.encode('LITERT_MODEL_BINARY_MOCK_DATA_E2B_GUTENBERG');
+    test(
+        'downloads E2B / LiteRT model through HTTP redirect with placeholder SHA',
+        () async {
+      final dummyModelContent =
+          utf8.encode('LITERT_MODEL_BINARY_MOCK_DATA_E2B_GUTENBERG');
 
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((HttpRequest request) {
         if (request.uri.path == '/redirect') {
-          request.response.redirect(Uri.parse('http://${server.address.host}:${server.port}/target.litertlm'));
+          request.response.redirect(Uri.parse(
+              'http://${server.address.host}:${server.port}/target.litertlm'));
         } else {
           request.response.headers.contentType = ContentType.binary;
           request.response.headers.contentLength = dummyModelContent.length;
@@ -137,7 +144,8 @@ void main() {
           ModelFile(
             name: 'SmolLM2_360M_instruct.litertlm',
             url: 'http://${server.address.host}:${server.port}/redirect',
-            sha256: '0000000000000000000000000000000000000000000000000000000000000000',
+            sha256:
+                '0000000000000000000000000000000000000000000000000000000000000000',
             sizeBytes: dummyModelContent.length,
           ),
         ],
@@ -153,23 +161,27 @@ void main() {
       expect(progressEvents.last.fraction, 1.0);
       expect(targetDir.path, contains('smollm2-360m-instruct'));
 
-      final downloadedFile = File('${paths.downloadDir('smollm2-360m-instruct')}/SmolLM2_360M_instruct.litertlm.part');
+      final downloadedFile = File(
+          '${paths.downloadDir('smollm2-360m-instruct')}/SmolLM2_360M_instruct.litertlm.part');
       expect(await downloadedFile.exists(), isTrue);
       expect(await downloadedFile.readAsBytes(), dummyModelContent);
     });
 
     test('supports resumable download with HTTP Range header', () async {
-      final fullContent = utf8.encode('PART1_CONTENT_DATA___PART2_CONTENT_DATA_RESUMED');
+      final fullContent =
+          utf8.encode('PART1_CONTENT_DATA___PART2_CONTENT_DATA_RESUMED');
       final part1Length = 20;
 
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((HttpRequest request) {
         final range = request.headers.value(HttpHeaders.rangeHeader);
         if (range != null && range.startsWith('bytes=')) {
-          final start = int.parse(range.replaceFirst('bytes=', '').split('-').first);
+          final start =
+              int.parse(range.replaceFirst('bytes=', '').split('-').first);
           final bytes = fullContent.sublist(start);
           request.response.statusCode = HttpStatus.partialContent;
-          request.response.headers.set(HttpHeaders.contentRangeHeader, 'bytes $start-${fullContent.length - 1}/${fullContent.length}');
+          request.response.headers.set(HttpHeaders.contentRangeHeader,
+              'bytes $start-${fullContent.length - 1}/${fullContent.length}');
           request.response.headers.contentLength = bytes.length;
           request.response.add(bytes);
           request.response.close();
@@ -195,7 +207,8 @@ void main() {
           ModelFile(
             name: 'model.tar.bz2',
             url: 'http://${server.address.host}:${server.port}/model.tar.bz2',
-            sha256: '0000000000000000000000000000000000000000000000000000000000000000',
+            sha256:
+                '0000000000000000000000000000000000000000000000000000000000000000',
             sizeBytes: fullContent.length,
           ),
         ],

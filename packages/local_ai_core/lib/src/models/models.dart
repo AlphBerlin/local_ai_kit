@@ -179,7 +179,8 @@ abstract final class Models {
     type: ModelType.llm,
     provider: ModelProviders.googleGemma,
     displayName: 'SmolLM2 360M Instruct (Ultra-Light)',
-    description: 'Smallest on-device LLM (373 MB download) for rapid responses.',
+    description:
+        'Smallest on-device LLM (373 MB download) for rapid responses.',
     delivery: ModelDelivery.download,
     quantization: 'int8',
     contextLength: 2048,
@@ -203,19 +204,20 @@ abstract final class Models {
     ],
   );
 
-  /// Gemma 3n E2B instruction-tuned, int4 quantized chat model.
-  static const LocalModelManifest gemma3nE2b = LocalModelManifest(
-    id: 'gemma-3n-e2b-it-int4',
+  /// Gemma 4 E2B instruction-tuned LiteRT-LM model (~2.59 GB).
+  static const LocalModelManifest gemma4E2b = LocalModelManifest(
+    id: 'gemma-4-e2b-it',
     type: ModelType.llm,
     provider: ModelProviders.googleGemma,
-    displayName: 'Gemma 3n E2B IT (int4)',
-    description: 'General purpose on-device chat model.',
+    displayName: 'Gemma 4 E2B IT (LiteRT-LM)',
+    description:
+        'Fast, high-quality on-device reasoning LLM (2.59 GB) with LiteRT-LM acceleration.',
     delivery: ModelDelivery.download,
-    quantization: 'int4',
-    contextLength: 32768,
+    quantization: 'int8',
+    contextLength: 8192,
     minMemoryMB: 3072,
     languages: ['en'],
-    platforms: ['android', 'ios'],
+    platforms: ['android', 'ios', 'macos'],
     capabilities: {
       ModelCapability.chat,
       ModelCapability.streaming,
@@ -225,10 +227,74 @@ abstract final class Models {
     catalogVersion: 1,
     files: [
       ModelFile(
-        name: 'gemma-3n-E2B-it-int4.task',
-        url: 'https://storage.example.com/models/gemma-3n-E2B-it-int4.task',
+        name: 'gemma-4-E2B-it.litertlm',
+        url:
+            'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
         sha256: kPlaceholderSha256,
-        sizeBytes: 2900000000,
+        sizeBytes: 2588147712,
+      ),
+    ],
+  );
+
+  /// Gemma 4 E4B instruction-tuned LiteRT-LM model (~3.66 GB).
+  static const LocalModelManifest gemma4E4b = LocalModelManifest(
+    id: 'gemma-4-e4b-it',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'Gemma 4 E4B IT (LiteRT-LM)',
+    description:
+        'High-capability on-device reasoning LLM (3.66 GB) with LiteRT-LM acceleration.',
+    delivery: ModelDelivery.download,
+    quantization: 'int8',
+    contextLength: 8192,
+    minMemoryMB: 5120,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.functionCalling,
+    },
+    license: 'gemma-terms-of-use',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'gemma-4-E4B-it.litertlm',
+        url:
+            'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 3659530240,
+      ),
+    ],
+  );
+
+  /// Gemma 3n E2B instruction-tuned, int4 quantized chat model.
+  static const LocalModelManifest gemma3nE2b = LocalModelManifest(
+    id: 'gemma-3n-e2b-it-int4',
+    type: ModelType.llm,
+    provider: ModelProviders.googleGemma,
+    displayName: 'Gemma 3n E2B IT (LiteRT-LM)',
+    description: 'General purpose on-device chat model (2.59 GB download).',
+    delivery: ModelDelivery.download,
+    quantization: 'int4',
+    contextLength: 32768,
+    minMemoryMB: 3072,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.functionCalling,
+    },
+    license: 'gemma-terms-of-use',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'gemma-4-E2B-it.litertlm',
+        url:
+            'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 2588147712,
       ),
     ],
   );
@@ -344,25 +410,103 @@ abstract final class Models {
     delivery: ModelDelivery.download,
     minMemoryMB: 256,
     languages: [
-      'en', 'ko', 'es', 'ja', 'zh', 'fr', 'de', 'pt', 'it', 'ru', 'ar', 'hi',
-      'nl', 'pl', 'tr', 'sv', 'id', 'vi', 'tl', 'th', 'el', 'cs', 'ro', 'hu',
-      'da', 'fi', 'no', 'sk', 'uk', 'ms', 'bn',
+      'en',
+      'ko',
+      'es',
+      'ja',
+      'zh',
+      'fr',
+      'de',
+      'pt',
+      'it',
+      'ru',
+      'ar',
+      'hi',
+      'nl',
+      'pl',
+      'tr',
+      'sv',
+      'id',
+      'vi',
+      'tl',
+      'th',
+      'el',
+      'cs',
+      'ro',
+      'hu',
+      'da',
+      'fi',
+      'no',
+      'sk',
+      'uk',
+      'ms',
+      'bn',
     ],
     platforms: ['android', 'ios', 'macos'],
     capabilities: {ModelCapability.ttsStreaming},
     license: 'Supertone Community License',
     catalogVersion: 2,
     voices: [
-      LocalVoice(id: 'f1', name: 'Female Voice 1 (F1 • Soft Natural)', gender: 'female', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'f2', name: 'Female Voice 2 (F2 • Bright Expressive)', gender: 'female', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'f3', name: 'Female Voice 3 (F3 • Calm Narrative)', gender: 'female', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'f4', name: 'Female Voice 4 (F4 • Warm Friendly)', gender: 'female', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'f5', name: 'Female Voice 5 (F5 • Clear Professional)', gender: 'female', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'm1', name: 'Male Voice 1 (M1 • Deep Resonant)', gender: 'male', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'm2', name: 'Male Voice 2 (M2 • Friendly Casual)', gender: 'male', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'm3', name: 'Male Voice 3 (M3 • Confident Dynamic)', gender: 'male', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'm4', name: 'Male Voice 4 (M4 • Warm Storyteller)', gender: 'male', language: 'mul', sampleRate: 44100),
-      LocalVoice(id: 'm5', name: 'Male Voice 5 (M5 • Clear Anchor)', gender: 'male', language: 'mul', sampleRate: 44100),
+      LocalVoice(
+          id: 'f1',
+          name: 'Female Voice 1 (F1 • Soft Natural)',
+          gender: 'female',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'f2',
+          name: 'Female Voice 2 (F2 • Bright Expressive)',
+          gender: 'female',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'f3',
+          name: 'Female Voice 3 (F3 • Calm Narrative)',
+          gender: 'female',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'f4',
+          name: 'Female Voice 4 (F4 • Warm Friendly)',
+          gender: 'female',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'f5',
+          name: 'Female Voice 5 (F5 • Clear Professional)',
+          gender: 'female',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'm1',
+          name: 'Male Voice 1 (M1 • Deep Resonant)',
+          gender: 'male',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'm2',
+          name: 'Male Voice 2 (M2 • Friendly Casual)',
+          gender: 'male',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'm3',
+          name: 'Male Voice 3 (M3 • Confident Dynamic)',
+          gender: 'male',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'm4',
+          name: 'Male Voice 4 (M4 • Warm Storyteller)',
+          gender: 'male',
+          language: 'mul',
+          sampleRate: 44100),
+      LocalVoice(
+          id: 'm5',
+          name: 'Male Voice 5 (M5 • Clear Anchor)',
+          gender: 'male',
+          language: 'mul',
+          sampleRate: 44100),
     ],
     files: [
       ModelFile(
@@ -518,6 +662,8 @@ abstract final class Models {
     qwen35_2b,
     qwen35_4b,
     smollm2,
+    gemma4E2b,
+    gemma4E4b,
     qwen25_05b,
     deepseekR1,
     gemma3nE2b,

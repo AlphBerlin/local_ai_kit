@@ -101,14 +101,14 @@ class ModelCatalogService implements LocalModelCatalog {
 
     if (remote != null) {
       final result = CatalogMerger.merge(
-        Models.all,
+        _merged.values.toList(),
         remote.models,
         installedVersions: await _installedVersions(),
       );
       _merged = result.merged;
       _updatable = result.updatable;
-      await _persistMerged();
     }
+    await _persistMerged();
   }
 
   @override
@@ -165,7 +165,13 @@ class ModelCatalogService implements LocalModelCatalog {
           .map((e) =>
               LocalModelManifest.fromJson((e as Map).cast<String, Object?>()))
           .toList();
-      _merged = {for (final manifest in models) manifest.id: manifest};
+      final result = CatalogMerger.merge(
+        Models.all,
+        models,
+        installedVersions: await _installedVersions(),
+      );
+      _merged = result.merged;
+      _updatable = result.updatable;
     } on Object {
       // Corrupt merged file: keep built-in fallback.
     }

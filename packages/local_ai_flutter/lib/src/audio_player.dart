@@ -56,7 +56,8 @@ class FlutterAudioPlayer implements LocalAudioOutput {
       } else {
         await player.play(DeviceFileSource(file.path));
         try {
-          await player.onPlayerComplete.first.timeout(const Duration(minutes: 5));
+          await player.onPlayerComplete.first
+              .timeout(const Duration(minutes: 5));
         } on TimeoutException {}
       }
     } catch (_) {

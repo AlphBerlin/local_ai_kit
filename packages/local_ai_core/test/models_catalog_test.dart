@@ -53,7 +53,8 @@ void main() {
       expect(manifest.provider, ModelProviders.sherpaCommunity);
       expect(manifest.files, isNotEmpty);
       expect(manifest.files.first.name, 'silero_vad.onnx');
-      expect(manifest.files.first.url, contains('github.com/k2-fsa/sherpa-onnx'));
+      expect(
+          manifest.files.first.url, contains('github.com/k2-fsa/sherpa-onnx'));
     });
 
     test('Sherpa SenseVoice Small manifest is configured properly', () {
@@ -73,25 +74,27 @@ void main() {
       expect(supertonic.files.length, 17);
       expect(supertonic.voices?.length, 10);
       final fileNames = supertonic.files.map((f) => f.name).toSet();
-      expect(fileNames, containsAll([
-        'duration_predictor.onnx',
-        'text_encoder.onnx',
-        'vector_estimator.onnx',
-        'vocoder.onnx',
-        'tts.json',
-        'unicode_indexer.json',
-        'voice_style_F1.json',
-        'voice_style_F2.json',
-        'voice_style_F3.json',
-        'voice_style_F4.json',
-        'voice_style_F5.json',
-        'voice_style_M1.json',
-        'voice_style_M2.json',
-        'voice_style_M3.json',
-        'voice_style_M4.json',
-        'voice_style_M5.json',
-        'config.json',
-      ]));
+      expect(
+          fileNames,
+          containsAll([
+            'duration_predictor.onnx',
+            'text_encoder.onnx',
+            'vector_estimator.onnx',
+            'vocoder.onnx',
+            'tts.json',
+            'unicode_indexer.json',
+            'voice_style_F1.json',
+            'voice_style_F2.json',
+            'voice_style_F3.json',
+            'voice_style_F4.json',
+            'voice_style_F5.json',
+            'voice_style_M1.json',
+            'voice_style_M2.json',
+            'voice_style_M3.json',
+            'voice_style_M4.json',
+            'voice_style_M5.json',
+            'config.json',
+          ]));
 
       final kokoro = Models.kokoroTts;
       expect(kokoro.id, 'kokoro-en-tts');
@@ -100,7 +103,9 @@ void main() {
       expect(kokoro.files, isNotEmpty);
     });
 
-    test('SpeakRequest stores text, language, voiceId, and speed/pitch parameters', () {
+    test(
+        'SpeakRequest stores text, language, voiceId, and speed/pitch parameters',
+        () {
       const request = SpeakRequest(
         text: 'こんにちは！ 今日は「ありがとう」の使い方を勉強しましょう。',
         language: 'ja',
@@ -127,7 +132,8 @@ void main() {
       expect(options.topP, 0.9);
     });
 
-    test('Qwen 3.5 manifests exist and have correct LiteRT-LM configuration', () {
+    test('Qwen 3.5 manifests exist and have correct LiteRT-LM configuration',
+        () {
       final qwen08 = Models.qwen35_08b;
       expect(qwen08.id, 'qwen-3.5-0.8b-instruct');
       expect(qwen08.files.first.url, contains('Qwen3.5-0.8B_int8.litertlm'));

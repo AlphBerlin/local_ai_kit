@@ -65,7 +65,8 @@ class DemoHomePage extends StatefulWidget {
   State<DemoHomePage> createState() => _DemoHomePageState();
 }
 
-class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderStateMixin {
+class _DemoHomePageState extends State<DemoHomePage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   LocalAI? _ai;
   VoiceSession? _voiceSession;
@@ -94,7 +95,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
   // 2. TTS Generation & Audio Player state
   final TextEditingController _ttsTextController = TextEditingController(
-    text: 'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
+    text:
+        'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
   );
   double _ttsSpeed = 1.0;
   double _ttsPitch = 1.0;
@@ -110,15 +112,19 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
   static const Map<String, String> _samplePhrases = {
     'ja': 'こんにちは！ 今日は「ありがとう」の使い方を勉強しましょう。',
-    'en': 'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
+    'en':
+        'Welcome to LocalAI Kit! Running ultra fast on-device neural text to speech.',
     'ko': '안녕하세요! 온디바이스 음성 합성 LocalAI Kit에 오신 것을 환영합니다.',
     'zh': '你好！欢迎使用LocalAI Kit端侧语音合成。',
-    'es': '¡Hola! Bienvenido a LocalAI Kit con síntesis de voz en el dispositivo.',
-    'fr': 'Bonjour! Bienvenue sur LocalAI Kit avec synthèse vocale sur appareil.',
+    'es':
+        '¡Hola! Bienvenido a LocalAI Kit con síntesis de voz en el dispositivo.',
+    'fr':
+        'Bonjour! Bienvenue sur LocalAI Kit avec synthèse vocale sur appareil.',
     'de': 'Hallo! Willkommen bei LocalAI Kit für lokale Sprachsynthese.',
     'it': 'Ciao! Benvenuto in LocalAI Kit con sintesi vocale sul dispositivo.',
     'pt': 'Olá! Bem-vindo ao LocalAI Kit com síntese de voz no dispositivo.',
-    'ru': 'Привет! Добро пожаловать в LocalAI Kit с синтезом речи на устройстве.',
+    'ru':
+        'Привет! Добро пожаловать в LocalAI Kit с синтезом речи на устройстве.',
     'hi': 'नमस्ते! लोकल एआई किट में आपका स्वागत है।',
     'ar': 'مرحبا بك في LocalAI Kit لتحويل النص إلى كلام محليا.',
     'nl': 'Hallo! Welkom bij LocalAI Kit met spraaksynthese op het apparaat.',
@@ -126,7 +132,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     'tr': 'Merhaba! Cihaz içi ses sentezi ile LocalAI Kit\'e hoş geldiniz.',
     'sv': 'Hej! Välkommen till LocalAI Kit med talsyntes på enheten.',
     'vi': 'Xin chào! Chào mừng đến với LocalAI Kit tổng hợp giọng nói.',
-    'id': 'Halo! Selamat datang di LocalAI Kit dengan sintesis suara di perangkat.',
+    'id':
+        'Halo! Selamat datang di LocalAI Kit dengan sintesis suara di perangkat.',
     'th': 'สวัสดี! ยินดีต้อนรับสู่ LocalAI Kit ระบบสังเคราะห์เสียงบนอุปกรณ์',
   };
 
@@ -174,7 +181,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
       _isLlmDownloading = false;
       _llmDownloadProgress = 0.0;
     });
-    AppLogger.info('INIT', 'Bootstrapping LocalAI: LLM=$_selectedLlmId, VAD=$_selectedVadId, STT=$_selectedSttId, TTS=$_selectedTtsId');
+    AppLogger.info('INIT',
+        'Bootstrapping LocalAI: LLM=$_selectedLlmId, VAD=$_selectedVadId, STT=$_selectedSttId, TTS=$_selectedTtsId');
 
     try {
       await _downloadSub?.cancel();
@@ -211,7 +219,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
       _statusSub = ai.models.watchStatus(_selectedLlmId).listen((status) {
         if (!mounted) return;
-        AppLogger.info('STATUS', 'LLM "$_selectedLlmId" state -> ${status.state.name}');
+        AppLogger.info(
+            'STATUS', 'LLM "$_selectedLlmId" state -> ${status.state.name}');
         setState(() {
           _isLlmInstalled = status.isInstalled;
           if (status.state == ModelInstallState.installed) {
@@ -219,20 +228,24 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
             _isLlmDownloading = false;
             _llmDownloadProgress = 0.0;
           } else if (status.state == ModelInstallState.failed) {
-            _status = 'Download failed: ${status.error?.message ?? 'Network error'}';
+            _status =
+                'Download failed: ${status.error?.message ?? 'Network error'}';
             _isLlmDownloading = false;
             _llmDownloadProgress = 0.0;
           }
         });
       });
 
-      _downloadSub = ai.models.downloadProgress(_selectedLlmId).listen((progress) {
+      _downloadSub =
+          ai.models.downloadProgress(_selectedLlmId).listen((progress) {
         if (!mounted) return;
         final speedMB = progress.bytesPerSecond > 0
             ? '${(progress.bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s'
             : '';
-        final receivedMB = (progress.receivedBytes / (1024 * 1024)).toStringAsFixed(1);
-        final totalMB = (progress.totalBytes / (1024 * 1024)).toStringAsFixed(1);
+        final receivedMB =
+            (progress.receivedBytes / (1024 * 1024)).toStringAsFixed(1);
+        final totalMB =
+            (progress.totalBytes / (1024 * 1024)).toStringAsFixed(1);
 
         setState(() {
           _isLlmDownloading = progress.fraction < 1.0;
@@ -241,7 +254,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           _status = 'Downloading $_llmDownloadFile: $receivedMB / $totalMB MB '
               '(${(progress.fraction * 100).toStringAsFixed(0)}%) $speedMB';
         });
-        AppLogger.info('DOWNLOAD', '$_llmDownloadFile: $receivedMB/$totalMB MB (${(progress.fraction * 100).toStringAsFixed(1)}%) $speedMB');
+        AppLogger.info('DOWNLOAD',
+            '$_llmDownloadFile: $receivedMB/$totalMB MB (${(progress.fraction * 100).toStringAsFixed(1)}%) $speedMB');
       });
 
       setState(() {
@@ -252,10 +266,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
       });
       AppLogger.success('INIT', 'LocalAI initialization complete');
     } on LocalAIError catch (e, st) {
-      AppLogger.error('INIT', 'LocalAI initialization failed: ${e.message}', error: e, stackTrace: st);
+      AppLogger.error('INIT', 'LocalAI initialization failed: ${e.message}',
+          error: e, stackTrace: st);
       if (mounted) setState(() => _status = 'Init failed: ${e.message}');
     } catch (e, st) {
-      AppLogger.error('INIT', 'Unexpected init error', error: e, stackTrace: st);
+      AppLogger.error('INIT', 'Unexpected init error',
+          error: e, stackTrace: st);
       if (mounted) setState(() => _status = 'Unexpected error: $e');
     }
   }
@@ -290,7 +306,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         });
       }
     } catch (e, st) {
-      AppLogger.error('CATALOG', 'Failed to refresh catalog', error: e, stackTrace: st);
+      AppLogger.error('CATALOG', 'Failed to refresh catalog',
+          error: e, stackTrace: st);
     }
   }
 
@@ -315,7 +332,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         AppLogger.success('DOWNLOAD', 'Model installed: $modelId');
       }
     } catch (e, st) {
-      AppLogger.error('DOWNLOAD', 'Install failed for $modelId: $e', error: e, stackTrace: st);
+      AppLogger.error('DOWNLOAD', 'Install failed for $modelId: $e',
+          error: e, stackTrace: st);
       if (mounted) {
         setState(() => _modelDownloadProgress.remove(modelId));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -340,20 +358,23 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
     if (missingModels.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All voice models are already installed!')),
+        const SnackBar(
+            content: Text('All voice models are already installed!')),
       );
       return;
     }
 
     setState(() {
       _isVoiceDownloading = true;
-      _voiceDownloadStatus = 'Downloading ${missingModels.length} missing models…';
+      _voiceDownloadStatus =
+          'Downloading ${missingModels.length} missing models…';
     });
 
     for (var i = 0; i < missingModels.length; i++) {
       final id = missingModels[i];
       setState(() {
-        _voiceDownloadStatus = 'Downloading [${i + 1}/${missingModels.length}]: $id…';
+        _voiceDownloadStatus =
+            'Downloading [${i + 1}/${missingModels.length}]: $id…';
       });
       AppLogger.info('VOICE_INIT', 'Downloading voice model: $id');
       try {
@@ -369,7 +390,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     });
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('All required voice models downloaded and ready!')),
+      const SnackBar(
+          content: Text('All required voice models downloaded and ready!')),
     );
   }
 
@@ -391,7 +413,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         AppLogger.success('MODELS', 'Model removed: $modelId');
       }
     } catch (e, st) {
-      AppLogger.error('MODELS', 'Failed to remove model $modelId', error: e, stackTrace: st);
+      AppLogger.error('MODELS', 'Failed to remove model $modelId',
+          error: e, stackTrace: st);
     }
   }
 
@@ -436,30 +459,35 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           _output.write(chunk.textDelta);
           final currentText = _output.toString();
           _tokenCount++;
-          final elapsed = DateTime.now().difference(_generationStartTime!).inMilliseconds;
+          final elapsed =
+              DateTime.now().difference(_generationStartTime!).inMilliseconds;
           final tps = elapsed > 0 ? (_tokenCount / (elapsed / 1000.0)) : 0.0;
 
           setState(() {
             _outputText = currentText;
             _tokensPerSecond = tps;
-            _status = 'Streaming ($_tokenCount tokens, ${tps.toStringAsFixed(1)} tok/s)…';
+            _status =
+                'Streaming ($_tokenCount tokens, ${tps.toStringAsFixed(1)} tok/s)…';
           });
 
           if (_outputScrollController.hasClients) {
-            _outputScrollController.jumpTo(_outputScrollController.position.maxScrollExtent);
+            _outputScrollController
+                .jumpTo(_outputScrollController.position.maxScrollExtent);
           }
         }
       }
 
       if (mounted) {
         setState(() {
-          _status = 'Generation complete ($_tokenCount tokens, ${_tokensPerSecond.toStringAsFixed(1)} tok/s)';
+          _status =
+              'Generation complete ($_tokenCount tokens, ${_tokensPerSecond.toStringAsFixed(1)} tok/s)';
           _isGenerating = false;
         });
         AppLogger.success('GENERATE', 'Completed: $_tokenCount tokens emitted');
       }
     } on LocalAIError catch (e, st) {
-      AppLogger.error('GENERATE', 'Generation failed: ${e.message}', error: e, stackTrace: st);
+      AppLogger.error('GENERATE', 'Generation failed: ${e.message}',
+          error: e, stackTrace: st);
       if (mounted) {
         setState(() {
           _status = 'Error: ${e.message}';
@@ -467,7 +495,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         });
       }
     } catch (e, st) {
-      AppLogger.error('GENERATE', 'Unexpected generation error', error: e, stackTrace: st);
+      AppLogger.error('GENERATE', 'Unexpected generation error',
+          error: e, stackTrace: st);
       if (mounted) {
         setState(() {
           _status = 'Error: $e';
@@ -488,7 +517,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     if (!_isModelInstalled(_selectedTtsId)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Model "$_selectedTtsId" is not installed. Please download it first.'),
+          content: Text(
+              'Model "$_selectedTtsId" is not installed. Please download it first.'),
           action: SnackBarAction(
             label: 'Download',
             onPressed: () => _installModel(_selectedTtsId),
@@ -507,7 +537,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
       _ttsStatus = 'Synthesizing speech with $_selectedTtsId…';
     });
 
-    AppLogger.info('TTS', 'Speaking: "$text" (Model: $_selectedTtsId, Speed: $_ttsSpeed, Pitch: $_ttsPitch)');
+    AppLogger.info('TTS',
+        'Speaking: "$text" (Model: $_selectedTtsId, Speed: $_ttsSpeed, Pitch: $_ttsPitch)');
     final stopwatch = Stopwatch()..start();
 
     // Start progress simulation for visual audio player
@@ -539,12 +570,15 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           _isTtsSynthesizing = false;
           _isTtsPlaying = false;
           _ttsPlaybackProgress = 1.0;
-          _ttsStatus = 'Speech playback complete in ${stopwatch.elapsedMilliseconds}ms.';
+          _ttsStatus =
+              'Speech playback complete in ${stopwatch.elapsedMilliseconds}ms.';
         });
-        AppLogger.success('TTS', 'Speech playback finished in ${stopwatch.elapsedMilliseconds}ms');
+        AppLogger.success('TTS',
+            'Speech playback finished in ${stopwatch.elapsedMilliseconds}ms');
       }
     } on LocalAIError catch (e, st) {
-      AppLogger.error('TTS', 'TTS synthesis failed: ${e.message}', error: e, stackTrace: st);
+      AppLogger.error('TTS', 'TTS synthesis failed: ${e.message}',
+          error: e, stackTrace: st);
       _ttsProgressTimer?.cancel();
       if (mounted) {
         setState(() {
@@ -604,13 +638,18 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
     // Check all 4 models before starting
     final uninstalled = <String>[];
-    if (!_isModelInstalled(_selectedVadId)) uninstalled.add('VAD ($_selectedVadId)');
-    if (!_isModelInstalled(_selectedSttId)) uninstalled.add('STT ($_selectedSttId)');
-    if (!_isModelInstalled(_selectedLlmId)) uninstalled.add('LLM ($_selectedLlmId)');
-    if (!_isModelInstalled(_selectedTtsId)) uninstalled.add('TTS ($_selectedTtsId)');
+    if (!_isModelInstalled(_selectedVadId))
+      uninstalled.add('VAD ($_selectedVadId)');
+    if (!_isModelInstalled(_selectedSttId))
+      uninstalled.add('STT ($_selectedSttId)');
+    if (!_isModelInstalled(_selectedLlmId))
+      uninstalled.add('LLM ($_selectedLlmId)');
+    if (!_isModelInstalled(_selectedTtsId))
+      uninstalled.add('TTS ($_selectedTtsId)');
 
     if (uninstalled.isNotEmpty) {
-      final msg = 'Cannot start Voice Assistant: ${uninstalled.join(', ')} not installed yet. Click "Download Missing Voice Models" above.';
+      final msg =
+          'Cannot start Voice Assistant: ${uninstalled.join(', ')} not installed yet. Click "Download Missing Voice Models" above.';
       AppLogger.warn('VOICE', msg);
       setState(() => _voiceStatus = '⚠️ $msg');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -680,7 +719,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         });
       }
     } on LocalAIError catch (e, st) {
-      AppLogger.error('VOICE', 'Voice session failed: ${e.message}', error: e, stackTrace: st);
+      AppLogger.error('VOICE', 'Voice session failed: ${e.message}',
+          error: e, stackTrace: st);
       if (mounted) setState(() => _voiceStatus = 'Voice error: ${e.message}');
     } catch (e, st) {
       AppLogger.error('VOICE', 'Voice error', error: e, stackTrace: st);
@@ -722,7 +762,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           controller: _tabController,
           isScrollable: true,
           tabs: const [
-            Tab(icon: Icon(Icons.chat_bubble_outline), text: 'Text Generation (LLM)'),
+            Tab(
+                icon: Icon(Icons.chat_bubble_outline),
+                text: 'Text Generation (LLM)'),
             Tab(icon: Icon(Icons.volume_up), text: 'Text-to-Speech (TTS)'),
             Tab(icon: Icon(Icons.mic), text: 'Voice Assistant'),
             Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Model Catalog'),
@@ -755,7 +797,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           // LLM Dropdown Selector
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Row(
@@ -770,27 +813,48 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                         items: const [
                           DropdownMenuItem(
                             value: 'smollm2-360m-instruct',
-                            child: Text('⚡ SmolLM2 360M (LiteRT-LM • macOS/iOS/Android • 373 MB)'),
+                            child: Text(
+                                '⚡ SmolLM2 360M (LiteRT-LM • macOS/iOS/Android • 373 MB)'),
                           ),
                           DropdownMenuItem(
                             value: 'qwen-3.5-0.8b-instruct',
-                            child: Text('🚀 Qwen 3.5 0.8B (LiteRT-LM • macOS/iOS/Android • 963 MB)'),
+                            child: Text(
+                                '🚀 Qwen 3.5 0.8B (LiteRT-LM • macOS/iOS/Android • 963 MB)'),
                           ),
                           DropdownMenuItem(
                             value: 'qwen-3.5-2b-instruct',
-                            child: Text('🧠 Qwen 3.5 2B (LiteRT-LM • macOS/iOS/Android • 2.11 GB)'),
+                            child: Text(
+                                '🧠 Qwen 3.5 2B (LiteRT-LM • macOS/iOS/Android • 2.11 GB)'),
                           ),
                           DropdownMenuItem(
                             value: 'qwen-3.5-4b-instruct',
-                            child: Text('🔥 Qwen 3.5 4B (LiteRT-LM • macOS/iOS/Android • 4.40 GB)'),
+                            child: Text(
+                                '🔥 Qwen 3.5 4B (LiteRT-LM • macOS/iOS/Android • 4.40 GB)'),
                           ),
                           DropdownMenuItem(
                             value: 'qwen-2.5-0.5b-instruct',
-                            child: Text('📱 Qwen 2.5 0.5B (MediaPipe • Android/iOS/Web • 546 MB)'),
+                            child: Text(
+                                '📱 Qwen 2.5 0.5B (MediaPipe • Android/iOS/Web • 546 MB)'),
                           ),
                           DropdownMenuItem(
                             value: 'deepseek-r1-1.5b-int4',
-                            child: Text('📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
+                            child: Text(
+                                '📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'gemma-4-e2b-it',
+                            child: Text(
+                                '💎 Gemma 4 E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'gemma-4-e4b-it',
+                            child: Text(
+                                '💎 Gemma 4 E4B (LiteRT-LM • macOS/iOS/Android • 3.66 GB)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'gemma-3n-e2b-it-int4',
+                            child: Text(
+                                '💎 Gemma 3n E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
                           ),
                         ],
                         onChanged: (val) {
@@ -848,7 +912,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     if (!_isLlmInstalled && !_isLlmDownloading)
                       FilledButton.tonal(
                         style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                           visualDensity: VisualDensity.compact,
                         ),
                         onPressed: () => _installModel(_selectedLlmId),
@@ -858,7 +923,10 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 ),
                 if (_isLlmDownloading) ...[
                   const SizedBox(height: 6),
-                  LinearProgressIndicator(value: _llmDownloadProgress > 0 ? _llmDownloadProgress : null),
+                  LinearProgressIndicator(
+                      value: _llmDownloadProgress > 0
+                          ? _llmDownloadProgress
+                          : null),
                 ],
               ],
             ),
@@ -871,7 +939,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
             decoration: InputDecoration(
               labelText: 'Prompt',
               border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.clear, size: 18),
                 onPressed: () => _promptController.clear(),
@@ -888,12 +957,14 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
               children: [
                 ActionChip(
                   label: const Text('Explain on-device AI'),
-                  onPressed: () => _promptController.text = 'Explain on-device AI in one sentence.',
+                  onPressed: () => _promptController.text =
+                      'Explain on-device AI in one sentence.',
                 ),
                 const SizedBox(width: 6),
                 ActionChip(
                   label: const Text('Write a Haiku'),
-                  onPressed: () => _promptController.text = 'Write a haiku about local AI.',
+                  onPressed: () =>
+                      _promptController.text = 'Write a haiku about local AI.',
                 ),
                 const SizedBox(width: 6),
                 ActionChip(
@@ -922,7 +993,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _outputText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied response to clipboard')),
+                      const SnackBar(
+                          content: Text('Copied response to clipboard')),
                     );
                   },
                 ),
@@ -986,8 +1058,10 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           // TTS Model Selector Card
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -995,9 +1069,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.volume_up, color: Colors.deepPurpleAccent),
+                      const Icon(Icons.volume_up,
+                          color: Colors.deepPurpleAccent),
                       const SizedBox(width: 8),
-                      Text('Text-to-Speech Model & Parameters', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('Text-to-Speech Model & Parameters',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1006,9 +1083,16 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.graphic_eq,
                     value: _selectedTtsId,
                     items: const [
-                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic 3 (Supertone Inc. • 31+ Languages • 398 MB)')),
-                      DropdownMenuItem(value: 'vits-piper-en-lessac', child: Text('Piper TTS Lessac Low (67 MB)')),
-                      DropdownMenuItem(value: 'kokoro-en-tts', child: Text('Kokoro TTS v0.19 (319 MB)')),
+                      DropdownMenuItem(
+                          value: 'supertonic-tts',
+                          child: Text(
+                              'Supertonic 3 (Supertone Inc. • 31+ Languages • 398 MB)')),
+                      DropdownMenuItem(
+                          value: 'vits-piper-en-lessac',
+                          child: Text('Piper TTS Lessac Low (67 MB)')),
+                      DropdownMenuItem(
+                          value: 'kokoro-en-tts',
+                          child: Text('Kokoro TTS v0.19 (319 MB)')),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -1020,18 +1104,28 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                   const SizedBox(height: 8),
                   // Model installation badge & download button
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isTtsInstalled ? Colors.green.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.15),
+                      color: isTtsInstalled
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.amber.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isTtsInstalled ? Colors.green.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.5)),
+                      border: Border.all(
+                          color: isTtsInstalled
+                              ? Colors.green.withValues(alpha: 0.3)
+                              : Colors.amber.withValues(alpha: 0.5)),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          isTtsInstalled ? Icons.check_circle : Icons.warning_amber_rounded,
+                          isTtsInstalled
+                              ? Icons.check_circle
+                              : Icons.warning_amber_rounded,
                           size: 16,
-                          color: isTtsInstalled ? Colors.green : Colors.amber.shade800,
+                          color: isTtsInstalled
+                              ? Colors.green
+                              : Colors.amber.shade800,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1042,7 +1136,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: isTtsInstalled ? Colors.green.shade800 : Colors.amber.shade900,
+                              color: isTtsInstalled
+                                  ? Colors.green.shade800
+                                  : Colors.amber.shade900,
                             ),
                           ),
                         ),
@@ -1050,10 +1146,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                           FilledButton.tonal(
                             style: FilledButton.styleFrom(
                               visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 2),
                             ),
                             onPressed: () => _installModel(_selectedTtsId),
-                            child: const Text('Download Model', style: TextStyle(fontSize: 11)),
+                            child: const Text('Download Model',
+                                style: TextStyle(fontSize: 11)),
                           ),
                       ],
                     ),
@@ -1071,36 +1169,73 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                           decoration: InputDecoration(
                             labelText: 'Spoken Language',
                             prefixIcon: const Icon(Icons.language, size: 20),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'ja', child: Text('🇯🇵 Japanese (日本語)')),
-                            DropdownMenuItem(value: 'en', child: Text('🇺🇸 English (US)')),
-                            DropdownMenuItem(value: 'ko', child: Text('🇰🇷 Korean (한국어)')),
-                            DropdownMenuItem(value: 'zh', child: Text('🇨🇳 Chinese (中文)')),
-                            DropdownMenuItem(value: 'es', child: Text('🇪🇸 Spanish (Español)')),
-                            DropdownMenuItem(value: 'fr', child: Text('🇫🇷 French (Français)')),
-                            DropdownMenuItem(value: 'de', child: Text('🇩🇪 German (Deutsch)')),
-                            DropdownMenuItem(value: 'it', child: Text('🇮🇹 Italian (Italiano)')),
-                            DropdownMenuItem(value: 'pt', child: Text('🇵🇹 Portuguese (Português)')),
-                            DropdownMenuItem(value: 'ru', child: Text('🇷🇺 Russian (Русский)')),
-                            DropdownMenuItem(value: 'hi', child: Text('🇮🇳 Hindi (हिन्दी)')),
-                            DropdownMenuItem(value: 'ar', child: Text('🇦🇪 Arabic (العربية)')),
-                            DropdownMenuItem(value: 'nl', child: Text('🇳🇱 Dutch (Nederlands)')),
-                            DropdownMenuItem(value: 'pl', child: Text('🇵🇱 Polish (Polski)')),
-                            DropdownMenuItem(value: 'tr', child: Text('🇹🇷 Turkish (Türkçe)')),
-                            DropdownMenuItem(value: 'sv', child: Text('🇸🇪 Swedish (Svenska)')),
-                            DropdownMenuItem(value: 'vi', child: Text('🇻🇳 Vietnamese (Tiếng Việt)')),
-                            DropdownMenuItem(value: 'id', child: Text('🇮🇩 Indonesian (Bahasa)')),
-                            DropdownMenuItem(value: 'th', child: Text('🇹🇭 Thai (ไทย)')),
+                            DropdownMenuItem(
+                                value: 'ja',
+                                child: Text('🇯🇵 Japanese (日本語)')),
+                            DropdownMenuItem(
+                                value: 'en', child: Text('🇺🇸 English (US)')),
+                            DropdownMenuItem(
+                                value: 'ko', child: Text('🇰🇷 Korean (한국어)')),
+                            DropdownMenuItem(
+                                value: 'zh', child: Text('🇨🇳 Chinese (中文)')),
+                            DropdownMenuItem(
+                                value: 'es',
+                                child: Text('🇪🇸 Spanish (Español)')),
+                            DropdownMenuItem(
+                                value: 'fr',
+                                child: Text('🇫🇷 French (Français)')),
+                            DropdownMenuItem(
+                                value: 'de',
+                                child: Text('🇩🇪 German (Deutsch)')),
+                            DropdownMenuItem(
+                                value: 'it',
+                                child: Text('🇮🇹 Italian (Italiano)')),
+                            DropdownMenuItem(
+                                value: 'pt',
+                                child: Text('🇵🇹 Portuguese (Português)')),
+                            DropdownMenuItem(
+                                value: 'ru',
+                                child: Text('🇷🇺 Russian (Русский)')),
+                            DropdownMenuItem(
+                                value: 'hi',
+                                child: Text('🇮🇳 Hindi (हिन्दी)')),
+                            DropdownMenuItem(
+                                value: 'ar',
+                                child: Text('🇦🇪 Arabic (العربية)')),
+                            DropdownMenuItem(
+                                value: 'nl',
+                                child: Text('🇳🇱 Dutch (Nederlands)')),
+                            DropdownMenuItem(
+                                value: 'pl',
+                                child: Text('🇵🇱 Polish (Polski)')),
+                            DropdownMenuItem(
+                                value: 'tr',
+                                child: Text('🇹🇷 Turkish (Türkçe)')),
+                            DropdownMenuItem(
+                                value: 'sv',
+                                child: Text('🇸🇪 Swedish (Svenska)')),
+                            DropdownMenuItem(
+                                value: 'vi',
+                                child: Text('🇻🇳 Vietnamese (Tiếng Việt)')),
+                            DropdownMenuItem(
+                                value: 'id',
+                                child: Text('🇮🇩 Indonesian (Bahasa)')),
+                            DropdownMenuItem(
+                                value: 'th', child: Text('🇹🇭 Thai (ไทย)')),
                           ],
                           onChanged: (val) {
                             if (val != null) {
                               setState(() {
                                 _ttsLanguage = val;
                                 if (_samplePhrases.containsKey(val)) {
-                                  _ttsTextController.text = _samplePhrases[val]!;
+                                  _ttsTextController.text =
+                                      _samplePhrases[val]!;
                                 }
                               });
                             }
@@ -1112,46 +1247,100 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                       // Speaker / Voice Style Dropdown
                       Builder(
                         builder: (context) {
-                          final List<DropdownMenuItem<String>> voiceItems = _selectedTtsId == 'supertonic-tts'
-                              ? const [
-                                  DropdownMenuItem(value: 'default', child: Text('Auto Matching (Default)')),
-                                  DropdownMenuItem(value: 'f1', child: Text('F1 (Female • Soft Natural)')),
-                                  DropdownMenuItem(value: 'f2', child: Text('F2 (Female • Bright Expressive)')),
-                                  DropdownMenuItem(value: 'f3', child: Text('F3 (Female • Calm Narrative)')),
-                                  DropdownMenuItem(value: 'f4', child: Text('F4 (Female • Warm Friendly)')),
-                                  DropdownMenuItem(value: 'f5', child: Text('F5 (Female • Clear Professional)')),
-                                  DropdownMenuItem(value: 'm1', child: Text('M1 (Male • Deep Resonant)')),
-                                  DropdownMenuItem(value: 'm2', child: Text('M2 (Male • Friendly Casual)')),
-                                  DropdownMenuItem(value: 'm3', child: Text('M3 (Male • Confident Dynamic)')),
-                                  DropdownMenuItem(value: 'm4', child: Text('M4 (Male • Warm Storyteller)')),
-                                  DropdownMenuItem(value: 'm5', child: Text('M5 (Male • Clear Anchor)')),
-                                ]
-                              : (_selectedTtsId == 'kokoro-en-tts'
+                          final List<DropdownMenuItem<String>> voiceItems =
+                              _selectedTtsId == 'supertonic-tts'
                                   ? const [
-                                      DropdownMenuItem(value: 'default', child: Text('Heart (Default)')),
-                                      DropdownMenuItem(value: 'bella', child: Text('Bella (Female)')),
-                                      DropdownMenuItem(value: 'nicole', child: Text('Nicole (Female)')),
-                                      DropdownMenuItem(value: 'sarah', child: Text('Sarah (Female)')),
-                                      DropdownMenuItem(value: 'adam', child: Text('Adam (Male)')),
-                                      DropdownMenuItem(value: 'michael', child: Text('Michael (Male)')),
+                                      DropdownMenuItem(
+                                          value: 'default',
+                                          child:
+                                              Text('Auto Matching (Default)')),
+                                      DropdownMenuItem(
+                                          value: 'f1',
+                                          child: Text(
+                                              'F1 (Female • Soft Natural)')),
+                                      DropdownMenuItem(
+                                          value: 'f2',
+                                          child: Text(
+                                              'F2 (Female • Bright Expressive)')),
+                                      DropdownMenuItem(
+                                          value: 'f3',
+                                          child: Text(
+                                              'F3 (Female • Calm Narrative)')),
+                                      DropdownMenuItem(
+                                          value: 'f4',
+                                          child: Text(
+                                              'F4 (Female • Warm Friendly)')),
+                                      DropdownMenuItem(
+                                          value: 'f5',
+                                          child: Text(
+                                              'F5 (Female • Clear Professional)')),
+                                      DropdownMenuItem(
+                                          value: 'm1',
+                                          child: Text(
+                                              'M1 (Male • Deep Resonant)')),
+                                      DropdownMenuItem(
+                                          value: 'm2',
+                                          child: Text(
+                                              'M2 (Male • Friendly Casual)')),
+                                      DropdownMenuItem(
+                                          value: 'm3',
+                                          child: Text(
+                                              'M3 (Male • Confident Dynamic)')),
+                                      DropdownMenuItem(
+                                          value: 'm4',
+                                          child: Text(
+                                              'M4 (Male • Warm Storyteller)')),
+                                      DropdownMenuItem(
+                                          value: 'm5',
+                                          child:
+                                              Text('M5 (Male • Clear Anchor)')),
                                     ]
-                                  : const [
-                                      DropdownMenuItem(value: 'default', child: Text('Lessac Low (Default)')),
-                                    ]);
+                                  : (_selectedTtsId == 'kokoro-en-tts'
+                                      ? const [
+                                          DropdownMenuItem(
+                                              value: 'default',
+                                              child: Text('Heart (Default)')),
+                                          DropdownMenuItem(
+                                              value: 'bella',
+                                              child: Text('Bella (Female)')),
+                                          DropdownMenuItem(
+                                              value: 'nicole',
+                                              child: Text('Nicole (Female)')),
+                                          DropdownMenuItem(
+                                              value: 'sarah',
+                                              child: Text('Sarah (Female)')),
+                                          DropdownMenuItem(
+                                              value: 'adam',
+                                              child: Text('Adam (Male)')),
+                                          DropdownMenuItem(
+                                              value: 'michael',
+                                              child: Text('Michael (Male)')),
+                                        ]
+                                      : const [
+                                          DropdownMenuItem(
+                                              value: 'default',
+                                              child:
+                                                  Text('Lessac Low (Default)')),
+                                        ]);
 
-                          final effectiveVoice = voiceItems.any((item) => item.value == _ttsVoiceStyle)
+                          final effectiveVoice = voiceItems
+                                  .any((item) => item.value == _ttsVoiceStyle)
                               ? _ttsVoiceStyle
                               : 'default';
 
                           return Expanded(
                             child: DropdownButtonFormField<String>(
-                              key: ValueKey('style-$_selectedTtsId-$effectiveVoice'),
+                              key: ValueKey(
+                                  'style-$_selectedTtsId-$effectiveVoice'),
                               initialValue: effectiveVoice,
                               decoration: InputDecoration(
                                 labelText: 'Speaker Voice Style',
-                                prefixIcon: const Icon(Icons.record_voice_over, size: 20),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                prefixIcon: const Icon(Icons.record_voice_over,
+                                    size: 20),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8)),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                               ),
                               items: voiceItems,
                               onChanged: (val) {
@@ -1172,7 +1361,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     children: [
                       const Icon(Icons.speed, size: 18),
                       const SizedBox(width: 8),
-                      Text('Speed: ${_ttsSpeed.toStringAsFixed(1)}x', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('Speed: ${_ttsSpeed.toStringAsFixed(1)}x',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
                       Expanded(
                         child: Slider(
                           value: _ttsSpeed,
@@ -1190,7 +1381,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     children: [
                       const Icon(Icons.tune, size: 18),
                       const SizedBox(width: 8),
-                      Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
                       Expanded(
                         child: Slider(
                           value: _ttsPitch,
@@ -1338,7 +1531,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
               FilledButton.icon(
                 onPressed: _isTtsSynthesizing ? _stopTts : _synthesizeTts,
                 icon: Icon(_isTtsSynthesizing ? Icons.stop : Icons.volume_up),
-                label: Text(_isTtsSynthesizing ? 'Stop Playback' : 'Synthesize & Play Speech'),
+                label: Text(_isTtsSynthesizing
+                    ? 'Stop Playback'
+                    : 'Synthesize & Play Speech'),
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
@@ -1363,7 +1558,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: _isTtsPlaying ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+                color: _isTtsPlaying
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outlineVariant,
                 width: _isTtsPlaying ? 2 : 1,
               ),
             ),
@@ -1378,11 +1575,15 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isTtsPlaying ? Colors.deepPurpleAccent : theme.colorScheme.primaryContainer,
+                          color: _isTtsPlaying
+                              ? Colors.deepPurpleAccent
+                              : theme.colorScheme.primaryContainer,
                         ),
                         child: Icon(
                           _isTtsPlaying ? Icons.graphic_eq : Icons.play_arrow,
-                          color: _isTtsPlaying ? Colors.white : theme.colorScheme.onPrimaryContainer,
+                          color: _isTtsPlaying
+                              ? Colors.white
+                              : theme.colorScheme.onPrimaryContainer,
                           size: 22,
                         ),
                       ),
@@ -1392,14 +1593,19 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _isTtsPlaying ? '🔊 Audio Player: Playing Speech…' : 'Audio Player: Ready',
-                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                              _isTtsPlaying
+                                  ? '🔊 Audio Player: Playing Speech…'
+                                  : 'Audio Player: Ready',
+                              style: theme.textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             Text(
                               _ttsStatus,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _isTtsPlaying ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                                color: _isTtsPlaying
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1414,22 +1620,28 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: List.generate(28, (index) {
-                        final factor = sin((index * 0.4) + (_ttsPlaybackProgress * 12)).abs();
-                        final barHeight = _isTtsPlaying ? (8.0 + (factor * 32.0)) : 10.0;
+                        final factor =
+                            sin((index * 0.4) + (_ttsPlaybackProgress * 12))
+                                .abs();
+                        final barHeight =
+                            _isTtsPlaying ? (8.0 + (factor * 32.0)) : 10.0;
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 100),
                           width: 4,
                           height: barHeight,
                           decoration: BoxDecoration(
                             color: _isTtsPlaying
-                                ? (index / 28 <= _ttsPlaybackProgress ? Colors.deepPurpleAccent : Colors.deepPurple.shade200)
+                                ? (index / 28 <= _ttsPlaybackProgress
+                                    ? Colors.deepPurpleAccent
+                                    : Colors.deepPurple.shade200)
                                 : theme.colorScheme.outlineVariant,
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -1441,10 +1653,13 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
 
                   // Player Progress Bar
                   LinearProgressIndicator(
-                    value: _ttsPlaybackProgress > 0 ? _ttsPlaybackProgress : 0.0,
+                    value:
+                        _ttsPlaybackProgress > 0 ? _ttsPlaybackProgress : 0.0,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      _isTtsPlaying ? Colors.deepPurpleAccent : theme.colorScheme.primary,
+                      _isTtsPlaying
+                          ? Colors.deepPurpleAccent
+                          : theme.colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1479,7 +1694,11 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent)),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurpleAccent)),
         ],
       ),
     );
@@ -1495,7 +1714,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     final isSttInstalled = _isModelInstalled(_selectedSttId);
     final isLlmInstalled = _isModelInstalled(_selectedLlmId);
     final isTtsInstalled = _isModelInstalled(_selectedTtsId);
-    final allVoiceModelsInstalled = isVadInstalled && isSttInstalled && isLlmInstalled && isTtsInstalled;
+    final allVoiceModelsInstalled =
+        isVadInstalled && isSttInstalled && isLlmInstalled && isTtsInstalled;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1505,8 +1725,10 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           // Voice Pipeline Setup Card
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -1514,9 +1736,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.settings_voice, color: Colors.deepPurpleAccent),
+                      const Icon(Icons.settings_voice,
+                          color: Colors.deepPurpleAccent),
                       const SizedBox(width: 8),
-                      Text('Voice Pipeline Configuration', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('Voice Pipeline Configuration',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1526,7 +1751,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.graphic_eq,
                     value: _selectedVadId,
                     items: const [
-                      DropdownMenuItem(value: 'silero-vad', child: Text('Silero VAD (643 KB)')),
+                      DropdownMenuItem(
+                          value: 'silero-vad',
+                          child: Text('Silero VAD (643 KB)')),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -1542,8 +1769,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.record_voice_over,
                     value: _selectedSttId,
                     items: const [
-                      DropdownMenuItem(value: 'sherpa-onnx-streaming-zipformer-en-20m', child: Text('Zipformer Small English (70 MB)')),
-                      DropdownMenuItem(value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue', child: Text('SenseVoice Multilingual (1.04 GB)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-streaming-zipformer-en-20m',
+                          child: Text('Zipformer Small English (70 MB)')),
+                      DropdownMenuItem(
+                          value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
+                          child: Text('SenseVoice Multilingual (1.04 GB)')),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -1559,11 +1790,33 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.psychology,
                     value: _selectedLlmId,
                     items: const [
-                      DropdownMenuItem(value: 'smollm2-360m-instruct', child: Text('SmolLM2 360M (LiteRT-LM 373 MB)')),
-                      DropdownMenuItem(value: 'qwen-3.5-0.8b-instruct', child: Text('Qwen 3.5 0.8B (LiteRT-LM 963 MB)')),
-                      DropdownMenuItem(value: 'qwen-3.5-2b-instruct', child: Text('Qwen 3.5 2B (LiteRT-LM 2.11 GB)')),
-                      DropdownMenuItem(value: 'qwen-3.5-4b-instruct', child: Text('Qwen 3.5 4B (LiteRT-LM 4.40 GB)')),
-                      DropdownMenuItem(value: 'qwen-2.5-0.5b-instruct', child: Text('Qwen 2.5 0.5B (MediaPipe 546 MB)')),
+                      DropdownMenuItem(
+                          value: 'smollm2-360m-instruct',
+                          child: Text('SmolLM2 360M (LiteRT-LM 373 MB)')),
+                      DropdownMenuItem(
+                          value: 'qwen-3.5-0.8b-instruct',
+                          child: Text('Qwen 3.5 0.8B (LiteRT-LM 963 MB)')),
+                      DropdownMenuItem(
+                          value: 'qwen-3.5-2b-instruct',
+                          child: Text('Qwen 3.5 2B (LiteRT-LM 2.11 GB)')),
+                      DropdownMenuItem(
+                          value: 'qwen-3.5-4b-instruct',
+                          child: Text('Qwen 3.5 4B (LiteRT-LM 4.40 GB)')),
+                      DropdownMenuItem(
+                          value: 'qwen-2.5-0.5b-instruct',
+                          child: Text('Qwen 2.5 0.5B (MediaPipe 546 MB)')),
+                      DropdownMenuItem(
+                          value: 'deepseek-r1-1.5b-int4',
+                          child: Text('DeepSeek R1 1.5B (MediaPipe 1.86 GB)')),
+                      DropdownMenuItem(
+                          value: 'gemma-4-e2b-it',
+                          child: Text('Gemma 4 E2B (LiteRT-LM 2.59 GB)')),
+                      DropdownMenuItem(
+                          value: 'gemma-4-e4b-it',
+                          child: Text('Gemma 4 E4B (LiteRT-LM 3.66 GB)')),
+                      DropdownMenuItem(
+                          value: 'gemma-3n-e2b-it-int4',
+                          child: Text('Gemma 3n E2B (LiteRT-LM 2.59 GB)')),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -1579,9 +1832,15 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     icon: Icons.volume_up,
                     value: _selectedTtsId,
                     items: const [
-                      DropdownMenuItem(value: 'supertonic-tts', child: Text('Supertonic 3 (31+ Langs • 398 MB)')),
-                      DropdownMenuItem(value: 'vits-piper-en-lessac', child: Text('Piper TTS Lessac (67 MB)')),
-                      DropdownMenuItem(value: 'kokoro-en-tts', child: Text('Kokoro TTS v0.19 (319 MB)')),
+                      DropdownMenuItem(
+                          value: 'supertonic-tts',
+                          child: Text('Supertonic 3 (31+ Langs • 398 MB)')),
+                      DropdownMenuItem(
+                          value: 'vits-piper-en-lessac',
+                          child: Text('Piper TTS Lessac (67 MB)')),
+                      DropdownMenuItem(
+                          value: 'kokoro-en-tts',
+                          child: Text('Kokoro TTS v0.19 (319 MB)')),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -1600,10 +1859,14 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: allVoiceModelsInstalled ? Colors.green.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.15),
+              color: allVoiceModelsInstalled
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.amber.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: allVoiceModelsInstalled ? Colors.green.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.5),
+                color: allVoiceModelsInstalled
+                    ? Colors.green.withValues(alpha: 0.3)
+                    : Colors.amber.withValues(alpha: 0.5),
               ),
             ),
             child: Column(
@@ -1612,8 +1875,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 Row(
                   children: [
                     Icon(
-                      allVoiceModelsInstalled ? Icons.check_circle : Icons.warning_amber_rounded,
-                      color: allVoiceModelsInstalled ? Colors.green : Colors.amber.shade800,
+                      allVoiceModelsInstalled
+                          ? Icons.check_circle
+                          : Icons.warning_amber_rounded,
+                      color: allVoiceModelsInstalled
+                          ? Colors.green
+                          : Colors.amber.shade800,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -1625,7 +1892,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: allVoiceModelsInstalled ? Colors.green.shade800 : Colors.amber.shade900,
+                          color: allVoiceModelsInstalled
+                              ? Colors.green.shade800
+                              : Colors.amber.shade900,
                         ),
                       ),
                     ),
@@ -1633,10 +1902,15 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                       FilledButton.tonal(
                         style: FilledButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 2),
                         ),
-                        onPressed: _isVoiceDownloading ? null : _downloadMissingVoiceModels,
-                        child: Text(_isVoiceDownloading ? 'Downloading…' : 'Download Missing'),
+                        onPressed: _isVoiceDownloading
+                            ? null
+                            : _downloadMissingVoiceModels,
+                        child: Text(_isVoiceDownloading
+                            ? 'Downloading…'
+                            : 'Download Missing'),
                       ),
                   ],
                 ),
@@ -1655,7 +1929,11 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                   const SizedBox(height: 8),
                   const LinearProgressIndicator(),
                   const SizedBox(height: 4),
-                  Text(_voiceDownloadStatus, style: TextStyle(fontSize: 11, color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                  Text(_voiceDownloadStatus,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold)),
                 ],
               ],
             ),
@@ -1676,10 +1954,15 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                       shape: BoxShape.circle,
                       color: isVoiceActive
                           ? Colors.redAccent
-                          : (allVoiceModelsInstalled ? theme.colorScheme.primary : Colors.grey),
+                          : (allVoiceModelsInstalled
+                              ? theme.colorScheme.primary
+                              : Colors.grey),
                       boxShadow: [
                         BoxShadow(
-                          color: (isVoiceActive ? Colors.redAccent : theme.colorScheme.primary).withValues(alpha: 0.4),
+                          color: (isVoiceActive
+                                  ? Colors.redAccent
+                                  : theme.colorScheme.primary)
+                              .withValues(alpha: 0.4),
                           blurRadius: isVoiceActive ? 20 : 8,
                           spreadRadius: isVoiceActive ? 4 : 1,
                         ),
@@ -1696,14 +1979,19 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 Text(
                   isVoiceActive
                       ? 'Voice Assistant Active (Click to Stop)'
-                      : (allVoiceModelsInstalled ? 'Tap Microphone to Start Voice Chat' : 'Download Missing Models to Enable Voice Chat'),
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      : (allVoiceModelsInstalled
+                          ? 'Tap Microphone to Start Voice Chat'
+                          : 'Download Missing Models to Enable Voice Chat'),
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _voiceStatus,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isVoiceActive ? Colors.greenAccent.shade700 : theme.colorScheme.onSurfaceVariant,
+                    color: isVoiceActive
+                        ? Colors.greenAccent.shade700
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1727,35 +2015,53 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.record_voice_over, size: 18, color: Colors.blueAccent),
+                      const Icon(Icons.record_voice_over,
+                          size: 18, color: Colors.blueAccent),
                       const SizedBox(width: 8),
-                      Text('User Transcript', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('User Transcript',
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _voiceTranscript.isNotEmpty ? _voiceTranscript : 'Awaiting speech input…',
+                    _voiceTranscript.isNotEmpty
+                        ? _voiceTranscript
+                        : 'Awaiting speech input…',
                     style: TextStyle(
                       fontSize: 14,
-                      color: _voiceTranscript.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
-                      fontStyle: _voiceTranscript.isEmpty ? FontStyle.italic : FontStyle.normal,
+                      color: _voiceTranscript.isNotEmpty
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontStyle: _voiceTranscript.isEmpty
+                          ? FontStyle.italic
+                          : FontStyle.normal,
                     ),
                   ),
                   const Divider(height: 24),
                   Row(
                     children: [
-                      const Icon(Icons.volume_up, size: 18, color: Colors.deepPurpleAccent),
+                      const Icon(Icons.volume_up,
+                          size: 18, color: Colors.deepPurpleAccent),
                       const SizedBox(width: 8),
-                      Text('Assistant Spoken Response', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('Assistant Spoken Response',
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _voiceReply.isNotEmpty ? _voiceReply : 'Awaiting response synthesis…',
+                    _voiceReply.isNotEmpty
+                        ? _voiceReply
+                        : 'Awaiting response synthesis…',
                     style: TextStyle(
                       fontSize: 14,
-                      color: _voiceReply.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
-                      fontStyle: _voiceReply.isEmpty ? FontStyle.italic : FontStyle.normal,
+                      color: _voiceReply.isNotEmpty
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontStyle: _voiceReply.isEmpty
+                          ? FontStyle.italic
+                          : FontStyle.normal,
                     ),
                   ),
                 ],
@@ -1771,9 +2077,14 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: installed ? Colors.green.withValues(alpha: 0.15) : Colors.red.withValues(alpha: 0.15),
+        color: installed
+            ? Colors.green.withValues(alpha: 0.15)
+            : Colors.red.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: installed ? Colors.green.withValues(alpha: 0.4) : Colors.red.withValues(alpha: 0.4)),
+        border: Border.all(
+            color: installed
+                ? Colors.green.withValues(alpha: 0.4)
+                : Colors.red.withValues(alpha: 0.4)),
       ),
       child: Text(
         '$component: ${installed ? 'Installed ✅' : 'Missing ⚠️'}',
@@ -1797,7 +2108,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
       children: [
         Icon(icon, size: 18),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(label,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         const Spacer(),
         DropdownButton<String>(
           value: items.any((i) => i.value == value) ? value : items.first.value,
@@ -1831,21 +2143,28 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
       );
     }
 
-    final llmModels = _catalogModels.where((m) => m.type == ModelType.llm).toList();
-    final vadModels = _catalogModels.where((m) => m.type == ModelType.vad).toList();
-    final sttModels = _catalogModels.where((m) => m.type == ModelType.stt).toList();
-    final ttsModels = _catalogModels.where((m) => m.type == ModelType.tts).toList();
+    final llmModels =
+        _catalogModels.where((m) => m.type == ModelType.llm).toList();
+    final vadModels =
+        _catalogModels.where((m) => m.type == ModelType.vad).toList();
+    final sttModels =
+        _catalogModels.where((m) => m.type == ModelType.stt).toList();
+    final ttsModels =
+        _catalogModels.where((m) => m.type == ModelType.tts).toList();
 
     return RefreshIndicator(
       onRefresh: _refreshCatalog,
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _buildCategorySection('🧠 Large Language Models (LLM)', llmModels, theme),
+          _buildCategorySection(
+              '🧠 Large Language Models (LLM)', llmModels, theme),
           const SizedBox(height: 12),
-          _buildCategorySection('🎙️ Voice Activity Detection (VAD)', vadModels, theme),
+          _buildCategorySection(
+              '🎙️ Voice Activity Detection (VAD)', vadModels, theme),
           const SizedBox(height: 12),
-          _buildCategorySection('🗣️ Speech Recognition (STT)', sttModels, theme),
+          _buildCategorySection(
+              '🗣️ Speech Recognition (STT)', sttModels, theme),
           const SizedBox(height: 12),
           _buildCategorySection('📢 Text-to-Speech (TTS)', ttsModels, theme),
         ],
@@ -1853,7 +2172,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildCategorySection(String title, List<LocalModelManifest> models, ThemeData theme) {
+  Widget _buildCategorySection(
+      String title, List<LocalModelManifest> models, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1861,7 +2181,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           child: Text(
             '$title (${models.length})',
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+            style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
           ),
         ),
         ...models.map((model) => _buildModelCard(model, theme)),
@@ -1876,7 +2197,8 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     final isInstalled = status?.isInstalled ?? false;
     final isDownloading = progress != null;
 
-    final sizeMB = (model.totalSizeBytes / (1024 * 1024)).toStringAsFixed(model.totalSizeBytes > 100 * 1024 * 1024 ? 0 : 1);
+    final sizeMB = (model.totalSizeBytes / (1024 * 1024))
+        .toStringAsFixed(model.totalSizeBytes > 100 * 1024 * 1024 ? 0 : 1);
 
     return Card(
       elevation: 0,
@@ -1898,29 +2220,39 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                     children: [
                       Text(
                         model.displayName ?? model.id,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       Text(
                         'ID: ${model.id} • Provider: ${model.provider} • Size: $sizeMB MB',
-                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
                 ),
                 if (isInstalled)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('Installed ✅', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                    child: const Text('Installed ✅',
+                        style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
                   ),
               ],
             ),
             if (model.description != null) ...[
               const SizedBox(height: 4),
-              Text(model.description!, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+              Text(model.description!,
+                  style: TextStyle(
+                      fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
             ],
             if (isDownloading) ...[
               const SizedBox(height: 8),
@@ -1928,7 +2260,10 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
               const SizedBox(height: 4),
               Text(
                 'Downloading ${(progress * 100).toStringAsFixed(0)}% $speed',
-                style: TextStyle(fontSize: 11, color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold),
               ),
             ],
             const SizedBox(height: 8),
@@ -1943,9 +2278,12 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                   )
                 else
                   FilledButton.tonalIcon(
-                    onPressed: isDownloading ? null : () => _installModel(model.id),
+                    onPressed:
+                        isDownloading ? null : () => _installModel(model.id),
                     icon: const Icon(Icons.download, size: 16),
-                    label: Text(isDownloading ? 'Downloading…' : 'Download ($sizeMB MB)'),
+                    label: Text(isDownloading
+                        ? 'Downloading…'
+                        : 'Download ($sizeMB MB)'),
                   ),
               ],
             ),
@@ -1966,7 +2304,11 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
         final logs = snapshot.data ?? [];
         final filteredLogs = _logFilter.isEmpty
             ? logs
-            : logs.where((l) => l.tag.toLowerCase().contains(_logFilter.toLowerCase()) || l.message.toLowerCase().contains(_logFilter.toLowerCase())).toList();
+            : logs
+                .where((l) =>
+                    l.tag.toLowerCase().contains(_logFilter.toLowerCase()) ||
+                    l.message.toLowerCase().contains(_logFilter.toLowerCase()))
+                .toList();
 
         return Container(
           color: Colors.black,
@@ -1978,22 +2320,30 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 children: [
                   const Icon(Icons.terminal, color: Colors.greenAccent),
                   const SizedBox(width: 8),
-                  const Text('Live Debug Terminal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const Text('Live Debug Terminal',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                   const Spacer(),
                   IconButton(
                     tooltip: 'Copy all logs',
-                    icon: const Icon(Icons.copy, color: Colors.white70, size: 18),
+                    icon:
+                        const Icon(Icons.copy, color: Colors.white70, size: 18),
                     onPressed: () {
-                      final text = logs.map((l) => '[${l.formatTime()}] [${l.tag}] ${l.message}').join('\n');
+                      final text = logs
+                          .map((l) =>
+                              '[${l.formatTime()}] [${l.tag}] ${l.message}')
+                          .join('\n');
                       Clipboard.setData(ClipboardData(text: text));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('All logs copied to clipboard')),
+                        const SnackBar(
+                            content: Text('All logs copied to clipboard')),
                       );
                     },
                   ),
                   IconButton(
                     tooltip: 'Clear terminal',
-                    icon: const Icon(Icons.delete_outline, color: Colors.white70, size: 18),
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.white70, size: 18),
                     onPressed: () {
                       AppLogger.clear();
                       setState(() {});
@@ -2007,13 +2357,17 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                 controller: _logSearchController,
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: InputDecoration(
-                  hintText: 'Filter logs by tag (INIT, GENERATE, VOICE, TTS, DOWNLOAD, ERROR)…',
-                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                  hintText:
+                      'Filter logs by tag (INIT, GENERATE, VOICE, TTS, DOWNLOAD, ERROR)…',
+                  hintStyle:
+                      const TextStyle(color: Colors.white38, fontSize: 12),
                   isDense: true,
-                  prefixIcon: const Icon(Icons.search, color: Colors.white38, size: 16),
+                  prefixIcon:
+                      const Icon(Icons.search, color: Colors.white38, size: 16),
                   suffixIcon: _logFilter.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.white38, size: 16),
+                          icon: const Icon(Icons.clear,
+                              color: Colors.white38, size: 16),
                           onPressed: () {
                             _logSearchController.clear();
                             setState(() => _logFilter = '');
@@ -2027,7 +2381,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
               // Log content
               Expanded(
                 child: filteredLogs.isEmpty
-                    ? const Center(child: Text('No logs matching filter', style: TextStyle(color: Colors.white38)))
+                    ? const Center(
+                        child: Text('No logs matching filter',
+                            style: TextStyle(color: Colors.white38)))
                     : ListView.builder(
                         controller: _logScrollController,
                         itemCount: filteredLogs.length,
@@ -2047,24 +2403,35 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                               children: [
                                 Text(
                                   '[${log.formatTime()}] ',
-                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.grey),
+                                  style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 11,
+                                      color: Colors.grey),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: color.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                   child: Text(
                                     log.tag,
-                                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: color),
+                                    style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: color),
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     log.message,
-                                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.white),
+                                    style: const TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 11,
+                                        color: Colors.white),
                                   ),
                                 ),
                               ],

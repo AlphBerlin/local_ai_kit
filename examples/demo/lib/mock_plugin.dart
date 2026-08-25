@@ -9,7 +9,8 @@ class MockAdapterPlugin implements AdapterPlugin {
 
   @override
   void register(AdapterRegistry registry) {
-    AppLogger.info('PLUGIN', 'Registering MockAdapterPlugin for Google Gemma & Sherpa providers');
+    AppLogger.info('PLUGIN',
+        'Registering MockAdapterPlugin for Google Gemma & Sherpa providers');
 
     // Register LLM adapter for both Gemma and Mock providers
     registry.registerLlm(
@@ -64,7 +65,8 @@ class _DemoMockLlm with StructuredOutputSupport implements LocalLlm {
 
   @override
   Future<void> load(LlmLoadOptions options) async {
-    AppLogger.info('LLM_MOCK', 'Loaded mock LLM model: ${options.modelId} (provider: $provider)');
+    AppLogger.info('LLM_MOCK',
+        'Loaded mock LLM model: ${options.modelId} (provider: $provider)');
     _loaded = true;
   }
 
@@ -76,7 +78,8 @@ class _DemoMockLlm with StructuredOutputSupport implements LocalLlm {
 
   @override
   Stream<LlmChunk> generateStream(LlmRequest request) async* {
-    final prompt = request.messages.lastOrNull?.content ?? 'Explain on-device AI';
+    final prompt =
+        request.messages.lastOrNull?.content ?? 'Explain on-device AI';
     AppLogger.info('LLM_MOCK', 'generateStream requested: "$prompt"');
 
     final response = _generateMockResponse(prompt);
@@ -89,7 +92,8 @@ class _DemoMockLlm with StructuredOutputSupport implements LocalLlm {
     }
 
     yield const LlmChunk(isFinal: true, finishReason: LlmFinishReason.stop);
-    AppLogger.success('LLM_MOCK', 'Generation complete (${words.length} tokens emitted)');
+    AppLogger.success(
+        'LLM_MOCK', 'Generation complete (${words.length} tokens emitted)');
   }
 
   @override
@@ -98,7 +102,8 @@ class _DemoMockLlm with StructuredOutputSupport implements LocalLlm {
 
   String _generateMockResponse(String prompt) {
     final lower = prompt.toLowerCase();
-    if (lower.contains('one sentence') || lower.contains('explain on-device ai')) {
+    if (lower.contains('one sentence') ||
+        lower.contains('explain on-device ai')) {
       return 'On-device AI executes intelligent neural network models directly on your local hardware, ensuring private, offline, zero-latency processing without cloud dependencies.';
     }
     if (lower.contains('haiku')) {
@@ -127,7 +132,8 @@ class _DemoMockStt implements LocalStt {
     Stream<AudioFrame> audio, {
     SttOptions? options,
   }) async* {
-    AppLogger.info('STT_MOCK', 'Transcribing streaming audio frame sequence...');
+    AppLogger.info(
+        'STT_MOCK', 'Transcribing streaming audio frame sequence...');
     yield const TranscriptPartial('Transcribing user voice...');
     await Future<void>.delayed(const Duration(milliseconds: 200));
     yield const TranscriptPartial('Explain on-device AI in one sentence.');
@@ -137,7 +143,8 @@ class _DemoMockStt implements LocalStt {
   }
 
   @override
-  Future<Transcript> transcribe(AudioBuffer audio, {SttOptions? options}) async {
+  Future<Transcript> transcribe(AudioBuffer audio,
+      {SttOptions? options}) async {
     return const Transcript(text: 'Explain on-device AI in one sentence.');
   }
 }
@@ -191,7 +198,8 @@ class _DemoMockVad implements LocalVad {
 
   @override
   Stream<VadEvent> analyze(Stream<AudioFrame> audio) async* {
-    AppLogger.info('VAD_MOCK', 'Analyzing microphone audio frames for voice activity');
+    AppLogger.info(
+        'VAD_MOCK', 'Analyzing microphone audio frames for voice activity');
     var count = 0;
     await for (final frame in audio) {
       count++;

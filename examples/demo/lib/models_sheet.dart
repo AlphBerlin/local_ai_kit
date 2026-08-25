@@ -86,7 +86,8 @@ class _ModelsSheetState extends State<ModelsSheet> {
         });
       }
     } catch (e, st) {
-      AppLogger.error('MODELS', 'Failed to load model catalog', error: e, stackTrace: st);
+      AppLogger.error('MODELS', 'Failed to load model catalog',
+          error: e, stackTrace: st);
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -100,7 +101,8 @@ class _ModelsSheetState extends State<ModelsSheet> {
         _downloadProgress[manifest.id] = 0.01;
       });
       await ai.models.install(manifest.id);
-      AppLogger.success('DOWNLOAD', 'Model installed successfully: ${manifest.id}');
+      AppLogger.success(
+          'DOWNLOAD', 'Model installed successfully: ${manifest.id}');
       final status = await ai.models.getStatus(manifest.id);
       if (mounted) {
         setState(() {
@@ -109,12 +111,14 @@ class _ModelsSheetState extends State<ModelsSheet> {
         });
       }
     } catch (e, st) {
-      AppLogger.error('DOWNLOAD', 'Install failed for ${manifest.id}: $e', error: e, stackTrace: st);
+      AppLogger.error('DOWNLOAD', 'Install failed for ${manifest.id}: $e',
+          error: e, stackTrace: st);
       if (mounted) {
         setState(() => _downloadProgress.remove(manifest.id));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Download failed: $e\n(Tip: Switch to Mock Mode for instant offline testing)'),
+            content: Text(
+                'Download failed: $e\n(Tip: Switch to Mock Mode for instant offline testing)'),
             backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 4),
           ),
@@ -133,7 +137,8 @@ class _ModelsSheetState extends State<ModelsSheet> {
       if (mounted) setState(() => _modelStatuses[modelId] = status);
       AppLogger.success('MODELS', 'Model removed: $modelId');
     } catch (e, st) {
-      AppLogger.error('MODELS', 'Failed to remove model $modelId', error: e, stackTrace: st);
+      AppLogger.error('MODELS', 'Failed to remove model $modelId',
+          error: e, stackTrace: st);
     }
   }
 
@@ -186,7 +191,8 @@ class _ModelsSheetState extends State<ModelsSheet> {
               const SizedBox(width: 8),
               Text(
                 'Model Catalog & Downloader',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               IconButton(
@@ -203,7 +209,8 @@ class _ModelsSheetState extends State<ModelsSheet> {
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   itemCount: _models.length,
                   itemBuilder: (context, index) {
                     final model = _models[index];
@@ -234,36 +241,47 @@ class _ModelsSheetState extends State<ModelsSheet> {
                               children: [
                                 CircleAvatar(
                                   radius: 16,
-                                  backgroundColor: theme.colorScheme.primaryContainer,
-                                  child: Icon(_typeIcon(model.type), size: 18, color: theme.colorScheme.primary),
+                                  backgroundColor:
+                                      theme.colorScheme.primaryContainer,
+                                  child: Icon(_typeIcon(model.type),
+                                      size: 18,
+                                      color: theme.colorScheme.primary),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
                                           Text(
                                             model.displayName ?? model.id,
-                                            style: theme.textTheme.titleSmall?.copyWith(
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                           if (isSelected) ...[
                                             const SizedBox(width: 6),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: theme.colorScheme.primary,
-                                                borderRadius: BorderRadius.circular(4),
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
                                               ),
                                               child: Text(
                                                 'ACTIVE',
                                                 style: TextStyle(
                                                   fontSize: 9,
                                                   fontWeight: FontWeight.bold,
-                                                  color: theme.colorScheme.onPrimary,
+                                                  color: theme
+                                                      .colorScheme.onPrimary,
                                                 ),
                                               ),
                                             ),
@@ -272,8 +290,10 @@ class _ModelsSheetState extends State<ModelsSheet> {
                                       ),
                                       Text(
                                         '${model.id} • ${model.provider} • ${_formatSize(model.totalSizeBytes)}',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurfaceVariant,
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: theme
+                                              .colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
@@ -281,13 +301,16 @@ class _ModelsSheetState extends State<ModelsSheet> {
                                 ),
                               ],
                             ),
-                            if (model.description != null && model.description!.isNotEmpty) ...[
+                            if (model.description != null &&
+                                model.description!.isNotEmpty) ...[
                               const SizedBox(height: 6),
-                              Text(model.description!, style: theme.textTheme.bodySmall),
+                              Text(model.description!,
+                                  style: theme.textTheme.bodySmall),
                             ],
                             if (isDownloading) ...[
                               const SizedBox(height: 8),
-                              LinearProgressIndicator(value: progress > 0 ? progress : null),
+                              LinearProgressIndicator(
+                                  value: progress > 0 ? progress : null),
                               const SizedBox(height: 4),
                               Text(
                                 'Downloading ${(progress * 100).toStringAsFixed(0)}%…',
@@ -313,7 +336,8 @@ class _ModelsSheetState extends State<ModelsSheet> {
                                 if (isInstalled)
                                   OutlinedButton.icon(
                                     onPressed: () => _uninstallModel(model.id),
-                                    icon: const Icon(Icons.delete_outline, size: 16),
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 16),
                                     label: const Text('Remove'),
                                   )
                                 else
@@ -322,7 +346,9 @@ class _ModelsSheetState extends State<ModelsSheet> {
                                         ? null
                                         : () => _installModel(model),
                                     icon: const Icon(Icons.download, size: 16),
-                                    label: Text(isDownloading ? 'Downloading…' : 'Download'),
+                                    label: Text(isDownloading
+                                        ? 'Downloading…'
+                                        : 'Download'),
                                   ),
                               ],
                             ),

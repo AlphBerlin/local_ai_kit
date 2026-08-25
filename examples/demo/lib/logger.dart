@@ -76,7 +76,8 @@ class AppLogger {
   static void warn(String tag, String message, {String? details}) =>
       log(LogLevel.warning, tag, message, details: details);
 
-  static void error(String tag, String message, {Object? error, StackTrace? stackTrace}) {
+  static void error(String tag, String message,
+      {Object? error, StackTrace? stackTrace}) {
     final details = StringBuffer();
     if (error != null) details.writeln('Error: $error');
     if (stackTrace != null) details.writeln('StackTrace:\n$stackTrace');
