@@ -49,6 +49,20 @@ class ModelInstaller {
       'catalogVersion': manifest.catalogVersion,
       'installedAt': DateTime.now().toIso8601String(),
     }));
+
+    // Auto-extract archives (.tar.bz2, .tar.gz, .tar) if present
+    for (final entity in target.listSync(recursive: false)) {
+      if (entity is File) {
+        if (entity.path.endsWith('.tar.bz2') ||
+            entity.path.endsWith('.tar.gz') ||
+            entity.path.endsWith('.tar')) {
+          try {
+            await Process.run('tar', ['-xf', entity.path, '-C', target.path]);
+          } catch (_) {}
+        }
+      }
+    }
+
     return target;
   }
 

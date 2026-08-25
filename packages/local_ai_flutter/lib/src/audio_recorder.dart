@@ -27,33 +27,42 @@ class FlutterAudioRecorder implements LocalAudioSource {
     var sequence = 0;
 
     controller = StreamController<AudioFrame>(onListen: () async {
-      await _permissionGate.ensureMicrophone();
-      final recorder = _recorder = AudioRecorder();
+      try {
+        final recorder = _recorder = AudioRecorder();
+        final hasPerm = await recorder.hasPermission();
+        if (!hasPerm) {
+          await _permissionGate.ensureMicrophone();
+        }
 
-      // TODO(verify): record plugin stream config API (AudioRecorder +
-      // RecordConfig with encoder pcm16bits gives a PCM byte stream).
-      final byteStream = await recorder.startStream(RecordConfig(
-        encoder: AudioEncoder.pcm16bits,
-        sampleRate: format.sampleRate,
-        numChannels: format.channels,
-      ));
+        final byteStream = await recorder.startStream(RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: format.sampleRate,
+          numChannels: format.channels,
+        ));
 
-      _subscription = byteStream.listen(
-        (bytes) {
-          final samples = _bytesToFloat32(bytes);
-          controller.add(AudioFrame(
-            samples: samples,
-            format: AudioFormat.pcm16kMono,
-            timestamp: DateTime.now(),
-            sequence: sequence++,
-          ));
-        },
-        onError: controller.addError,
-        onDone: () => controller.close(),
-      );
+        _subscription = byteStream.listen(
+          (bytes) {
+            final samples = _bytesToFloat32(bytes);
+            if (!controller.isClosed) {
+              controller.add(AudioFrame(
+                samples: samples,
+                format: AudioFormat.pcm16kMono,
+                timestamp: DateTime.now(),
+                sequence: sequence++,
+              ));
+            }
+          },
+          onError: controller.addError,
+          onDone: () {
+            if (!controller.isClosed) controller.close();
+          },
+        );
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
     }, onCancel: () async {
       await stop();
-      await controller.close();
+      if (!controller.isClosed) await controller.close();
     });
 
     return controller.stream;

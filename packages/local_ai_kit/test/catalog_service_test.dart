@@ -119,4 +119,42 @@ void main() {
       );
     });
   });
+
+  group('ModelInstaller payload validation and crash recovery', () {
+    test(
+        'isInstalled returns false when payload weights are missing despite installed.json',
+        () async {
+      final installer = ModelInstaller(paths: paths);
+      final modelDir =
+          Directory(paths.modelDir(ModelType.llm, 'qwen-3.5-2b-instruct'));
+      await modelDir.create(recursive: true);
+      final marker = File('${modelDir.path}/installed.json');
+      await marker.writeAsString(
+          jsonEncode({'modelId': 'qwen-3.5-2b-instruct', 'catalogVersion': 1}));
+
+      // No actual weight files in modelDir
+      expect(installer.isInstalled(Models.qwen35_2b), isFalse);
+
+      // Now create the weight file
+      final weightFile = File('${modelDir.path}/Qwen3.5-2B_int8.litertlm');
+      await weightFile.writeAsString('test weight data');
+      expect(installer.isInstalled(Models.qwen35_2b), isTrue);
+    });
+
+    test(
+        'recoverFromCrash deletes directories with only installed.json and no payloads',
+        () async {
+      final installer = ModelInstaller(paths: paths);
+      final modelDir =
+          Directory(paths.modelDir(ModelType.llm, 'corrupt-model'));
+      await modelDir.create(recursive: true);
+      final marker = File('${modelDir.path}/installed.json');
+      await marker.writeAsString(
+          jsonEncode({'modelId': 'corrupt-model', 'catalogVersion': 1}));
+
+      expect(await modelDir.exists(), isTrue);
+      await installer.recoverFromCrash();
+      expect(await modelDir.exists(), isFalse);
+    });
+  });
 }

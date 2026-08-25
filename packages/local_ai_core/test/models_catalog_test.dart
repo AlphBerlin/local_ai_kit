@@ -37,6 +37,22 @@ void main() {
       expect(manifest.contextLength, 2048);
     });
 
+    test('Gemma 4 E2B & E4B manifests have valid LiteRT-LM configuration', () {
+      final e2b = Models.gemma4E2b;
+      expect(e2b.id, 'gemma-4-e2b-it');
+      expect(e2b.type, ModelType.llm);
+      expect(e2b.provider, ModelProviders.googleGemma);
+      expect(e2b.files, isNotEmpty);
+      expect(e2b.files.first.url, contains('gemma-4-E2B-it.litertlm'));
+
+      final e4b = Models.gemma4E4b;
+      expect(e4b.id, 'gemma-4-e4b-it');
+      expect(e4b.type, ModelType.llm);
+      expect(e4b.provider, ModelProviders.googleGemma);
+      expect(e4b.files, isNotEmpty);
+      expect(e4b.files.first.url, contains('gemma-4-E4B-it.litertlm'));
+    });
+
     test('Gemma 3n E2B manifest has valid configuration', () {
       final manifest = Models.gemma3nE2b;
       expect(manifest.id, 'gemma-3n-e2b-it-int4');

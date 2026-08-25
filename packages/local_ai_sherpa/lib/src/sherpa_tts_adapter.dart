@@ -150,8 +150,140 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
   StreamIterator<String>? _lineIterator;
   bool _cancelled = false;
 
+  static const _ttsServerScript = r'''import sys, json, os, glob
+import numpy as np
+
+def main():
+    model_dir = sys.argv[1] if len(sys.argv) > 1 else None
+    engine_type = "none"
+    tts = None
+    styles = {}
+    
+    # 1. Try Supertonic 3
+    if model_dir and os.path.exists(os.path.join(model_dir, "duration_predictor.onnx")):
+        try:
+            import supertonic
+            tts = supertonic.TTS(model="supertonic-3", model_dir=model_dir, intra_op_num_threads=4)
+            for name in tts.voice_style_names:
+                styles[name] = tts.get_voice_style(name)
+            engine_type = "supertonic"
+        except Exception as e:
+            sys.stderr.write(f"Failed to load Supertonic: {e}\n")
+
+    # 2. Try Kokoro / Piper via sherpa_onnx
+    if tts is None and model_dir and os.path.exists(model_dir):
+        try:
+            import sherpa_onnx
+            
+            # Check for Kokoro
+            kokoro_models = glob.glob(os.path.join(model_dir, "**", "*kokoro*.onnx"), recursive=True) or glob.glob(os.path.join(model_dir, "**", "model.onnx"), recursive=True)
+            voices_bins = glob.glob(os.path.join(model_dir, "**", "*voices*.bin"), recursive=True) or glob.glob(os.path.join(model_dir, "**", "voices.bin"), recursive=True)
+            tokens_txts = glob.glob(os.path.join(model_dir, "**", "*tokens*.txt"), recursive=True) or glob.glob(os.path.join(model_dir, "**", "tokens.txt"), recursive=True)
+            data_dirs = glob.glob(os.path.join(model_dir, "**", "*espeak*"), recursive=True) or glob.glob(os.path.join(model_dir, "**", "data"), recursive=True)
+            
+            if kokoro_models and tokens_txts and voices_bins:
+                config = sherpa_onnx.OfflineTtsConfig(
+                    model=sherpa_onnx.OfflineTtsModelConfig(
+                        kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(
+                            model=kokoro_models[0],
+                            voices=voices_bins[0],
+                            tokens=tokens_txts[0],
+                            data_dir=data_dirs[0] if data_dirs else "",
+                            length_scale=1.0,
+                        ),
+                        num_threads=4,
+                        provider="cpu",
+                    )
+                )
+                tts = sherpa_onnx.OfflineTts(config)
+                engine_type = "kokoro"
+            
+            # Check for VITS / Piper
+            if tts is None:
+                vits_models = glob.glob(os.path.join(model_dir, "**", "*.onnx"), recursive=True)
+                if vits_models and tokens_txts:
+                    config = sherpa_onnx.OfflineTtsConfig(
+                        model=sherpa_onnx.OfflineTtsModelConfig(
+                            vits=sherpa_onnx.OfflineTtsVitsModelConfig(
+                                model=vits_models[0],
+                                tokens=tokens_txts[0],
+                                data_dir=data_dirs[0] if data_dirs else "",
+                                length_scale=1.0,
+                            ),
+                            num_threads=4,
+                            provider="cpu",
+                        )
+                    )
+                    tts = sherpa_onnx.OfflineTts(config)
+                    engine_type = "vits"
+        except Exception as e:
+            sys.stderr.write(f"Failed to load Sherpa-ONNX model: {e}\n")
+
+    # 3. Fallback to Supertonic 3 default
+    if tts is None:
+        try:
+            import supertonic
+            tts = supertonic.TTS(model="supertonic-3", intra_op_num_threads=4)
+            for name in tts.voice_style_names:
+                styles[name] = tts.get_voice_style(name)
+            engine_type = "supertonic"
+        except Exception as e:
+            sys.stderr.write(f"Failed fallback Supertonic: {e}\n")
+
+    print(json.dumps({"ready": True, "engine": engine_type, "sample_rate": getattr(tts, "sample_rate", 44100)}), flush=True)
+
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+            if req.get("op") == "stop":
+                break
+            text = req["text"]
+            lang = req.get("language", "en")
+            v_style = req.get("voice_style", "F1").upper()
+            speed = float(req.get("speed", 1.0))
+            total_steps = int(req.get("total_step", 8))
+            output_path = req["output_path"]
+
+            if engine_type == "supertonic":
+                style = styles.get(v_style) or styles.get("F1")
+                wav, dur = tts(text, voice_style=style, lang=lang, total_steps=total_steps, speed=speed)
+                sample_rate = tts.sample_rate
+                exact_len = int(sample_rate * dur[0])
+                trimmed_wav = wav[0][:exact_len] if exact_len < len(wav[0]) else wav[0]
+                raw_bytes = trimmed_wav.astype(np.float32).tobytes()
+                duration = float(dur[0])
+            elif engine_type in ("kokoro", "vits"):
+                voice_map = {"DEFAULT": 0, "BELLA": 1, "NICOLE": 2, "SARAH": 3, "ADAM": 4, "MICHAEL": 5, "F1": 0, "F2": 1, "F3": 2, "M1": 3, "M2": 4}
+                sid = voice_map.get(v_style, 0)
+                audio = tts.generate(text, sid=sid, speed=speed)
+                sample_rate = audio.sample_rate
+                samples_arr = np.array(audio.samples, dtype=np.float32)
+                raw_bytes = samples_arr.tobytes()
+                duration = float(len(samples_arr)) / float(sample_rate)
+            else:
+                raise ValueError("No TTS engine loaded")
+
+            with open(output_path, "wb") as f:
+                f.write(raw_bytes)
+
+            print(json.dumps({"ok": True, "duration": duration, "samples": len(raw_bytes)//4, "sample_rate": sample_rate}), flush=True)
+        except Exception as e:
+            print(json.dumps({"ok": False, "error": str(e)}), flush=True)
+
+if __name__ == "__main__":
+    main()
+''';
+
   Future<void> _startServer(String onnxDir) async {
     try {
+      final scriptFile = File('/tmp/supertonic_server.py');
+      if (!scriptFile.existsSync()) {
+        await scriptFile.writeAsString(_ttsServerScript);
+      }
+
       final uvPath = File('/Users/ajithberlin/.local/bin/uv').existsSync()
           ? '/Users/ajithberlin/.local/bin/uv'
           : 'uv';
@@ -161,6 +293,8 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
         'supertonic',
         '--with',
         'sherpa-onnx',
+        '--with',
+        'numpy',
         'python3',
         '/tmp/supertonic_server.py',
         onnxDir,
