@@ -4,7 +4,21 @@ This page walks you from adding the packages to your first generation, transcrip
 
 ## 1. Add dependencies
 
-The kit is published as six packages; add the facade plus the adapter packages
+If you want all first-party adapters through one dependency, use the umbrella:
+
+```yaml
+dependencies:
+  local_ai_kit_all: ^0.0.1
+```
+
+```dart
+import 'package:local_ai_kit_all/local_ai_kit_all.dart';
+```
+
+The individual package setup below is better when you want unused native
+runtimes excluded from the application binary.
+
+The kit is published as seven packages; add the facade plus the adapter packages
 for the runtimes you actually use. (Only registered adapters end up in your
 binary.)
 

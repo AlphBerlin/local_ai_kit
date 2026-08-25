@@ -13,6 +13,7 @@ void main() {
         'local_ai_sherpa',
         'local_ai_kit',
         'local_ai_genkit',
+        'local_ai_kit_all',
       ],
     );
   });

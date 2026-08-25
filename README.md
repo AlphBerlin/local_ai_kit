@@ -51,14 +51,19 @@ local_ai_kit/                       (melos workspace)
 │   │                               (FFI isolated in worker isolates).
 │   ├── local_ai_genkit/            Optional orchestration layer over LocalLlm
 │   │                               (flows/tools/templates/structured output).
-│   └── local_ai_kit/               Facade: LocalAI, ModelHub, download
+│   ├── local_ai_kit/               Facade: LocalAI, ModelHub, download
 │                                   manager, RuntimeScheduler, VoiceSession,
 │                                   pipeline DSL, config presets.
+│   ├── local_ai_kit_all/            One-dependency umbrella re-exporting the
+│                                   facade, platform layer and all adapters.
 └── example/                        Minimal demo app (chat + voice).
 ```
 
 Dependency rule: everyone depends on `local_ai_core`; only adapter packages
 touch their native SDKs; `local_ai_kit` never imports an adapter.
+
+For an app that wants all first-party adapters through one dependency, use
+`local_ai_kit_all` and import `package:local_ai_kit_all/local_ai_kit_all.dart`.
 
 ## Quick start
 
@@ -126,7 +131,7 @@ Pipeline presets: `LocalPipeline.presets.textChat(ai)` /
 - Architecture (layering, interfaces, state machines, merge/ download /
   memory strategies): `docs-internal/architecture.md`
 - [Releasing to pub.dev](docs/releasing.md) — first publication and tagged
-  releases for all six packages.
+  releases for all seven packages.
 - See `example/lib/main.dart` for a complete minimal app.
 
 ## Development

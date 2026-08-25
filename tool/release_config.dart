@@ -41,6 +41,11 @@ const releasePackages = <ReleasePackage>[
     directory: 'packages/local_ai_genkit',
     usesFlutter: true,
   ),
+  ReleasePackage(
+    name: 'local_ai_kit_all',
+    directory: 'packages/local_ai_kit_all',
+    usesFlutter: true,
+  ),
 ];
 
 class ReleaseValidationException implements Exception {

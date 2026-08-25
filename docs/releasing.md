@@ -1,6 +1,6 @@
 # Releasing to pub.dev
 
-LocalAI Kit publishes six packages as one coordinated release. The repository
+LocalAI Kit publishes seven packages as one coordinated release. The repository
 tag is shared, while uploads run in dependency order:
 
 1. `local_ai_core`
@@ -9,6 +9,7 @@ tag is shared, while uploads run in dependency order:
 4. `local_ai_sherpa`
 5. `local_ai_kit`
 6. `local_ai_genkit`
+7. `local_ai_kit_all`
 
 ## First release: `0.0.1`
 
@@ -29,6 +30,7 @@ Upload the packages in order:
 (cd packages/local_ai_sherpa && flutter pub publish)
 (cd packages/local_ai_kit && flutter pub publish)
 (cd packages/local_ai_genkit && flutter pub publish)
+(cd packages/local_ai_kit_all && flutter pub publish)
 ```
 
 After each upload, confirm the package is available at
@@ -48,7 +50,7 @@ automated release.
 ## Automated releases
 
 For a new coordinated release, update the `version:` and `## <version>` entry
-in all six package pubspec/changelog files, then run:
+in all seven package pubspec/changelog files, then run:
 
 ```sh
 dart pub get
