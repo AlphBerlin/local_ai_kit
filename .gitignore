@@ -88,3 +88,5 @@ app.*.map.json
 **/*.bin
 **/build/
 /example/*
+
+**/superpowers/
