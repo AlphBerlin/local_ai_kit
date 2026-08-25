@@ -25,6 +25,16 @@ void main() {
     });
   });
 
+  group('VadConfig defaults', () {
+    test('uses fast endpointing defaults', () {
+      const config = VadConfig(modelId: 'silero-vad');
+      expect(config.minSpeechDurationMs, 150);
+      expect(config.minSilenceDurationMs, 350);
+      expect(config.threshold, 0.5);
+      expect(config.sampleRate, 16000);
+    });
+  });
+
   group('ModelDeliveryPolicy.smart', () {
     test('bundles small, downloads large', () {
       const policy = ModelDeliveryPolicy.smart(bundleBelowMB: 25);

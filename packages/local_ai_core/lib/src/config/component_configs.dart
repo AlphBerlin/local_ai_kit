@@ -61,8 +61,8 @@ class VadConfig {
   const VadConfig({
     required this.modelId,
     this.threshold = 0.5,
-    this.minSpeechDurationMs = 250,
-    this.minSilenceDurationMs = 500,
+    this.minSpeechDurationMs = 150,
+    this.minSilenceDurationMs = 350,
     this.sampleRate = 16000,
   });
 
