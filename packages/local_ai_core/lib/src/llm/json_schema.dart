@@ -18,7 +18,7 @@ class JsonSchema {
 
   /// Convenience builder for an object schema.
   factory JsonSchema.object({
-    required Map<String, JsonSchema> properties,
+    Map<String, JsonSchema> properties = const {},
     List<String> required = const [],
     String? description,
   }) {

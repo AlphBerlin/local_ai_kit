@@ -74,6 +74,9 @@ class LocalLlmFacade {
         'llm');
   }
 
+  /// Ensures the LLM model is downloaded and loaded, returning the underlying adapter.
+  Future<LocalLlm> ready() => _ready();
+
   /// Whether the configured LLM is currently loaded in memory.
   bool get isLoaded =>
       _config != null && _gate.runtime.isLoaded(_config.modelId);

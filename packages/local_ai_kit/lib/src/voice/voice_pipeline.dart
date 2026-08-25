@@ -147,12 +147,19 @@ class VoiceSession {
   }
 
   void _onVadEvent(VadEvent event) {
-    if (_stopped || _speaking || DateTime.now().isBefore(_ignoreAudioUntil)) {
+    if (_stopped || DateTime.now().isBefore(_ignoreAudioUntil)) {
+      return;
+    }
+    if (_speaking) {
+      if (event is VadSpeechStarted) {
+        unawaited(_maybeBargeIn(event.timestamp, event.confidence));
+      }
       return;
     }
     switch (event) {
-      case VadSpeechStarted(:final confidence):
+      case VadSpeechStarted():
         _inSpeech = true;
+
         _speechStartedAt = event.timestamp;
         _utterance.clear();
         // Grab pre-roll: up to 6 frames (~400-600ms) leading up to speech start

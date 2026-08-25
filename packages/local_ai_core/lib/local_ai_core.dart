@@ -52,6 +52,13 @@ export 'src/pipeline/pipeline_event.dart';
 export 'src/pipeline/voice_event.dart';
 export 'src/pipeline/voice_session_config.dart';
 
+// Plugins / MCP / Skills
+export 'src/plugins/builtin_skills.dart';
+export 'src/plugins/mcp_plugin.dart';
+export 'src/plugins/mcp_types.dart';
+export 'src/plugins/skill_executor.dart';
+export 'src/plugins/skill_registry.dart';
+
 // Registry
 export 'src/registry/adapter_registry.dart';
 
@@ -74,3 +81,4 @@ export 'src/tts/local_tts.dart';
 
 // VAD
 export 'src/vad/local_vad.dart';
+

@@ -11,8 +11,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_ai_gemma/local_ai_gemma.dart';
+import 'package:local_ai_genkit/local_ai_genkit.dart';
 import 'package:local_ai_kit/local_ai_kit.dart';
 import 'package:local_ai_sherpa/local_ai_sherpa.dart';
+
 
 import 'logger.dart';
 
@@ -77,9 +79,20 @@ class _DemoHomePageState extends State<DemoHomePage>
   String _selectedSttId = 'sherpa-onnx-streaming-zipformer-en-20m';
   String _selectedTtsId = 'supertonic-tts';
 
-  // 1. Text generation state
+  // 1. Text generation & Orchestration (Genkit / MCP Skills) state
+  bool _enableGenkit = false;
+  bool _enableSkills = true;
+  final Map<String, bool> _skillToggles = {
+    'calculator': true,
+    'device_time': true,
+    'device_info': true,
+    'weather': true,
+  };
+  List<McpToolCall> _lastToolCalls = [];
+  List<McpToolResult> _lastToolResults = [];
+
   final TextEditingController _promptController = TextEditingController(
-    text: 'Explain on-device AI in one sentence.',
+    text: 'What is 45 * 18 + sqrt(144)?',
   );
   final TextEditingController _systemPromptController = TextEditingController(
     text: 'You are a concise on-device assistant.',
@@ -92,6 +105,7 @@ class _DemoHomePageState extends State<DemoHomePage>
   DateTime? _generationStartTime;
   double _tokensPerSecond = 0.0;
   CancelToken? _currentCancelToken;
+
 
   // 2. TTS Generation & Audio Player state
   final TextEditingController _ttsTextController = TextEditingController(
@@ -194,6 +208,7 @@ class _DemoHomePageState extends State<DemoHomePage>
       final config = LocalAIConfig(
         llm: LlmConfig(
           modelId: _selectedLlmId,
+          enableGenkit: _enableGenkit,
           runtime: RuntimePreference.auto,
         ),
         vad: VadConfig(modelId: _selectedVadId),
@@ -203,15 +218,30 @@ class _DemoHomePageState extends State<DemoHomePage>
 
       final ai = await LocalAI.initialize(
         config,
-        plugins: const [
-          GemmaAdapterPlugin(),
-          SherpaAdapterPlugin(),
+        plugins: [
+          const GemmaAdapterPlugin(),
+          if (_enableGenkit) const GenkitAdapterPlugin(),
+          const SherpaAdapterPlugin(),
         ],
       );
+
+      // Synchronize skill active toggles
+      for (final entry in _skillToggles.entries) {
+        if (entry.value) {
+          try {
+            ai.skills.enable(entry.key);
+          } catch (_) {}
+        } else {
+          try {
+            ai.skills.disable(entry.key);
+          } catch (_) {}
+        }
+      }
 
       if (!mounted) return;
       _ai = ai;
       await _refreshCatalog();
+
 
       // Check current LLM status
       final installed = await ai.models.isInstalled(_selectedLlmId);
@@ -435,23 +465,59 @@ class _DemoHomePageState extends State<DemoHomePage>
     setState(() {
       _output.clear();
       _outputText = '';
-      _status = 'Generating response from $_selectedLlmId…';
+      _lastToolCalls = [];
+      _lastToolResults = [];
+      _status = _enableSkills
+          ? 'Executing with MCP skills from $_selectedLlmId…'
+          : 'Generating response from $_selectedLlmId…';
       _isGenerating = true;
       _tokenCount = 0;
       _tokensPerSecond = 0.0;
       _generationStartTime = DateTime.now();
     });
 
-    AppLogger.info('GENERATE', 'Prompt: "$prompt" (Model: $_selectedLlmId)');
+    AppLogger.info('GENERATE',
+        'Prompt: "$prompt" (Model: $_selectedLlmId, Skills: $_enableSkills, Genkit: $_enableGenkit)');
     final cancelToken = _currentCancelToken = CancelToken();
 
     try {
+      if (_enableSkills) {
+        final sysPrompt = _systemPromptController.text.isNotEmpty
+            ? _systemPromptController.text
+            : 'You are a concise on-device assistant.';
+
+        AppLogger.info('MCP',
+            'Active skills: ${ai.skills.enabledPlugins.map((p) => p.name).join(", ")}');
+        final result = await ai.generateWithSkills(
+          prompt,
+          systemPrompt: sysPrompt,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _lastToolCalls = result.toolCalls;
+          _lastToolResults = result.toolResults;
+          _outputText = result.text;
+          _status =
+              'Execution complete (${result.toolCalls.length} tool calls, ${result.turns} turns)';
+          _isGenerating = false;
+        });
+
+        if (result.usedTools) {
+          AppLogger.success('MCP',
+              'Tools invoked: ${result.toolCalls.map((c) => "${c.name}(${c.arguments})").join("; ")}');
+        }
+        AppLogger.success('GENERATE', 'Response: "${result.text}"');
+        return;
+      }
+
       final chunks = await ai.generateStream(LlmRequest.prompt(
         prompt,
         systemPrompt: _systemPromptController.text.isNotEmpty
             ? _systemPromptController.text
             : 'You are a concise on-device assistant.',
       ));
+
 
       await for (final chunk in chunks) {
         if (cancelToken.isCancelled) break;
@@ -714,9 +780,8 @@ class _DemoHomePageState extends State<DemoHomePage>
               _voiceStatus = '⚡ Barge-in: Interrupted by user!';
             case VoiceErrorOccurred(:final error):
               _voiceStatus = '❌ Voice error: ${error.message}';
-            default:
-              _voiceStatus = 'Voice event: ${event.runtimeType}';
           }
+
         });
       });
 
@@ -797,11 +862,12 @@ class _DemoHomePageState extends State<DemoHomePage>
   // 1. LLM Chat Tab
   // ===========================================================================
   Widget _buildLlmChatTab(ThemeData theme) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+
           // LLM Dropdown Selector
           Card(
             elevation: 0,
@@ -844,25 +910,14 @@ class _DemoHomePageState extends State<DemoHomePage>
                             child: Text(
                                 '📱 Qwen 2.5 0.5B (MediaPipe • Android/iOS/Web • 546 MB)'),
                           ),
+
                           DropdownMenuItem(
                             value: 'deepseek-r1-1.5b-int4',
-                            child: Text(
-                                '📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'gemma-4-e2b-it',
-                            child: Text(
-                                '💎 Gemma 4 E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'gemma-4-e4b-it',
-                            child: Text(
-                                '💎 Gemma 4 E4B (LiteRT-LM • macOS/iOS/Android • 3.66 GB)'),
+                            child: Text('📱 DeepSeek R1 1.5B (MediaPipe • Android/iOS/Web • 1.86 GB)'),
                           ),
                           DropdownMenuItem(
                             value: 'gemma-3n-e2b-it-int4',
-                            child: Text(
-                                '💎 Gemma 3n E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
+                            child: Text('💎 Gemma 3n E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
                           ),
                         ],
                         onChanged: (val) {
@@ -941,6 +996,133 @@ class _DemoHomePageState extends State<DemoHomePage>
           ),
           const SizedBox(height: 8),
 
+          // Orchestration & MCP Plugins / Skills Bar
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerLow,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      FilterChip(
+                        avatar: Icon(
+                          _enableGenkit
+                              ? Icons.account_tree
+                              : Icons.account_tree_outlined,
+                          size: 16,
+                        ),
+                        label: Text(
+                          'Genkit Orchestrator: ${_enableGenkit ? "ON" : "OFF"}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        selected: _enableGenkit,
+                        onSelected: (val) {
+                          setState(() => _enableGenkit = val);
+                          AppLogger.info('CONFIG',
+                              'Toggled Genkit Orchestrator -> ${_enableGenkit ? "ENABLED" : "DISABLED"}');
+                          _bootstrap();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        avatar: Icon(
+                          _enableSkills
+                              ? Icons.extension
+                              : Icons.extension_outlined,
+                          size: 16,
+                        ),
+                        label: Text(
+                          'MCP Plugins / Skills: ${_enableSkills ? "ON" : "OFF"}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        selected: _enableSkills,
+                        onSelected: (val) {
+                          setState(() => _enableSkills = val);
+                          AppLogger.info('CONFIG',
+                              'Toggled MCP Skills -> ${_enableSkills ? "ENABLED" : "DISABLED"}');
+                        },
+                      ),
+                    ],
+                  ),
+                  if (_enableSkills) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Active MCP Skills & Tool Providers:',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        FilterChip(
+                          avatar: const Text('🧮', style: TextStyle(fontSize: 12)),
+                          label: const Text('Calculator (calculate)',
+                              style: TextStyle(fontSize: 11)),
+                          selected: _skillToggles['calculator'] ?? true,
+                          onSelected: (val) {
+                            setState(() => _skillToggles['calculator'] = val);
+                            if (val) {
+                              _ai?.skills.enable('calculator');
+                            } else {
+                              _ai?.skills.disable('calculator');
+                            }
+                          },
+                        ),
+                        FilterChip(
+                          avatar: const Text('🕒', style: TextStyle(fontSize: 12)),
+                          label: const Text('Device Clock (get_current_time)',
+                              style: TextStyle(fontSize: 11)),
+                          selected: _skillToggles['device_time'] ?? true,
+                          onSelected: (val) {
+                            setState(() => _skillToggles['device_time'] = val);
+                            if (val) {
+                              _ai?.skills.enable('device_time');
+                            } else {
+                              _ai?.skills.disable('device_time');
+                            }
+                          },
+                        ),
+                        FilterChip(
+                          avatar: const Text('📱', style: TextStyle(fontSize: 12)),
+                          label: const Text('System Specs (get_device_info)',
+                              style: TextStyle(fontSize: 11)),
+                          selected: _skillToggles['device_info'] ?? true,
+                          onSelected: (val) {
+                            setState(() => _skillToggles['device_info'] = val);
+                            if (val) {
+                              _ai?.skills.enable('device_info');
+                            } else {
+                              _ai?.skills.disable('device_info');
+                            }
+                          },
+                        ),
+                        FilterChip(
+                          avatar: const Text('🌤️', style: TextStyle(fontSize: 12)),
+                          label: const Text('Weather Mock (get_weather)',
+                              style: TextStyle(fontSize: 11)),
+                          selected: _skillToggles['weather'] ?? true,
+                          onSelected: (val) {
+                            setState(() => _skillToggles['weather'] = val);
+                            if (val) {
+                              _ai?.skills.enable('weather');
+                            } else {
+                              _ai?.skills.disable('weather');
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
           // Prompt Input Field
           TextField(
             controller: _promptController,
@@ -963,23 +1145,54 @@ class _DemoHomePageState extends State<DemoHomePage>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                ActionChip(
-                  label: const Text('Explain on-device AI'),
-                  onPressed: () => _promptController.text =
-                      'Explain on-device AI in one sentence.',
-                ),
-                const SizedBox(width: 6),
-                ActionChip(
-                  label: const Text('Write a Haiku'),
-                  onPressed: () =>
-                      _promptController.text = 'Write a haiku about local AI.',
-                ),
-                const SizedBox(width: 6),
-                ActionChip(
-                  label: const Text('Why offline privacy?'),
-                  onPressed: () => _promptController.text =
-                      'Why is offline on-device AI better for privacy and security?',
-                ),
+                if (_enableSkills) ...[
+                  ActionChip(
+                    avatar: const Text('🧮'),
+                    label: const Text('Math: 45 * 18 + sqrt(144)'),
+                    onPressed: () => _promptController.text =
+                        'What is 45 * 18 + sqrt(144)?',
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    avatar: const Text('🕒'),
+                    label: const Text('Clock: Current device time'),
+                    onPressed: () => _promptController.text =
+                        'What is the current device time and day of week?',
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    avatar: const Text('🌤️'),
+                    label: const Text('Weather: Tokyo forecast'),
+                    onPressed: () => _promptController.text =
+                        'What is the current weather in Tokyo?',
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    avatar: const Text('📱'),
+                    label: const Text('System: Device specs'),
+                    onPressed: () => _promptController.text =
+                        'Show device specifications and runtime info.',
+                  ),
+                  const SizedBox(width: 6),
+                ] else ...[
+                  ActionChip(
+                    label: const Text('Explain on-device AI'),
+                    onPressed: () => _promptController.text =
+                        'Explain on-device AI in one sentence.',
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    label: const Text('Write a Haiku'),
+                    onPressed: () => _promptController.text =
+                        'Write a haiku about local AI.',
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    label: const Text('Why offline privacy?'),
+                    onPressed: () => _promptController.text =
+                        'Why is offline on-device AI better for privacy and security?',
+                  ),
+                ],
               ],
             ),
           ),
@@ -1012,6 +1225,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                 onPressed: () => setState(() {
                   _output.clear();
                   _outputText = '';
+                  _lastToolCalls = [];
+                  _lastToolResults = [];
                 }),
               ),
             ],
@@ -1019,16 +1234,18 @@ class _DemoHomePageState extends State<DemoHomePage>
           const SizedBox(height: 8),
 
           // Response output container
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              child: _outputText.isEmpty
-                  ? Center(
+          Container(
+            constraints: const BoxConstraints(minHeight: 220),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: _outputText.isEmpty && _lastToolCalls.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
                       child: Text(
                         _isLlmDownloading
                             ? 'Model is downloading… Output will appear once download completes.'
@@ -1037,20 +1254,105 @@ class _DemoHomePageState extends State<DemoHomePage>
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    )
-                  : SingleChildScrollView(
-                      controller: _outputScrollController,
-                      child: SelectableText(
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_lastToolCalls.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondaryContainer
+                                .withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: theme.colorScheme.secondary
+                                  .withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.handyman,
+                                      size: 16,
+                                      color: theme.colorScheme.secondary),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'MCP Tool Execution Trace (${_lastToolCalls.length} calls)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 12),
+                              for (var i = 0; i < _lastToolCalls.length; i++) ...[
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('⚙️ ',
+                                        style: TextStyle(fontSize: 12)),
+                                    Expanded(
+                                      child: Text(
+                                        'Tool: ${_lastToolCalls[i].name} | Args: ${_lastToolCalls[i].arguments}',
+                                        style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (i < _lastToolResults.length) ...[
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('📦 ',
+                                          style: TextStyle(fontSize: 12)),
+                                      Expanded(
+                                        child: Text(
+                                          'Output: ${_lastToolResults[i].content}',
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 11,
+                                            color: theme.colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                if (i < _lastToolCalls.length - 1)
+                                  const SizedBox(height: 6),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                      SelectableText(
                         _outputText,
                         style: const TextStyle(fontSize: 14, height: 1.4),
                       ),
-                    ),
-            ),
+                    ],
+                  ),
           ),
         ],
       ),
     );
   }
+
+
 
   // ===========================================================================
   // 2. Text-to-Speech (TTS) Tab with Audio Player

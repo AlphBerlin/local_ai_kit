@@ -37,6 +37,7 @@ class LocalAI {
     required VoiceSessionFactory voiceFactory,
     required LocalAudioSource? audioSource,
     required LocalAudioOutput? audioOutput,
+    SkillRegistry? skills,
   })  : _registry = registry,
         _catalog = catalog,
         _scheduler = scheduler,
@@ -46,10 +47,20 @@ class LocalAI {
         _voiceFactory = voiceFactory,
         _audioSource = audioSource,
         _audioOutput = audioOutput,
+        skills = skills ??
+            SkillRegistry(initialPlugins: const [
+              CalculatorSkill(),
+              TimeSkill(),
+              DeviceInfoSkill(),
+              WeatherSkill(),
+            ]),
         models = ModelHub(manager: manager, catalog: catalog);
 
   /// The active configuration.
   final LocalAIConfig config;
+
+  /// `ai.skills`: MCP plugins & skill registry for tool calling.
+  final SkillRegistry skills;
 
   final AdapterRegistry _registry;
   final ModelCatalogService _catalog;
@@ -152,6 +163,29 @@ class LocalAI {
         maxRetries: maxRetries,
       );
 
+  /// Executes [prompt] with active MCP plugins and skills.
+  ///
+  /// The LLM automatically receives tool definitions, executes matching
+  /// tool calls via [skills], and synthesizes a final response.
+  Future<SkillExecutionResult> generateWithSkills(
+    String prompt, {
+    String? systemPrompt,
+    double? temperature,
+    int? maxTokens,
+    SkillRegistry? customSkills,
+  }) async {
+    final activeRegistry = customSkills ?? skills;
+    final llm = await _llmFacade.ready();
+    final executor = SkillExecutor(registry: activeRegistry);
+    return executor.execute(
+      llm: llm,
+      prompt: prompt,
+      baseSystemPrompt: systemPrompt,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
+  }
+
   /// One-shot transcription (delegates to [stt]).
   Future<Transcript> transcribe(AudioBuffer audio, {SttOptions? options}) =>
       _sttFacade.transcribe(audio, options: options);
@@ -191,6 +225,7 @@ class LocalAI {
   static Future<LocalAI> initialize(
     LocalAIConfig config, {
     List<AdapterPlugin> plugins = const [],
+    List<LocalMcpPlugin>? mcpPlugins,
     bool enableAudio = true,
     LocalStoragePaths? paths,
     NetworkPolicy? networkPolicy,
@@ -308,6 +343,9 @@ class LocalAI {
       voiceFactory: voiceFactory,
       audioSource: audioSource,
       audioOutput: audioOutput,
+      skills: mcpPlugins != null
+          ? SkillRegistry(initialPlugins: mcpPlugins)
+          : null,
     );
     ai._lifecycle = lifecycle;
     ai._lifecycleSub = lifecycleSub;

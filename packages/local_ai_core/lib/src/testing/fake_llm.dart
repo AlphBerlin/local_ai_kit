@@ -8,10 +8,17 @@ import '../llm/structured_output.dart';
 
 /// Deterministic fake: echoes a canned or scripted response.
 class FakeLlm with StructuredOutputSupport implements LocalLlm {
-  FakeLlm({this.responseText = 'fake response', this.chunkSize = 8});
+  FakeLlm({
+    this.responseText = 'fake response',
+    this.chunkSize = 8,
+    this.handler,
+  });
 
   /// Text returned by generation, split into [chunkSize]-char chunks.
   String responseText;
+
+  /// Optional dynamic generator handler for multi-turn or custom test responses.
+  Stream<LlmChunk> Function(LlmRequest request)? handler;
 
   /// Characters per emitted [LlmChunk].
   final int chunkSize;
@@ -43,6 +50,10 @@ class FakeLlm with StructuredOutputSupport implements LocalLlm {
   Stream<LlmChunk> generateStream(LlmRequest request) async* {
     if (!_loaded) {
       throw StateError('FakeLlm.generateStream called before load()');
+    }
+    if (handler != null) {
+      yield* handler!(request);
+      return;
     }
     for (var i = 0; i < responseText.length; i += chunkSize) {
       final end = (i + chunkSize > responseText.length)
