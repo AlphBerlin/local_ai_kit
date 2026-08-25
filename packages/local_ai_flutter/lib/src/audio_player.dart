@@ -1,128 +1,139 @@
-/// Streaming speaker playback via the `audioplayers` plugin.
+/// Streaming PCM speaker playback via flutter_soloud.
 library;
 
 import 'dart:async';
-import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:local_ai_core/local_ai_core.dart';
 
-/// [LocalAudioOutput] backed by `audioplayers`.
-///
-/// audioplayers is file/bytes oriented rather than sample-stream oriented,
-/// so chunks are buffered into a growing WAV in the cache directory and the
-/// player is fed progressively larger snapshots. [stop] truncates playback
-/// immediately (barge-in).
-///
-/// TODO(verify): for true low-latency streaming playback swap audioplayers
-/// for a PCM push API (e.g. a platform channel or `flutter_sound`'s
-/// stream sink). The public contract (`play`/`stop`) is unaffected.
-class FlutterAudioPlayer implements LocalAudioOutput {
-  FlutterAudioPlayer({required this.cacheDir});
+import 'pcm_audio.dart';
 
-  /// Scratch directory for buffered playback files.
+/// Platform seam for testing and for alternate PCM playback engines.
+abstract interface class PcmPlaybackBackend {
+  Future<void> play(Stream<AudioChunk> audio);
+
+  Future<void> stop();
+}
+
+/// LocalAudioOutput backed by a native PCM push stream.
+class FlutterAudioPlayer implements LocalAudioOutput {
+  FlutterAudioPlayer({
+    required this.cacheDir,
+    PcmPlaybackBackend? backend,
+  }) : _backend = backend ?? SoLoudPcmPlaybackBackend();
+
+  /// Retained for source compatibility with older callers. Streaming playback
+  /// no longer creates scratch files in this directory.
   final String cacheDir;
 
-  AudioPlayer? _player;
-  Process? _activeProcess;
-  bool _stopped = false;
+  final PcmPlaybackBackend _backend;
+
+  @override
+  Future<void> play(Stream<AudioChunk> audio) => _backend.play(audio);
+
+  @override
+  Future<void> stop() => _backend.stop();
+}
+
+/// Feeds float32 AudioChunks to SoLoud as released PCM16 stream buffers.
+class SoLoudPcmPlaybackBackend implements PcmPlaybackBackend {
+  SoLoudPcmPlaybackBackend({SoLoud? engine})
+      : _engine = engine ?? SoLoud.instance;
+
+  final SoLoud _engine;
+  SoundHandle? _activeHandle;
+  AudioSource? _activeSource;
+  StreamIterator<AudioChunk>? _activeIterator;
+  Future<void>? _initialization;
 
   @override
   Future<void> play(Stream<AudioChunk> audio) async {
-    _stopped = false;
-    final player = _player = AudioPlayer();
-    final buffer = BytesBuilder(copy: false);
-    AudioFormat? format;
-
-    await for (final chunk in audio) {
-      if (_stopped) return;
-      if (chunk.samples.isNotEmpty) {
-        format = chunk.format;
-        buffer.add(_float32ToPcm16Bytes(chunk.samples));
-      }
-    }
-    if (_stopped || buffer.isEmpty) return;
-    final effectiveFormat = format ?? AudioFormat.pcm44kMonoFloat;
-    final wav = _wrapWav(buffer.takeBytes(), effectiveFormat);
-    final cacheDirObj = Directory(cacheDir);
-    if (!cacheDirObj.existsSync()) {
-      cacheDirObj.createSync(recursive: true);
-    }
-    final file =
-        File('$cacheDir/tts_play_${DateTime.now().microsecondsSinceEpoch}.wav');
-    await file.writeAsBytes(wav, flush: true);
+    await stop();
+    final iterator = StreamIterator<AudioChunk>(audio);
+    _activeIterator = iterator;
+    AudioChunk? firstChunk;
     try {
-      if (Platform.isMacOS) {
-        final proc = await Process.start('/usr/bin/afplay', [file.path]);
-        _activeProcess = proc;
-        await proc.exitCode;
-      } else {
-        await player.play(DeviceFileSource(file.path));
-        try {
-          await player.onPlayerComplete.first
-              .timeout(const Duration(minutes: 5));
-        } on TimeoutException {}
+      while (await iterator.moveNext()) {
+        final chunk = iterator.current;
+        if (chunk.samples.isNotEmpty) {
+          firstChunk = chunk;
+          break;
+        }
       }
-    } catch (_) {
+      if (firstChunk == null) return;
+
+      await _ensureInitialized();
+      final stream = _engine.setBufferStream(
+        maxBufferSizeDuration: const Duration(seconds: 2),
+        sampleRate: firstChunk.format.sampleRate,
+        channels:
+            firstChunk.format.channels == 1 ? Channels.mono : Channels.stereo,
+        format: BufferType.s16le,
+        bufferingType: BufferingType.released,
+      );
+      _activeSource = stream;
+      final handle = _activeHandle = _engine.play(stream);
+
       try {
-        await player.play(DeviceFileSource(file.path));
-        await player.onPlayerComplete.first.timeout(const Duration(minutes: 5));
-      } catch (_) {}
+        _engine.addAudioDataStream(
+          stream,
+          float32ToPcm16Bytes(firstChunk.samples),
+        );
+        while (await iterator.moveNext()) {
+          final chunk = iterator.current;
+          if (chunk.samples.isNotEmpty) {
+            _engine.addAudioDataStream(
+              stream,
+              float32ToPcm16Bytes(chunk.samples),
+            );
+          }
+        }
+        _engine.setDataIsEnded(stream);
+        await sourceFinished(stream);
+      } finally {
+        await _disposeActive(stream, handle);
+      }
     } finally {
-      _activeProcess = null;
-      await file.delete().catchError((_) => file);
+      if (identical(_activeIterator, iterator)) _activeIterator = null;
+      await iterator.cancel();
+    }
+  }
+
+  Future<void> sourceFinished(AudioSource source) async {
+    try {
+      await source.allInstancesFinished.first.timeout(
+        const Duration(minutes: 5),
+      );
+    } on Object {
+      // Stop/dispose can close the source stream before the completion event.
     }
   }
 
   @override
   Future<void> stop() async {
-    _stopped = true;
-    _activeProcess?.kill();
-    _activeProcess = null;
-    final player = _player;
-    _player = null;
-    await player?.stop();
-    await player?.dispose();
+    final handle = _activeHandle;
+    final source = _activeSource;
+    final iterator = _activeIterator;
+    _activeHandle = null;
+    _activeSource = null;
+    _activeIterator = null;
+    await iterator?.cancel();
+    if (handle != null) await _engine.stop(handle);
+    if (source != null) await _engine.disposeSource(source);
   }
 
-  static Uint8List _float32ToPcm16Bytes(Float32List samples) {
-    final out = Uint8List(samples.length * 2);
-    final data = ByteData.sublistView(out);
-    for (var i = 0; i < samples.length; i++) {
-      final clamped = samples[i].clamp(-1.0, 1.0);
-      data.setInt16(i * 2, (clamped * 32767).round(), Endian.little);
-    }
-    return out;
+  Future<void> _ensureInitialized() {
+    final initialized = _initialization;
+    if (initialized != null) return initialized;
+    final future = _engine.isInitialized
+        ? Future<void>.value()
+        : _engine.init(sampleRate: 44100, channels: Channels.mono);
+    return _initialization = future.whenComplete(() => _initialization = null);
   }
 
-  /// Builds a minimal 16-bit PCM WAV header around [pcm] bytes.
-  static Uint8List _wrapWav(Uint8List pcm, AudioFormat format) {
-    const headerSize = 44;
-    final byteRate = format.sampleRate * format.channels * 2;
-    final out = Uint8List(headerSize + pcm.length);
-    final data = ByteData.sublistView(out);
-
-    void writeAscii(int offset, String text) {
-      for (var i = 0; i < text.length; i++) {
-        out[offset + i] = text.codeUnitAt(i);
-      }
-    }
-
-    writeAscii(0, 'RIFF');
-    data.setUint32(4, headerSize - 8 + pcm.length, Endian.little);
-    writeAscii(8, 'WAVE');
-    writeAscii(12, 'fmt ');
-    data.setUint32(16, 16, Endian.little); // PCM header size
-    data.setUint16(20, 1, Endian.little); // PCM format
-    data.setUint16(22, format.channels, Endian.little);
-    data.setUint32(24, format.sampleRate, Endian.little);
-    data.setUint32(28, byteRate, Endian.little);
-    data.setUint16(32, format.channels * 2, Endian.little); // block align
-    data.setUint16(34, 16, Endian.little); // bits per sample
-    writeAscii(36, 'data');
-    data.setUint32(40, pcm.length, Endian.little);
-    out.setRange(headerSize, headerSize + pcm.length, pcm);
-    return out;
+  Future<void> _disposeActive(AudioSource source, SoundHandle handle) async {
+    if (identical(_activeHandle, handle)) _activeHandle = null;
+    if (identical(_activeSource, source)) _activeSource = null;
+    if (_engine.isInitialized) await _engine.disposeSource(source);
   }
 }

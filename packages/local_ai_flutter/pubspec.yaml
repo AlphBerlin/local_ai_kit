@@ -19,7 +19,7 @@ dependencies:
   local_ai_core: ^0.0.1
   path_provider: ^2.1.4
   record: ^6.0.0
-  audioplayers: ^6.1.0
+  flutter_soloud: ^4.1.7
   device_info_plus: ^11.1.0
   connectivity_plus: ^6.1.0
   permission_handler: ^11.3.1
