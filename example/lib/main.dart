@@ -1066,6 +1066,7 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                       // Language Dropdown
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          key: ValueKey('lang-$_ttsLanguage'),
                           initialValue: _ttsLanguage,
                           decoration: InputDecoration(
                             labelText: 'Spoken Language',
@@ -1109,16 +1110,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                       const SizedBox(width: 12),
 
                       // Speaker / Voice Style Dropdown
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _ttsVoiceStyle,
-                          decoration: InputDecoration(
-                            labelText: 'Speaker Voice Style',
-                            prefixIcon: const Icon(Icons.record_voice_over, size: 20),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          items: _selectedTtsId == 'supertonic-tts'
+                      Builder(
+                        builder: (context) {
+                          final List<DropdownMenuItem<String>> voiceItems = _selectedTtsId == 'supertonic-tts'
                               ? const [
                                   DropdownMenuItem(value: 'default', child: Text('Auto Matching (Default)')),
                                   DropdownMenuItem(value: 'f1', child: Text('F1 (Female • Soft Natural)')),
@@ -1143,13 +1137,31 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
                                     ]
                                   : const [
                                       DropdownMenuItem(value: 'default', child: Text('Lessac Low (Default)')),
-                                    ]),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _ttsVoiceStyle = val);
-                            }
-                          },
-                        ),
+                                    ]);
+
+                          final effectiveVoice = voiceItems.any((item) => item.value == _ttsVoiceStyle)
+                              ? _ttsVoiceStyle
+                              : 'default';
+
+                          return Expanded(
+                            child: DropdownButtonFormField<String>(
+                              key: ValueKey('style-$_selectedTtsId-$effectiveVoice'),
+                              initialValue: effectiveVoice,
+                              decoration: InputDecoration(
+                                labelText: 'Speaker Voice Style',
+                                prefixIcon: const Icon(Icons.record_voice_over, size: 20),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              items: voiceItems,
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _ttsVoiceStyle = val);
+                                }
+                              },
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
