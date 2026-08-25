@@ -146,6 +146,38 @@ class _GatedAudioOutput implements LocalAudioOutput {
   }
 }
 
+/// Allows playback to finish while [stop] is still pending, reproducing the
+/// ordering window between an asynchronous output stop and token cancellation.
+class _DelayedStopAudioOutput implements LocalAudioOutput {
+  final stopStarted = Completer<void>();
+  final _stopGate = Completer<void>();
+  Completer<void>? _playbackGate;
+
+  @override
+  Future<void> play(Stream<AudioChunk> audio) async {
+    await audio.drain<void>();
+    final gate = _playbackGate = Completer<void>();
+    await gate.future;
+  }
+
+  @override
+  Future<void> stop() async {
+    if (!stopStarted.isCompleted) stopStarted.complete();
+    await _stopGate.future;
+    final gate = _playbackGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  void finishPlayback() {
+    final gate = _playbackGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  void finishStop() {
+    if (!_stopGate.isCompleted) _stopGate.complete();
+  }
+}
+
 /// Records every synthesis request's text, in call order.
 class _RecordingTts implements LocalTts {
   final List<String> synthesizedTexts = [];
@@ -320,6 +352,36 @@ void main() {
     // "Two." must never have started synthesis.
     expect(harness.tts.synthesizedTexts, ['One.']);
 
+    await harness.dispose();
+  });
+
+  test('barge-in cancels queued sentences before delayed output stop completes',
+      () async {
+    final llm = FakeLlm(handler: (request) async* {
+      yield const LlmChunk(textDelta: 'One. Two.');
+      yield const LlmChunk(isFinal: true, finishReason: LlmFinishReason.stop);
+    });
+    final output = _DelayedStopAudioOutput();
+    final harness = _Harness(llm: llm, audioOutput: output);
+    await harness.start();
+
+    harness.driveOneUtterance();
+    await _waitUntil(() => harness.tts.synthesizedTexts.isNotEmpty);
+    expect(harness.tts.synthesizedTexts, ['One.']);
+
+    harness.triggerBargeIn();
+    await output.stopStarted.future;
+    output.finishPlayback();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    // Playback has ended, but stop is deliberately pending: token
+    // cancellation must already prevent the queued sentence from starting.
+    expect(harness.tts.synthesizedTexts, ['One.']);
+
+    output.finishStop();
+    await _waitUntil(
+        () => harness.events.whereType<VoiceInterrupted>().isNotEmpty);
     await harness.dispose();
   });
 }

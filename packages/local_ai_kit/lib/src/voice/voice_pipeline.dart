@@ -326,10 +326,6 @@ class VoiceSession {
       _audioOutput.play(audio),
       _cancelled(turnToken),
     ]);
-    // Let a concurrent barge-in finish cancelling after it has stopped the
-    // output, before the next queued sentence can begin.
-    await Future<void>.delayed(Duration.zero);
-    turnToken.throwIfCancelled();
   }
 
   // ---------------------------------------------------------------------------
@@ -349,10 +345,10 @@ class VoiceSession {
       return; // wait for speech to persist (filters clicks/echo blips)
     }
 
-    // 1. Truncate playback. 2. Cancel LLM/TTS via the turn token.
+    // 1. Cancel LLM/TTS via the turn token. 2. Truncate playback.
     // 3. Emit interrupted; the loop returns to Listening.
-    await _audioOutput.stop();
     _turnToken?.cancel();
+    await _audioOutput.stop();
     _speaking = false;
     _inSpeech = true; // the interrupting speech becomes the next utterance
     final preRoll = _rollingRing.length > 30
