@@ -246,8 +246,8 @@ Create `docs/releasing.md` with these commands and requirements:
 
 ```bash
 dart run tool/publish.dart --dry-run
-git tag v0.0.1
-git push origin v0.0.1
+git tag v0.0.2
+git push origin v0.0.2
 ```
 
 Document that the first upload for each package must be performed by an authenticated uploader with `flutter pub publish` (or `dart pub publish` for `local_ai_core`), then transferred to `alphberlin.com`. Document that each package’s pub.dev Admin page must enable automated publishing for repository `AlphBerlin/local_ai_kit` with tag pattern `v{{version}}`. Document that later releases update all six versions, commit them, and push one matching tag.
@@ -348,14 +348,18 @@ For each of the six package Admin pages, transfer the package to `alphberlin.com
 
 - [ ] **Step 5: Create and push the first coordinated tag.**
 
-Only after all six `0.0.1` packages exist and publisher automation is configured:
+After all six `0.0.1` packages exist and publisher automation is configured, use
+the next version for the first automated tag so the workflow does not attempt
+to upload an already-published version:
 
 ```bash
-git tag v0.0.1
-git push origin v0.0.1
+git tag v0.0.2
+git push origin v0.0.2
 ```
 
-The tag workflow should then run the same validation and publisher script. Because `0.0.1` already exists, the workflow must not attempt to upload it again; use the tag to verify the release flow, and use `v0.0.2` for the next actual automated publication.
+Before pushing `v0.0.2`, update all six pubspec versions and changelogs to
+`0.0.2`, commit them, and run the dry-run again. The tag workflow then runs the
+same validation and publisher script and publishes the first automated release.
 
 - [ ] **Step 6: Verify pub.dev results and release state.**
 

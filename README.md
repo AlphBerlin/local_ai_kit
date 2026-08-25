@@ -125,6 +125,8 @@ Pipeline presets: `LocalPipeline.presets.textChat(ai)` /
 
 - Architecture (layering, interfaces, state machines, merge/ download /
   memory strategies): `docs-internal/architecture.md`
+- [Releasing to pub.dev](docs/releasing.md) — first publication and tagged
+  releases for all six packages.
 - See `example/lib/main.dart` for a complete minimal app.
 
 ## Development

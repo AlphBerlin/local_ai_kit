@@ -1,0 +1,45 @@
+name: Publish packages to pub.dev
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out tagged release
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Set up Dart pub.dev authentication
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install Melos
+        run: dart pub global activate melos 6.3.0
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      - name: Analyze workspace
+        run: melos run analyze
+
+      - name: Test workspace
+        run: melos run test
+
+      - name: Verify bundled model policy
+        run: melos run verify:bundle-policy
+
+      - name: Publish packages in dependency order
+        run: dart run tool/publish.dart --publish

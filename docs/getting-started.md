@@ -4,9 +4,21 @@ This page walks you from adding the packages to your first generation, transcrip
 
 ## 1. Add dependencies
 
-The kit is a melos monorepo; add the facade plus the adapter packages for the runtimes you actually use. (Only registered adapters end up in your binary.)
+The kit is published as six packages; add the facade plus the adapter packages
+for the runtimes you actually use. (Only registered adapters end up in your
+binary.)
 
-**Git dependencies:**
+**pub.dev packages:**
+
+```yaml
+dependencies:
+  local_ai_kit: ^0.0.1
+  local_ai_gemma: ^0.0.1   # LLM (flutter_gemma)
+  local_ai_sherpa: ^0.0.1  # VAD + STT + TTS (sherpa_onnx)
+  # local_ai_genkit: ^0.0.1  # Optional orchestration
+```
+
+**Git dependencies** (for unreleased changes):
 
 ```yaml
 dependencies:
