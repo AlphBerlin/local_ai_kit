@@ -9,6 +9,29 @@ import 'package:local_ai_core/local_ai_core.dart';
 
 import '../runtime/runtime_scheduler.dart';
 
+/// Extracts complete sentences from [buffer] — text ending in `.`/`!`/`?`
+/// immediately followed by whitespace. Returns the sentences found, in
+/// order, and the unconsumed remainder so the caller can keep accumulating
+/// it against the next chunk of streamed text.
+///
+/// Not `_`-prefixed so `sentence_extraction_test.dart` can exercise it
+/// directly; it is an internal pipelining detail, not intended as stable
+/// public API beyond this package.
+({List<String> sentences, String remainder}) extractSentences(String buffer) {
+  final boundary = RegExp(r'[.!?]+(?=\s)');
+  final sentences = <String>[];
+  var consumedUpTo = 0;
+  for (final match in boundary.allMatches(buffer)) {
+    final sentence = buffer.substring(consumedUpTo, match.end).trim();
+    if (sentence.isNotEmpty) sentences.add(sentence);
+    consumedUpTo = match.end;
+  }
+  return (
+    sentences: sentences,
+    remainder: buffer.substring(consumedUpTo).trimRight(),
+  );
+}
+
 /// Creates [VoiceSession]s bound to the configured audio + model stack.
 class VoiceSessionFactory {
   VoiceSessionFactory({
