@@ -98,11 +98,13 @@ class SherpaTtsAdapter implements LocalTts {
                   .materialize()
                   .asFloat32List();
             }
-            final format = AudioFormat(
-              sampleRate: sampleRate,
-              channels: 1,
-              type: AudioSampleType.float32,
-            );
+            final format = (sampleRate == 24000)
+                ? AudioFormat.pcm24kMonoFloat
+                : ((sampleRate == 22050)
+                    ? AudioFormat.pcm22kMonoFloat
+                    : ((sampleRate == 16000)
+                        ? AudioFormat.pcm16kMono
+                        : AudioFormat.pcm44kMonoFloat));
             controller.add(AudioChunk(
               samples: data,
               format: format,

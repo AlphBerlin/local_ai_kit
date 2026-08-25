@@ -4,7 +4,7 @@ repository: https://github.com/local-ai-kit/local_ai_kit
 # Melos manages the pub workspace: bootstrap, analyze, test, bundle policy.
 packages:
   - packages/**
-  - example
+  - examples/**
 
 scripts:
   bootstrap:

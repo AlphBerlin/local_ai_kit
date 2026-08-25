@@ -15,10 +15,13 @@ enum AudioFormat {
   /// 16 kHz mono signed 16-bit PCM.
   pcm16kMonoInt16(16000, 1, AudioEncoding.int16),
 
-  /// 44.1 kHz mono float32 (TTS playback quality).
+  /// 44.1 kHz mono float32 (Supertonic TTS / HD playback quality).
   pcm44kMonoFloat(44100, 1, AudioEncoding.float32),
 
-  /// 22.05 kHz mono float32 (typical TTS output rate).
+  /// 24 kHz mono float32 (Kokoro TTS native output rate).
+  pcm24kMonoFloat(24000, 1, AudioEncoding.float32),
+
+  /// 22.05 kHz mono float32 (Piper/VITS typical TTS output rate).
   pcm22kMonoFloat(22050, 1, AudioEncoding.float32);
 
   const AudioFormat(this.sampleRate, this.channels, this.encoding);

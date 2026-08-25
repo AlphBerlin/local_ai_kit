@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/main.dart';
+import 'package:local_ai_kit_example/main.dart';
 
 void main() {
   testWidgets('LocalAIDemoApp renders initial UI elements',
