@@ -143,6 +143,23 @@ final ai = await LocalAI.initialize(
 );
 ```
 
+## Built-in adapter implementations
+
+### 1. `GemmaLlmAdapter` (`local_ai_gemma`)
+
+Bridges `flutter_gemma` and Google's LiteRT-LM runtime to `LocalLlm`:
+- **Dual Inference Backends**: Automatically selects between `MediaPipeEngine` (for Gemma/Paligemma `.task` models) and `LiteRtLmEngine` (for `.litertlm` / `.bin` models like Qwen 3.5, SmolLM2, and DeepSeek R1).
+- **Prompt Templating & Role Alignment**: Automatically structures system prompts and turn markers (`<|im_start|>`, `<|user|>`, `<|assistant|>`) based on detected model family.
+- **Repetition Guard & Balanced Sampling**: Default `topK = 40`, `topP = 0.9`, and `temperature = 0.7` with a real-time streaming 3-layer guard (line cycle, n-gram repeat, token burst) to guarantee stable, natural generation.
+
+### 2. `SherpaTtsAdapter` (`local_ai_sherpa`)
+
+Bridges Sherpa-ONNX and Supertonic to `LocalTts`:
+- **Supertonic 3 4-Stage Flow Matching**: Pre-loads `duration_predictor.onnx`, `text_encoder.onnx`, `vector_estimator.onnx`, and `vocoder.onnx` into memory for sub-second flow-matching synthesis.
+- **Zero-Shot Voice Styles**: Full support for 10 distinct voice styles (`F1`–`F5` female, `M1`–`M5` male) across 31+ languages with exact duration slicing.
+- **Studio 44.1 kHz Audio**: Emits raw `AudioFormat.pcm44kMonoFloat` chunks without format conversion losses.
+- **Zero-Dependency Native Fallback**: Seamless automatic fallback to native macOS/iOS multi-voice neural speech synthesis (`Kyoko`, `Samantha`, `Yuna`, `Tingting`, etc.).
+
 ## Testability: fakes
 
 `local_ai_core` ships in-memory fakes implementing every capability, so app and pipeline tests need no device and no native runtime:

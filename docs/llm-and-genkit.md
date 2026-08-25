@@ -34,6 +34,23 @@ await for (final chunk in chunks) {
 
 `LlmRequest.prompt(...)` is a convenience factory for single-turn prompts. Token accounting (`promptTokens` / `completionTokens`) is reported on the final chunk when the runtime provides it. `ai.llm.isLoaded` reports whether the model is currently in memory; `ai.llm.unload()` releases it (it reloads lazily on the next call).
 
+## Sampling parameters & repetition control
+
+`LlmLoadOptions` provides fine-grained control over generation dynamics across all models:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `topK` | `int` | `40` | Limits sampling to top K most probable tokens (filters low-probability tail). |
+| `topP` | `double` | `0.9` | Nucleus sampling threshold (cumulative probability mass). |
+| `temperature` | `double` | `0.7` | Controls randomness (lower = deterministic, higher = creative). |
+| `maxTokens` | `int` | `512` | Max tokens generated per request. |
+
+### Streaming repetition guard
+To prevent smaller quantized models (0.5B–4B) from falling into degenerative loops or repeat loops, the adapter integrates an automated 3-tier streaming guard:
+1. **Line-level repetition detector**: Truncates repetitive phrases across multi-line outputs.
+2. **N-gram cycle breaker**: Detects repeating 3-word and 4-word cycles and terminates the turn cleanly.
+3. **Single-token burst guard**: Prevents runaway loops on punctuation or whitespace bursts.
+
 ## Structured output & JsonSchema
 
 `generateStructured` injects the schema into the prompt (or grammar, when the runtime supports constrained decoding), parses the result and retries with error feedback up to `maxRetries` times before throwing `StructuredOutputError`:

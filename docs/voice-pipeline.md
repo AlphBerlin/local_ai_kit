@@ -88,8 +88,10 @@ Without acoustic echo cancellation, speaker output can look like speech to the V
 | `speakingVadThresholdBoost` | `double` | `0.25` | Added to the VAD threshold while TTS plays (echo mitigation). |
 | `maxTurnDuration` | `Duration` | `60 s` | Hard cap per turn; exceeding it interrupts with `InterruptReason.timeout`. |
 
-## Resource behavior
+## Audio formats and resource behavior
 
-- The mic runs at `AudioFormat.pcm16kMono` (16 kHz mono) and is shared with the pipeline DSL.
+- **Microphone & VAD/STT Capture**: Operates at `AudioFormat.pcm16kMono` (16 kHz mono float32) for optimal Silero VAD and Zipformer/SenseVoice feature extraction.
+- **Speech Synthesis (TTS) Output**: Streams at pristine `AudioFormat.pcm44kMonoFloat` (44.1 kHz mono float32) for studio quality Supertonic 3 and Kokoro playback without pitch shifts or downsampling loss.
+- **Multilingual Voice Routing**: `SpeakRequest` and `VoiceSession` support explicit BCP-47 `language` (e.g. `'ja'`, `'ko'`, `'en'`, `'zh'`) and `voiceId` parameters (e.g. `'f1'` through `'f5'`, `'m1'` through `'m5'`).
 - All four models stay locked in the runtime scheduler for the session; see [Runtime & Memory](runtime-memory.md).
 - Errors from any stage surface as `VoiceErrorOccurred`; non-cancellation failures are wrapped in `NativeRuntimeError`.

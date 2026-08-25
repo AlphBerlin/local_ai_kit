@@ -10,11 +10,18 @@ and a full-duplex voice pipeline with barge-in.
 - **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding)
   are registered explicitly via `AdapterPlugin`s; unused native runtimes
   never enter your binary.
+- **State-of-the-Art On-Device Models**:
+  - **LLMs**: Qwen 3.5 (0.8B, 2B, 4B via LiteRT-LM), SmolLM2 360M, DeepSeek R1 Distill Qwen 1.5B, Gemma 3n E2B.
+  - **TTS**: Supertonic 3 (Supertone Inc. — 31+ languages, 10 voice styles `F1`–`F5`/`M1`–`M5`, 44.1 kHz neural flow matching), Kokoro TTS v0.19, Piper Lessac Low.
+  - **STT**: Sherpa-ONNX streaming Zipformer & SenseVoice Small multilingual ASR.
+  - **VAD**: Silero VAD (2.3 MB).
 - **Offline-first** — built-in model catalog works without network; an
   optional remote catalog is merged by `catalogVersion` (never deletes
   installed models, flags updates instead of overwriting).
 - **Streaming-first** — generation, transcription, synthesis and download
   progress are all `Stream`s; one-shot results are folded streams.
+- **Balanced Sampling & Repetition Guard** — built-in `topK` (40), `topP` (0.9), `temperature` controls and real-time streaming n-gram / burst guards to eliminate infinite generation loops.
+- **Pristine 44.1 kHz Studio Audio** — zero-latency in-memory flow matching, direct Float32 PCM streaming, and native multi-voice fallback across 31+ languages.
 - **Resumable downloads** — HTTP `Range` resume, `.part` temp files,
   atomic `meta.json` writes, streamed sha256 verification, exponential
   backoff retry, and atomic same-partition install.
