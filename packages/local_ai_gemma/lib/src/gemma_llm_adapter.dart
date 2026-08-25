@@ -291,8 +291,7 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     ));
 
     final stream = chat.generateChatResponseAsync();
-    String? lastChunk;
-    var repeatCount = 0;
+    final generatedBuffer = StringBuffer();
 
     await for (final response in stream) {
       if (response == null) continue;
@@ -309,16 +308,40 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
         }
       }
       if (text.isNotEmpty) {
-        // Degenerate repetition loop guard
-        if (text == lastChunk) {
-          repeatCount++;
-          if (repeatCount > 6) {
+        generatedBuffer.write(text);
+        final full = generatedBuffer.toString();
+
+        // 1. Line-level repetition loop guard (e.g. repeated same line >= 3 times)
+        final lines = full.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+        if (lines.length >= 3) {
+          final last = lines.last;
+          if (last.length > 3) {
+            final count = lines.where((l) => l == last).length;
+            if (count >= 3) {
+              break;
+            }
+          }
+        }
+
+        // 2. Multi-word n-gram repetition loop guard (e.g. "with you with you with you" or "1. 1. 1. 1.")
+        final words = full.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+        if (words.length >= 9) {
+          final w1 = words.sublist(words.length - 3).join(' ');
+          final w2 = words.sublist(words.length - 6, words.length - 3).join(' ');
+          final w3 = words.sublist(words.length - 9, words.length - 6).join(' ');
+          if (w1 == w2 && w2 == w3) {
             break;
           }
-        } else {
-          lastChunk = text;
-          repeatCount = 0;
         }
+
+        // 3. Single word / token runaway burst guard
+        if (words.length >= 6) {
+          final lastW = words.last;
+          if (words.sublist(words.length - 6).every((w) => w == lastW)) {
+            break;
+          }
+        }
+
         yield text;
       }
     }

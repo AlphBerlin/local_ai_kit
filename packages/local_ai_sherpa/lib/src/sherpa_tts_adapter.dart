@@ -213,89 +213,215 @@ class _TtsWorkerLoop extends SherpaWorkerLoop {
   }
 
   static String? _resolveVoiceName(String text, {String? voiceId, String? language}) {
-    // 1. Direct voice / style name match
-    if (voiceId != null && voiceId.isNotEmpty) {
-      final v = voiceId.toLowerCase();
-      if (v.contains('kyoko')) return 'Kyoko';
-      if (v.contains('yuna')) return 'Yuna';
-      if (v.contains('tingting') || v.contains('ting-ting')) return 'Tingting';
-      if (v.contains('monica') || v.contains('mónica')) return 'Mónica';
-      if (v.contains('thomas')) return 'Thomas';
-      if (v.contains('anna')) return 'Anna';
-      if (v.contains('alice')) return 'Alice';
-      if (v.contains('milena')) return 'Milena';
-      if (v.contains('lekha')) return 'Lekha';
-      if (v.contains('alva')) return 'Alva';
-      if (v.contains('xander')) return 'Xander';
-      if (v.contains('zosia')) return 'Zosia';
-      if (v.contains('yelda')) return 'Yelda';
-      if (v.contains('linh')) return 'Linh';
-      if (v.contains('damayanti')) return 'Damayanti';
-      if (v.contains('kanya')) return 'Kanya';
-      if (v.contains('majed')) return 'Majed';
-      if (v.contains('luciana')) return 'Luciana';
-      if (v.contains('daniel')) return 'Daniel';
-      if (v.contains('samantha')) return 'Samantha';
-      if (v.contains('karen')) return 'Karen';
-      // Supertonic voice styles (F1-F5, M1-M5)
-      if (v == 'f1' || v == 'f2') return 'Samantha';
-      if (v == 'f3' || v == 'f4' || v == 'f5') return 'Karen';
-      if (v == 'm1' || v == 'm2' || v == 'm3') return 'Daniel';
-      if (v == 'm4' || v == 'm5') return 'Albert';
+    // 1. Detect language from explicit param or unicode script
+    var lang = language?.toLowerCase().trim();
+    if (lang == null || lang.isEmpty || lang == 'auto') {
+      if (RegExp(r'[\u3040-\u309f\u30a0-\u30ff]').hasMatch(text)) {
+        lang = 'ja';
+      } else if (RegExp(r'[\uac00-\ud7af\u1100-\u11ff]').hasMatch(text)) {
+        lang = 'ko';
+      } else if (RegExp(r'[\u4e00-\u9fff]').hasMatch(text)) {
+        lang = 'zh';
+      } else if (RegExp(r'[\u0400-\u04ff]').hasMatch(text)) {
+        lang = 'ru';
+      } else if (RegExp(r'[\u0600-\u06ff]').hasMatch(text)) {
+        lang = 'ar';
+      } else if (RegExp(r'[\u0900-\u097f]').hasMatch(text)) {
+        lang = 'hi';
+      } else if (RegExp(r'[\u0e00-\u0e7f]').hasMatch(text)) {
+        lang = 'th';
+      } else if (RegExp(r'[áéíóúüñ¿¡]').hasMatch(text)) {
+        lang = 'es';
+      } else if (RegExp(r'[àâçéèêëîïôûùüÿœæ]').hasMatch(text)) {
+        lang = 'fr';
+      } else if (RegExp(r'[äöüß]').hasMatch(text)) {
+        lang = 'de';
+      } else if (RegExp(r'[àèéìíîòóùú]').hasMatch(text)) {
+        lang = 'it';
+      } else {
+        lang = 'en';
+      }
     }
 
-    // 2. Language code mapping (31+ languages)
-    final lang = language?.toLowerCase().trim();
-    if (lang != null && lang.isNotEmpty) {
-      if (lang.startsWith('ja')) return 'Kyoko';
-      if (lang.startsWith('ko')) return 'Yuna';
-      if (lang.startsWith('zh')) return 'Tingting';
-      if (lang.startsWith('es')) return 'Mónica';
-      if (lang.startsWith('fr')) return 'Thomas';
-      if (lang.startsWith('de')) return 'Anna';
-      if (lang.startsWith('it')) return 'Alice';
-      if (lang.startsWith('ru')) return 'Milena';
-      if (lang.startsWith('hi')) return 'Lekha';
-      if (lang.startsWith('sv')) return 'Alva';
-      if (lang.startsWith('nl')) return 'Xander';
-      if (lang.startsWith('pl')) return 'Zosia';
-      if (lang.startsWith('tr')) return 'Yelda';
-      if (lang.startsWith('vi')) return 'Linh';
-      if (lang.startsWith('id')) return 'Damayanti';
-      if (lang.startsWith('th')) return 'Kanya';
-      if (lang.startsWith('ar')) return 'Majed';
-      if (lang.startsWith('pt')) return 'Luciana';
-      if (lang.startsWith('uk')) return 'Lesya';
-      if (lang.startsWith('ro')) return 'Ioana';
-      if (lang.startsWith('hu')) return 'Tünde';
-      if (lang.startsWith('da')) return 'Sara';
-      if (lang.startsWith('fi')) return 'Satu';
-      if (lang.startsWith('no')) return 'Nora';
-      if (lang.startsWith('sk')) return 'Laura';
-      if (lang.startsWith('cs')) return 'Zuzana';
-      if (lang.startsWith('el')) return 'Melina';
-      if (lang.startsWith('ms')) return 'Amira';
-      if (lang.startsWith('bn')) return 'Piya';
-      if (lang.startsWith('en')) return 'Samantha';
+    final v = (voiceId ?? 'default').toLowerCase().trim();
+
+    // 2. Japanese Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('ja')) {
+      return switch (v) {
+        'f1' => 'Kyoko',
+        'f2' => 'Flo (Japanese (Japan))',
+        'f3' => 'Sandy (Japanese (Japan))',
+        'f4' => 'Shelley (Japanese (Japan))',
+        'f5' => 'Grandma (Japanese (Japan))',
+        'm1' => 'Eddy (Japanese (Japan))',
+        'm2' => 'Reed (Japanese (Japan))',
+        'm3' => 'Rocko (Japanese (Japan))',
+        'm4' => 'Grandpa (Japanese (Japan))',
+        'm5' => 'Otoya',
+        _ => 'Kyoko',
+      };
     }
 
-    // 3. Script / Character auto-detection
-    // Japanese (Hiragana / Katakana / Kanji)
-    if (RegExp(r'[\u3040-\u309f\u30a0-\u30ff]').hasMatch(text)) return 'Kyoko';
-    // Korean (Hangul)
-    if (RegExp(r'[\uac00-\ud7af\u1100-\u11ff]').hasMatch(text)) return 'Yuna';
-    // Chinese (CJK characters without Kana)
-    if (RegExp(r'[\u4e00-\u9fff]').hasMatch(text)) return 'Tingting';
-    // Cyrillic (Russian / Ukrainian)
-    if (RegExp(r'[\u0400-\u04ff]').hasMatch(text)) return 'Milena';
-    // Arabic
-    if (RegExp(r'[\u0600-\u06ff]').hasMatch(text)) return 'Majed';
-    // Devanagari (Hindi)
-    if (RegExp(r'[\u0900-\u097f]').hasMatch(text)) return 'Lekha';
-    // Thai
-    if (RegExp(r'[\u0e00-\u0e7f]').hasMatch(text)) return 'Kanya';
+    // 3. Korean Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('ko')) {
+      return switch (v) {
+        'f1' => 'Yuna',
+        'f2' => 'Flo (Korean (South Korea))',
+        'f3' => 'Sandy (Korean (South Korea))',
+        'f4' => 'Shelley (Korean (South Korea))',
+        'f5' => 'Grandma (Korean (South Korea))',
+        'm1' => 'Eddy (Korean (South Korea))',
+        'm2' => 'Reed (Korean (South Korea))',
+        'm3' => 'Rocko (Korean (South Korea))',
+        'm4' => 'Grandpa (Korean (South Korea))',
+        _ => 'Yuna',
+      };
+    }
 
-    return 'Samantha';
+    // 4. Chinese Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('zh')) {
+      return switch (v) {
+        'f1' => 'Tingting',
+        'f2' => 'Flo (Chinese (China mainland))',
+        'f3' => 'Sandy (Chinese (China mainland))',
+        'f4' => 'Shelley (Chinese (China mainland))',
+        'f5' => 'Meijia',
+        'm1' => 'Eddy (Chinese (China mainland))',
+        'm2' => 'Reed (Chinese (China mainland))',
+        'm3' => 'Rocko (Chinese (China mainland))',
+        'm4' => 'Grandpa (Chinese (China mainland))',
+        _ => 'Tingting',
+      };
+    }
+
+    // 5. Spanish Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('es')) {
+      return switch (v) {
+        'f1' => 'Mónica',
+        'f2' => 'Flo (Spanish (Spain))',
+        'f3' => 'Sandy (Spanish (Spain))',
+        'f4' => 'Paulina',
+        'f5' => 'Shelley (Spanish (Spain))',
+        'm1' => 'Eddy (Spanish (Spain))',
+        'm2' => 'Reed (Spanish (Spain))',
+        'm3' => 'Rocko (Spanish (Spain))',
+        'm4' => 'Grandpa (Spanish (Spain))',
+        _ => 'Mónica',
+      };
+    }
+
+    // 6. French Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('fr')) {
+      return switch (v) {
+        'f1' => 'Amélie',
+        'f2' => 'Flo (French (France))',
+        'f3' => 'Sandy (French (France))',
+        'f4' => 'Shelley (French (France))',
+        'f5' => 'Grandma (French (France))',
+        'm1' => 'Thomas',
+        'm2' => 'Jacques',
+        'm3' => 'Eddy (French (France))',
+        'm4' => 'Rocko (French (France))',
+        _ => 'Amélie',
+      };
+    }
+
+    // 7. German Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('de')) {
+      return switch (v) {
+        'f1' => 'Anna',
+        'f2' => 'Flo (German (Germany))',
+        'f3' => 'Sandy (German (Germany))',
+        'f4' => 'Shelley (German (Germany))',
+        'f5' => 'Grandma (German (Germany))',
+        'm1' => 'Eddy (German (Germany))',
+        'm2' => 'Reed (German (Germany))',
+        'm3' => 'Rocko (German (Germany))',
+        'm4' => 'Grandpa (German (Germany))',
+        _ => 'Anna',
+      };
+    }
+
+    // 8. Italian Language Voices (Distinct F1-F5, M1-M5)
+    if (lang.startsWith('it')) {
+      return switch (v) {
+        'f1' => 'Alice',
+        'f2' => 'Flo (Italian (Italy))',
+        'f3' => 'Sandy (Italian (Italy))',
+        'f4' => 'Shelley (Italian (Italy))',
+        'f5' => 'Grandma (Italian (Italy))',
+        'm1' => 'Eddy (Italian (Italy))',
+        'm2' => 'Reed (Italian (Italy))',
+        'm3' => 'Rocko (Italian (Italy))',
+        'm4' => 'Grandpa (Italian (Italy))',
+        _ => 'Alice',
+      };
+    }
+
+    // 9. Portuguese Language Voices
+    if (lang.startsWith('pt')) {
+      return switch (v) {
+        'f1' => 'Luciana',
+        'f2' => 'Flo (Portuguese (Brazil))',
+        'f3' => 'Sandy (Portuguese (Brazil))',
+        'f4' => 'Shelley (Portuguese (Brazil))',
+        'm1' => 'Eddy (Portuguese (Brazil))',
+        'm2' => 'Reed (Portuguese (Brazil))',
+        'm3' => 'Rocko (Portuguese (Brazil))',
+        _ => 'Luciana',
+      };
+    }
+
+    // 10. Russian
+    if (lang.startsWith('ru')) {
+      return v.startsWith('m') ? 'Yuri' : 'Milena';
+    }
+
+    // 11. Hindi
+    if (lang.startsWith('hi')) {
+      return v.startsWith('m') ? 'Rishi' : 'Lekha';
+    }
+
+    // Other Languages
+    if (lang.startsWith('sv')) return 'Alva';
+    if (lang.startsWith('nl')) return 'Xander';
+    if (lang.startsWith('pl')) return 'Zosia';
+    if (lang.startsWith('tr')) return 'Yelda';
+    if (lang.startsWith('vi')) return 'Linh';
+    if (lang.startsWith('id')) return 'Damayanti';
+    if (lang.startsWith('th')) return 'Kanya';
+    if (lang.startsWith('ar')) return 'Majed';
+    if (lang.startsWith('uk')) return 'Lesya';
+    if (lang.startsWith('ro')) return 'Ioana';
+    if (lang.startsWith('hu')) return 'Tünde';
+    if (lang.startsWith('da')) return 'Sara';
+    if (lang.startsWith('fi')) return 'Satu';
+    if (lang.startsWith('no')) return 'Nora';
+    if (lang.startsWith('sk')) return 'Laura';
+    if (lang.startsWith('cs')) return 'Zuzana';
+    if (lang.startsWith('el')) return 'Melina';
+    if (lang.startsWith('ms')) return 'Amira';
+    if (lang.startsWith('bn')) return 'Piya';
+
+    // English (Default)
+    return switch (v) {
+      'f1' => 'Samantha',
+      'f2' => 'Flo (English (US))',
+      'f3' => 'Sandy (English (US))',
+      'f4' => 'Karen',
+      'f5' => 'Shelley (English (US))',
+      'm1' => 'Daniel',
+      'm2' => 'Eddy (English (US))',
+      'm3' => 'Reed (English (US))',
+      'm4' => 'Rocko (English (US))',
+      'm5' => 'Albert',
+      'bella' => 'Sandy (English (US))',
+      'nicole' => 'Flo (English (US))',
+      'sarah' => 'Karen',
+      'adam' => 'Daniel',
+      'michael' => 'Reed (English (US))',
+      _ => 'Samantha',
+    };
   }
 
   /// Synthesizes audible harmonic voice waveforms (22.05 kHz).

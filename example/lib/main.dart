@@ -523,28 +523,7 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
     });
 
     try {
-      // 1. Synthesize audio stream and collect chunks
-      final chunkStream = await ai.tts.synthesizeStream(
-        text,
-        language: _ttsLanguage,
-        voiceId: _ttsVoiceStyle != 'default' ? _ttsVoiceStyle : null,
-        speed: _ttsSpeed,
-        pitch: _ttsPitch,
-      );
-
-      await for (final chunk in chunkStream) {
-        if (!mounted) break;
-        if (chunk.samples.isNotEmpty) {
-          setState(() {
-            _ttsAudioChunks++;
-            _ttsSampleCount += chunk.samples.length;
-            _ttsStatus = 'Synthesizing: Chunk #$_ttsAudioChunks ($_ttsSampleCount samples)…';
-          });
-        }
-      }
-
-      // 2. Play audio stream through system speaker output
-      setState(() => _ttsStatus = '🔊 Playing audio through device speakers…');
+      setState(() => _ttsStatus = '🔊 Synthesizing & playing speech…');
       await ai.tts.speak(
         text,
         language: _ttsLanguage,
@@ -560,9 +539,9 @@ class _DemoHomePageState extends State<DemoHomePage> with SingleTickerProviderSt
           _isTtsSynthesizing = false;
           _isTtsPlaying = false;
           _ttsPlaybackProgress = 1.0;
-          _ttsStatus = 'Audio playback complete: $_ttsAudioChunks audio chunks ($_ttsSampleCount samples) in ${stopwatch.elapsedMilliseconds}ms.';
+          _ttsStatus = 'Speech playback complete in ${stopwatch.elapsedMilliseconds}ms.';
         });
-        AppLogger.success('TTS', 'Audio playback finished: $_ttsAudioChunks chunks in ${stopwatch.elapsedMilliseconds}ms');
+        AppLogger.success('TTS', 'Speech playback finished in ${stopwatch.elapsedMilliseconds}ms');
       }
     } on LocalAIError catch (e, st) {
       AppLogger.error('TTS', 'TTS synthesis failed: ${e.message}', error: e, stackTrace: st);

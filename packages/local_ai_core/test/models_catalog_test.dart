@@ -70,13 +70,66 @@ void main() {
       expect(supertonic.id, 'supertonic-tts');
       expect(supertonic.type, ModelType.tts);
       expect(supertonic.provider, ModelProviders.sherpaCommunity);
-      expect(supertonic.files, isNotEmpty);
+      expect(supertonic.files.length, 9);
+      final fileNames = supertonic.files.map((f) => f.name).toSet();
+      expect(fileNames, containsAll([
+        'duration_predictor.onnx',
+        'text_encoder.onnx',
+        'vector_estimator.onnx',
+        'vocoder.onnx',
+        'tts.json',
+        'unicode_indexer.json',
+        'voice_style_F1.json',
+        'voice_style_M1.json',
+        'config.json',
+      ]));
 
       final kokoro = Models.kokoroTts;
       expect(kokoro.id, 'kokoro-en-tts');
       expect(kokoro.type, ModelType.tts);
       expect(kokoro.provider, ModelProviders.sherpaCommunity);
       expect(kokoro.files, isNotEmpty);
+    });
+
+    test('SpeakRequest stores text, language, voiceId, and speed/pitch parameters', () {
+      const request = SpeakRequest(
+        text: 'こんにちは！ 今日は「ありがとう」の使い方を勉強しましょう。',
+        language: 'ja',
+        voiceId: 'f1',
+        speed: 1.2,
+        pitch: 1.1,
+      );
+
+      expect(request.text, 'こんにちは！ 今日は「ありがとう」の使い方を勉強しましょう。');
+      expect(request.language, 'ja');
+      expect(request.voiceId, 'f1');
+      expect(request.speed, 1.2);
+      expect(request.pitch, 1.1);
+    });
+
+    test('LlmLoadOptions default sampling topK=40 and topP=0.9', () {
+      const options = LlmLoadOptions(
+        modelId: 'qwen-3.5-0.8b-instruct',
+      );
+
+      expect(options.modelId, 'qwen-3.5-0.8b-instruct');
+      expect(options.temperature, 0.8);
+      expect(options.topK, 40);
+      expect(options.topP, 0.9);
+    });
+
+    test('Qwen 3.5 manifests exist and have correct LiteRT-LM configuration', () {
+      final qwen08 = Models.qwen35_08b;
+      expect(qwen08.id, 'qwen-3.5-0.8b-instruct');
+      expect(qwen08.files.first.url, contains('Qwen3.5-0.8B_int8.litertlm'));
+
+      final qwen2 = Models.qwen35_2b;
+      expect(qwen2.id, 'qwen-3.5-2b-instruct');
+      expect(qwen2.files.first.url, contains('Qwen3.5-2B_int8.litertlm'));
+
+      final qwen4 = Models.qwen35_4b;
+      expect(qwen4.id, 'qwen-3.5-4b-instruct');
+      expect(qwen4.files.first.url, contains('Qwen3.5-4B_int8.litertlm'));
     });
   });
 }
