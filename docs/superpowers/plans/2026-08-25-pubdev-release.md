@@ -272,7 +272,7 @@ jobs:
       id-token: write
 ```
 
-Use `actions/checkout@v4`, `subosito/flutter-action@v2` on the stable channel, `dart-lang/setup-dart@v1`, and `dart pub global activate melos 6.3.0`. Run `melos bootstrap`, `melos run analyze`, `melos run test`, `melos run verify:bundle-policy`, and finally `dart run tool/publish.dart --publish`. Do not add a branch, pull-request, manual, or schedule trigger to the publishing job.
+Use `actions/checkout@v4`, `subosito/flutter-action@v2` on the stable channel, `dart-lang/setup-dart@v1`, and `dart pub global activate melos 6.3.0`. Run `dart pub get`, `melos run analyze`, `melos run test`, `melos run verify:bundle-policy`, and finally `dart run tool/publish.dart --publish`. Do not add a branch, pull-request, manual, or schedule trigger to the publishing job.
 
 - [ ] **Step 3: Link the release guide from the root README.**
 

@@ -51,7 +51,7 @@ For a new coordinated release, update the `version:` and `## <version>` entry
 in all six package pubspec/changelog files, then run:
 
 ```sh
-melos bootstrap
+dart pub get
 melos run analyze
 melos run test
 melos run verify:bundle-policy

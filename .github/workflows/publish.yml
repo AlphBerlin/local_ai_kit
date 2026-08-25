@@ -29,8 +29,8 @@ jobs:
       - name: Install Melos
         run: dart pub global activate melos 6.3.0
 
-      - name: Bootstrap workspace
-        run: melos bootstrap
+      - name: Resolve workspace
+        run: dart pub get
 
       - name: Analyze workspace
         run: melos run analyze

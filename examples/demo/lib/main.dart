@@ -15,7 +15,6 @@ import 'package:local_ai_genkit/local_ai_genkit.dart';
 import 'package:local_ai_kit/local_ai_kit.dart';
 import 'package:local_ai_sherpa/local_ai_sherpa.dart';
 
-
 import 'logger.dart';
 
 Future<void> main() async {
@@ -105,7 +104,6 @@ class _DemoHomePageState extends State<DemoHomePage>
   DateTime? _generationStartTime;
   double _tokensPerSecond = 0.0;
   CancelToken? _currentCancelToken;
-
 
   // 2. TTS Generation & Audio Player state
   final TextEditingController _ttsTextController = TextEditingController(
@@ -241,7 +239,6 @@ class _DemoHomePageState extends State<DemoHomePage>
       if (!mounted) return;
       _ai = ai;
       await _refreshCatalog();
-
 
       // Check current LLM status
       final installed = await ai.models.isInstalled(_selectedLlmId);
@@ -518,7 +515,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             : 'You are a concise on-device assistant.',
       ));
 
-
       await for (final chunk in chunks) {
         if (cancelToken.isCancelled) break;
         if (chunk.textDelta.isNotEmpty) {
@@ -705,14 +701,18 @@ class _DemoHomePageState extends State<DemoHomePage>
 
     // Check all 4 models before starting
     final uninstalled = <String>[];
-    if (!_isModelInstalled(_selectedVadId))
+    if (!_isModelInstalled(_selectedVadId)) {
       uninstalled.add('VAD ($_selectedVadId)');
-    if (!_isModelInstalled(_selectedSttId))
+    }
+    if (!_isModelInstalled(_selectedSttId)) {
       uninstalled.add('STT ($_selectedSttId)');
-    if (!_isModelInstalled(_selectedLlmId))
+    }
+    if (!_isModelInstalled(_selectedLlmId)) {
       uninstalled.add('LLM ($_selectedLlmId)');
-    if (!_isModelInstalled(_selectedTtsId))
+    }
+    if (!_isModelInstalled(_selectedTtsId)) {
       uninstalled.add('TTS ($_selectedTtsId)');
+    }
 
     if (uninstalled.isNotEmpty) {
       final msg =
@@ -781,7 +781,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             case VoiceErrorOccurred(:final error):
               _voiceStatus = '❌ Voice error: ${error.message}';
           }
-
         });
       });
 
@@ -867,7 +866,6 @@ class _DemoHomePageState extends State<DemoHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
           // LLM Dropdown Selector
           Card(
             elevation: 0,
@@ -931,7 +929,6 @@ class _DemoHomePageState extends State<DemoHomePage>
                                 '💎 Gemma 3n E2B (LiteRT-LM • macOS/iOS/Android • 2.59 GB)'),
                           ),
                         ],
-
                         onChanged: (val) {
                           if (val == null || val == _selectedLlmId) return;
                           setState(() => _selectedLlmId = val);
@@ -1063,7 +1060,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                     const SizedBox(height: 8),
                     const Text(
                       'Active MCP Skills & Tool Providers:',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Wrap(
@@ -1071,7 +1069,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                       runSpacing: 4,
                       children: [
                         FilterChip(
-                          avatar: const Text('🧮', style: TextStyle(fontSize: 12)),
+                          avatar:
+                              const Text('🧮', style: TextStyle(fontSize: 12)),
                           label: const Text('Calculator (calculate)',
                               style: TextStyle(fontSize: 11)),
                           selected: _skillToggles['calculator'] ?? true,
@@ -1085,7 +1084,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                           },
                         ),
                         FilterChip(
-                          avatar: const Text('🕒', style: TextStyle(fontSize: 12)),
+                          avatar:
+                              const Text('🕒', style: TextStyle(fontSize: 12)),
                           label: const Text('Device Clock (get_current_time)',
                               style: TextStyle(fontSize: 11)),
                           selected: _skillToggles['device_time'] ?? true,
@@ -1099,7 +1099,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                           },
                         ),
                         FilterChip(
-                          avatar: const Text('📱', style: TextStyle(fontSize: 12)),
+                          avatar:
+                              const Text('📱', style: TextStyle(fontSize: 12)),
                           label: const Text('System Specs (get_device_info)',
                               style: TextStyle(fontSize: 11)),
                           selected: _skillToggles['device_info'] ?? true,
@@ -1113,7 +1114,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                           },
                         ),
                         FilterChip(
-                          avatar: const Text('🌤️', style: TextStyle(fontSize: 12)),
+                          avatar:
+                              const Text('🌤️', style: TextStyle(fontSize: 12)),
                           label: const Text('Weather Mock (get_weather)',
                               style: TextStyle(fontSize: 11)),
                           selected: _skillToggles['weather'] ?? true,
@@ -1161,8 +1163,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                   ActionChip(
                     avatar: const Text('🧮'),
                     label: const Text('Math: 45 * 18 + sqrt(144)'),
-                    onPressed: () => _promptController.text =
-                        'What is 45 * 18 + sqrt(144)?',
+                    onPressed: () =>
+                        _promptController.text = 'What is 45 * 18 + sqrt(144)?',
                   ),
                   const SizedBox(width: 6),
                   ActionChip(
@@ -1304,10 +1306,11 @@ class _DemoHomePageState extends State<DemoHomePage>
                                 ],
                               ),
                               const Divider(height: 12),
-                              for (var i = 0; i < _lastToolCalls.length; i++) ...[
+                              for (var i = 0;
+                                  i < _lastToolCalls.length;
+                                  i++) ...[
                                 Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text('⚙️ ',
                                         style: TextStyle(fontSize: 12)),
@@ -1337,8 +1340,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                                           style: TextStyle(
                                             fontFamily: 'monospace',
                                             fontSize: 11,
-                                            color: theme.colorScheme
-                                                .onSurfaceVariant,
+                                            color: theme
+                                                .colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ),
@@ -1363,8 +1366,6 @@ class _DemoHomePageState extends State<DemoHomePage>
       ),
     );
   }
-
-
 
   // ===========================================================================
   // 2. Text-to-Speech (TTS) Tab with Audio Player

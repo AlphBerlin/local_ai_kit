@@ -54,28 +54,34 @@ void main() {
   });
 
   group('SherpaSttAdapter transcription test', () {
-    test('decodes audio buffer and formats sentence case', () async {
-      final paths = _TestPaths(
-          '/Users/ajithberlin/Library/Application Support/com.localai.kit.example.localAiKitExample/local_ai');
-      final stt = SherpaSttAdapter(paths: paths);
-      await stt.load(const SttLoadOptions(
-          modelId: 'sherpa-onnx-streaming-zipformer-en-20m'));
+    test(
+      'decodes audio buffer and formats sentence case',
+      () async {
+        final paths = _TestPaths(
+            '/Users/ajithberlin/Library/Application Support/com.localai.kit.example.localAiKitExample/local_ai');
+        final stt = SherpaSttAdapter(paths: paths);
+        await stt.load(const SttLoadOptions(
+            modelId: 'sherpa-onnx-streaming-zipformer-en-20m'));
 
-      final pcmFile = File('/tmp/test_stt_in.pcm');
-      if (pcmFile.existsSync()) {
-        final bytes = pcmFile.readAsBytesSync();
-        final samples = Float32List(bytes.length ~/ 4);
-        final byteData = ByteData.sublistView(bytes);
-        for (var i = 0; i < samples.length; i++) {
-          samples[i] = byteData.getFloat32(i * 4, Endian.little);
+        final pcmFile = File('/tmp/test_stt_in.pcm');
+        if (pcmFile.existsSync()) {
+          final bytes = pcmFile.readAsBytesSync();
+          final samples = Float32List(bytes.length ~/ 4);
+          final byteData = ByteData.sublistView(bytes);
+          for (var i = 0; i < samples.length; i++) {
+            samples[i] = byteData.getFloat32(i * 4, Endian.little);
+          }
+          final transcript = await stt.transcribe(
+              AudioBuffer(samples: samples, format: AudioFormat.pcm16kMono));
+          expect(transcript.text.isNotEmpty, isTrue);
+          expect(transcript.text.toLowerCase(), contains('yellow lamps'));
         }
-        final transcript = await stt.transcribe(
-            AudioBuffer(samples: samples, format: AudioFormat.pcm16kMono));
-        expect(transcript.text.isNotEmpty, isTrue);
-        expect(transcript.text.toLowerCase(), contains('yellow lamps'));
-      }
-      await stt.unload();
-    });
+        await stt.unload();
+      },
+      skip: Platform.environment['LOCAL_AI_RUN_AUDIO_FIXTURES'] == '1'
+          ? false
+          : 'Set LOCAL_AI_RUN_AUDIO_FIXTURES=1 to run the local audio fixture.',
+    );
   });
 
   group('SherpaTtsAdapter synthesis test', () {
