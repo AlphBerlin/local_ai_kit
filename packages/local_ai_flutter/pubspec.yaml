@@ -1,10 +1,8 @@
 name: local_ai_flutter
 description: >-
-  Flutter platform layer for LocalAI Kit: storage paths, microphone capture,
-  streaming audio playback, network policy, device probing, permissions and
-  app lifecycle hooks. The only package allowed to depend on Flutter
-  platform plugins.
-version: 0.0.1
+  Flutter platform layer for LocalAI Kit: storage, mic capture, audio
+  playback, network policy, device probing, permissions and lifecycle hooks.
+version: 0.0.2
 repository: https://github.com/AlphBerlin/local_ai_kit
 issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
@@ -16,13 +14,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_ai_core: ^0.0.1
+  local_ai_core: ^0.0.2
   path_provider: ^2.1.4
-  record: ^6.0.0
+  record: ^7.1.1
   flutter_soloud: ^4.1.7
-  device_info_plus: ^11.1.0
-  connectivity_plus: ^6.1.0
-  permission_handler: ^11.3.1
+  device_info_plus: ^13.2.0
+  connectivity_plus: ^7.3.1
+  permission_handler: ^13.0.1
 
 dev_dependencies:
   flutter_test:

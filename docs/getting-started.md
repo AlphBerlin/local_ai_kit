@@ -8,11 +8,11 @@ If you want all first-party adapters through one dependency, use the umbrella:
 
 ```yaml
 dependencies:
-  local_ai_kit_all: ^0.0.1
+  bedge_ai: ^0.0.1
 ```
 
 ```dart
-import 'package:local_ai_kit_all/local_ai_kit_all.dart';
+import 'package:bedge_ai/bedge_ai.dart';
 ```
 
 The individual package setup below is better when you want unused native

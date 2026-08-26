@@ -45,7 +45,8 @@ class McpToolDefinition {
   }
 
   @override
-  String toString() => 'McpToolDefinition(name: $name, description: $description)';
+  String toString() =>
+      'McpToolDefinition(name: $name, description: $description)';
 }
 
 /// A request to invoke a specific tool with arguments.
@@ -82,7 +83,8 @@ class McpToolCall {
   }
 
   @override
-  String toString() => 'McpToolCall(name: $name, arguments: $arguments, id: $id)';
+  String toString() =>
+      'McpToolCall(name: $name, arguments: $arguments, id: $id)';
 }
 
 /// The result produced by invoking an MCP tool.

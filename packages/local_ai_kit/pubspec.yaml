@@ -4,7 +4,7 @@ description: >-
   models/runtime), model download manager with resumable downloads, LRU
   runtime scheduler, voice pipeline with barge-in, typed pipeline DSL and
   config presets.
-version: 0.0.1
+version: 0.0.2
 repository: https://github.com/AlphBerlin/local_ai_kit
 issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
@@ -16,15 +16,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_ai_core: ^0.0.1
-  local_ai_flutter: ^0.0.1
+  local_ai_core: ^0.0.2
+  local_ai_flutter: ^0.0.2
   crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  local_ai_sherpa: ^0.0.1
+  local_ai_sherpa: ^0.0.2
 
 flutter:
   assets:

@@ -36,7 +36,8 @@ void main() {
       expect(success.callId, 'call-1');
       expect(success.structuredData?['val'], 42);
 
-      final error = McpToolResult.error('calc', 'Divide by zero', callId: 'call-2');
+      final error =
+          McpToolResult.error('calc', 'Divide by zero', callId: 'call-2');
       expect(error.isError, isTrue);
       expect(error.content, 'Divide by zero');
       expect(error.callId, 'call-2');
@@ -77,7 +78,8 @@ void main() {
       expect(registry.getPlugin('device_time'), isNull);
     });
 
-    test('executes tool across registered plugins with argument validation', () async {
+    test('executes tool across registered plugins with argument validation',
+        () async {
       final registry = SkillRegistry(initialPlugins: const [
         CalculatorSkill(),
         WeatherSkill(),
@@ -108,7 +110,8 @@ void main() {
         {'expression': '10 + 10'},
       );
       expect(disabledResult.isError, isTrue);
-      expect(disabledResult.content, contains('not found in any enabled plugin'));
+      expect(
+          disabledResult.content, contains('not found in any enabled plugin'));
     });
   });
 
@@ -116,15 +119,18 @@ void main() {
     test('CalculatorSkill computes arithmetic, power, and sqrt', () async {
       const calc = CalculatorSkill();
 
-      final res1 = await calc.callTool('calculate', {'expression': '100 + 25 * 4'});
+      final res1 =
+          await calc.callTool('calculate', {'expression': '100 + 25 * 4'});
       expect(res1.isError, isFalse);
       expect(res1.structuredData?['result'], 200.0);
 
-      final res2 = await calc.callTool('calculate', {'expression': 'sqrt(144) + 2^3'});
+      final res2 =
+          await calc.callTool('calculate', {'expression': 'sqrt(144) + 2^3'});
       expect(res2.isError, isFalse);
       expect(res2.structuredData?['result'], 20.0);
 
-      final res3 = await calc.callTool('calculate', {'expression': '(50 - 10) / 2'});
+      final res3 =
+          await calc.callTool('calculate', {'expression': '(50 - 10) / 2'});
       expect(res3.isError, isFalse);
       expect(res3.structuredData?['result'], 20.0);
     });
@@ -147,7 +153,8 @@ void main() {
 
     test('WeatherSkill returns forecast for city', () async {
       const weather = WeatherSkill();
-      final res = await weather.callTool('get_weather', {'city': 'Berlin', 'unit': 'celsius'});
+      final res = await weather
+          .callTool('get_weather', {'city': 'Berlin', 'unit': 'celsius'});
       expect(res.isError, isFalse);
       expect(res.structuredData?['city'], 'Berlin');
       expect(res.structuredData?['condition'], isNotNull);
@@ -160,7 +167,8 @@ void main() {
       final fakeLlm = FakeLlm(
         handler: (req) async* {
           yield const LlmChunk(textDelta: 'Hello, how can I help you today?');
-          yield const LlmChunk(isFinal: true, finishReason: LlmFinishReason.stop);
+          yield const LlmChunk(
+              isFinal: true, finishReason: LlmFinishReason.stop);
         },
       );
       await fakeLlm.load(const LlmLoadOptions(modelId: 'fake'));
@@ -176,7 +184,8 @@ void main() {
       expect(result.turns, 1);
     });
 
-    test('detects tool call, executes tool, and synthesizes final answer', () async {
+    test('detects tool call, executes tool, and synthesizes final answer',
+        () async {
       final registry = SkillRegistry(initialPlugins: const [CalculatorSkill()]);
       var turnCounter = 0;
 
@@ -195,7 +204,8 @@ void main() {
               textDelta: 'The result of 25 * 40 + 15 is 1015.',
             );
           }
-          yield const LlmChunk(isFinal: true, finishReason: LlmFinishReason.stop);
+          yield const LlmChunk(
+              isFinal: true, finishReason: LlmFinishReason.stop);
         },
       );
       await fakeLlm.load(const LlmLoadOptions(modelId: 'fake'));

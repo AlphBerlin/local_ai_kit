@@ -54,7 +54,7 @@ local_ai_kit/                       (melos workspace)
 │   ├── local_ai_kit/               Facade: LocalAI, ModelHub, download
 │                                   manager, RuntimeScheduler, VoiceSession,
 │                                   pipeline DSL, config presets.
-│   ├── local_ai_kit_all/            One-dependency umbrella re-exporting the
+│   ├── bedge_ai/                    One-dependency umbrella re-exporting the
 │                                   facade, platform layer and all adapters.
 └── example/                        Minimal demo app (chat + voice).
 ```
@@ -63,7 +63,7 @@ Dependency rule: everyone depends on `local_ai_core`; only adapter packages
 touch their native SDKs; `local_ai_kit` never imports an adapter.
 
 For an app that wants all first-party adapters through one dependency, use
-`local_ai_kit_all` and import `package:local_ai_kit_all/local_ai_kit_all.dart`.
+`bedge_ai` and import `package:bedge_ai/bedge_ai.dart`.
 
 ## Quick start
 

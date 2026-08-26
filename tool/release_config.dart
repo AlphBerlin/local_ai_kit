@@ -42,8 +42,8 @@ const releasePackages = <ReleasePackage>[
     usesFlutter: true,
   ),
   ReleasePackage(
-    name: 'local_ai_kit_all',
-    directory: 'packages/local_ai_kit_all',
+    name: 'bedge_ai',
+    directory: 'packages/bedge_ai',
     usesFlutter: true,
   ),
 ];

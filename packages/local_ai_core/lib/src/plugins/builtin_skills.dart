@@ -109,7 +109,12 @@ class CalculatorSkill extends LocalSkill {
             _evalSimple(expr.substring(i + 1));
       } else if (char == '-' && i > 0) {
         final prev = expr[i - 1];
-        if (prev != '*' && prev != '/' && prev != '^' && prev != 'e' && prev != '+' && prev != '-') {
+        if (prev != '*' &&
+            prev != '/' &&
+            prev != '^' &&
+            prev != 'e' &&
+            prev != '+' &&
+            prev != '-') {
           return _evalSimple(expr.substring(0, i)) -
               _evalSimple(expr.substring(i + 1));
         }
@@ -136,10 +141,12 @@ class CalculatorSkill extends LocalSkill {
     // 3. Exponentiation ^ (high precedence)
     if (expr.contains('^')) {
       final idx = expr.indexOf('^');
-      return math.pow(
-        _evalSimple(expr.substring(0, idx)),
-        _evalSimple(expr.substring(idx + 1)),
-      ).toDouble();
+      return math
+          .pow(
+            _evalSimple(expr.substring(0, idx)),
+            _evalSimple(expr.substring(idx + 1)),
+          )
+          .toDouble();
     }
 
     // 4. Parse single number
@@ -296,7 +303,8 @@ class WeatherSkill extends LocalSkill {
           description: 'Gets current weather details for a specific city.',
           inputSchema: JsonSchema.object(
             properties: {
-              'city': JsonSchema.string(description: 'City name (e.g. Tokyo, London, San Francisco)'),
+              'city': JsonSchema.string(
+                  description: 'City name (e.g. Tokyo, London, San Francisco)'),
               'unit': JsonSchema.string(
                 description: 'Temperature unit: "celsius" or "fahrenheit".',
                 enumValues: ['celsius', 'fahrenheit'],
@@ -323,7 +331,13 @@ class WeatherSkill extends LocalSkill {
     final hash = city.codeUnits.fold(0, (a, b) => a + b);
     final tempC = 15 + (hash % 15);
     final temp = unit == 'fahrenheit' ? (tempC * 9 / 5 + 32).round() : tempC;
-    final conditions = ['Sunny', 'Partly Cloudy', 'Clear Sky', 'Breezy', 'Light Rain'];
+    final conditions = [
+      'Sunny',
+      'Partly Cloudy',
+      'Clear Sky',
+      'Breezy',
+      'Light Rain'
+    ];
     final condition = conditions[hash % conditions.length];
     final humidity = 40 + (hash % 40);
 

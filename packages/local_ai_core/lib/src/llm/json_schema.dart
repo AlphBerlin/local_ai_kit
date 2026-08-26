@@ -102,14 +102,16 @@ class JsonSchema {
     final type = schema['type'] as String?;
     switch (type) {
       case 'object':
-        if (value is! Map)
+        if (value is! Map) {
           return '$path: expected object, got ${_typeOf(value)}';
+        }
         final props = schema['properties'] as Map<String, Object?>? ?? const {};
         final required =
             (schema['required'] as List?)?.cast<String>() ?? const [];
         for (final key in required) {
-          if (!value.containsKey(key))
+          if (!value.containsKey(key)) {
             return '$path: missing required key "$key"';
+          }
         }
         final allowAdditional = schema['additionalProperties'] != false;
         for (final entry in value.entries) {
@@ -126,8 +128,9 @@ class JsonSchema {
         }
         return null;
       case 'array':
-        if (value is! List)
+        if (value is! List) {
           return '$path: expected array, got ${_typeOf(value)}';
+        }
         final itemSchema = schema['items'] as Map<String, Object?>?;
         if (itemSchema != null) {
           for (var i = 0; i < value.length; i++) {
@@ -137,24 +140,28 @@ class JsonSchema {
         }
         return null;
       case 'string':
-        if (value is! String)
+        if (value is! String) {
           return '$path: expected string, got ${_typeOf(value)}';
+        }
         final enumValues = (schema['enum'] as List?)?.cast<String>();
         if (enumValues != null && !enumValues.contains(value)) {
           return '$path: "$value" not in enum $enumValues';
         }
         return null;
       case 'integer':
-        if (value is! int)
+        if (value is! int) {
           return '$path: expected integer, got ${_typeOf(value)}';
+        }
         return null;
       case 'number':
-        if (value is! num)
+        if (value is! num) {
           return '$path: expected number, got ${_typeOf(value)}';
+        }
         return null;
       case 'boolean':
-        if (value is! bool)
+        if (value is! bool) {
           return '$path: expected boolean, got ${_typeOf(value)}';
+        }
         return null;
       default:
         return null; // Unknown / absent type: accept.

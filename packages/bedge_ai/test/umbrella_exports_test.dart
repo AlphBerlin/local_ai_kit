@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:local_ai_kit_all/local_ai_kit_all.dart';
+import 'package:bedge_ai/bedge_ai.dart';
 
 void main() {
   test('umbrella exposes the facade and all adapter plugins', () {

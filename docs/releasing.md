@@ -9,7 +9,7 @@ tag is shared, while uploads run in dependency order:
 4. `local_ai_sherpa`
 5. `local_ai_kit`
 6. `local_ai_genkit`
-7. `local_ai_kit_all`
+7. `bedge_ai`
 
 ## First release: `0.0.1`
 
@@ -30,7 +30,7 @@ Upload the packages in order:
 (cd packages/local_ai_sherpa && flutter pub publish)
 (cd packages/local_ai_kit && flutter pub publish)
 (cd packages/local_ai_genkit && flutter pub publish)
-(cd packages/local_ai_kit_all && flutter pub publish)
+(cd packages/bedge_ai && flutter pub publish)
 ```
 
 After each upload, confirm the package is available at

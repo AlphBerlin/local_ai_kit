@@ -1,5 +1,5 @@
 /// The all-in-one LocalAI Kit package.
-/// Add `local_ai_kit_all` when an app wants the facade, platform services and
+/// Add `bedge_ai` when an app wants the facade, platform services and
 /// every first-party adapter from one dependency and one import.
 library;
 

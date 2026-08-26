@@ -1,15 +1,15 @@
-# local_ai_kit_all
+# bedge_ai
 
 The one-dependency LocalAI Kit umbrella. It includes the facade, platform
 services, Gemma, Sherpa and Genkit adapters.
 
 ```yaml
 dependencies:
-  local_ai_kit_all: ^0.0.1
+  bedge_ai: ^0.0.1
 ```
 
 ```dart
-import 'package:local_ai_kit_all/local_ai_kit_all.dart';
+import 'package:bedge_ai/bedge_ai.dart';
 
 final ai = await LocalAI.initialize(
   LocalAIConfig.offlineChat(),
