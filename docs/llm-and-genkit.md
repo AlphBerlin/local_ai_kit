@@ -179,3 +179,51 @@ final response = await genkit?.generateFromTemplate(
 - `inner` — direct access to the wrapped `LocalLlm`.
 
 If you don't need orchestration, skip `local_ai_genkit` entirely and use `GemmaLlmAdapter` directly — nothing about Genkit will be in your binary.
+
+## MCP plugins and skills
+
+`local_ai_core` ships a small Model Context Protocol (MCP)-style plugin
+architecture for giving any `LocalLlm` callable tools, independent of Genkit:
+
+- `LocalMcpPlugin` — the base contract: a namespaced `name`, `description`,
+  a list of `McpToolDefinition`s, and `callTool(name, arguments)`.
+- `LocalSkill` — a `LocalMcpPlugin` that can also contribute a
+  `systemPromptSnippet` telling the model how/when to use its tools.
+  `CustomSkill` builds one inline from a tool list + handler function.
+- Four built-in skills ship in `local_ai_core`: `CalculatorSkill`,
+  `TimeSkill`, `DeviceInfoSkill`, `WeatherSkill`.
+- `SkillRegistry` — registers plugins/skills and tracks which are enabled;
+  exposes `enabledTools` (aggregated across all enabled plugins).
+- `SkillExecutor` — runs a prompt against any `LocalLlm`, detecting tool
+  calls in the model's output, executing them via the registry, and
+  feeding results back for up to `maxTurns` round trips before returning
+  the final `SkillExecutionResult` (including which tools were called).
+
+```dart
+final registry = SkillRegistry(initialPlugins: [CalculatorSkill(), TimeSkill()]);
+final executor = SkillExecutor(registry: registry);
+
+final result = await executor.execute(
+  llm: someLocalLlm,
+  prompt: 'What is 12 * 7, and what time is it?',
+);
+print(result.text);       // final natural-language answer
+print(result.usedTools);  // true if any tool was invoked
+```
+
+`local_ai_genkit` bridges this into `GenkitOrchestrator` via the
+`GenkitSkillsExtension`:
+
+```dart
+genkitOrchestrator.attachSkillRegistry(registry); // or registerSkill(...) one at a time
+
+final result = await genkitOrchestrator.executeWithSkills(
+  'What is 12 * 7?',
+  registry: registry,
+);
+```
+
+`registerMcpPlugin`/`registerSkill` turn each tool into a `GenkitTool`, and
+`attachSkillRegistry` syncs every currently-enabled plugin in one call —
+useful when skills are toggled at runtime (e.g. a settings screen) and you
+want Genkit's tool list to stay in sync.

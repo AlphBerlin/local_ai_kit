@@ -8,7 +8,7 @@ If you want all first-party adapters through one dependency, use the umbrella:
 
 ```yaml
 dependencies:
-  bedge_ai: ^0.0.1
+  bedge_ai: ^0.0.2
 ```
 
 ```dart
@@ -24,12 +24,22 @@ binary.)
 
 **pub.dev packages:**
 
+| Package | pub.dev |
+|---|---|
+| [`local_ai_core`](https://pub.dev/packages/local_ai_core) | Pure-Dart interfaces, config, manifests, test fakes |
+| [`local_ai_flutter`](https://pub.dev/packages/local_ai_flutter) | Flutter platform layer |
+| [`local_ai_kit`](https://pub.dev/packages/local_ai_kit) | Facade: `LocalAI`, `ModelHub`, pipeline DSL |
+| [`local_ai_gemma`](https://pub.dev/packages/local_ai_gemma) | LLM adapter (`flutter_gemma`) |
+| [`local_ai_sherpa`](https://pub.dev/packages/local_ai_sherpa) | VAD + STT + TTS adapter (`sherpa_onnx`) |
+| [`local_ai_genkit`](https://pub.dev/packages/local_ai_genkit) | Optional Genkit orchestration layer |
+| [`bedge_ai`](https://pub.dev/packages/bedge_ai) | One-dependency umbrella (all of the above) |
+
 ```yaml
 dependencies:
-  local_ai_kit: ^0.0.1
-  local_ai_gemma: ^0.0.1   # LLM (flutter_gemma)
-  local_ai_sherpa: ^0.0.1  # VAD + STT + TTS (sherpa_onnx)
-  # local_ai_genkit: ^0.0.1  # Optional orchestration
+  local_ai_kit: ^0.0.2
+  local_ai_gemma: ^0.0.2   # LLM (flutter_gemma)
+  local_ai_sherpa: ^0.0.2  # VAD + STT + TTS (sherpa_onnx)
+  # local_ai_genkit: ^0.0.2  # Optional orchestration
 ```
 
 **Git dependencies** (for unreleased changes):

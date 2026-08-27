@@ -38,7 +38,7 @@ All events are emitted on `session.events` (broadcast):
 | `VoiceListening` | — | Session is listening to the microphone. |
 | `VoiceSpeechStarted` | — | VAD detected speech onset. |
 | `VoiceSpeechEnded` | — | VAD detected speech offset; utterance goes to STT. |
-| `VoiceTranscriptUpdated` | `text`, `isFinal` | Incremental transcript update. |
+| `VoiceTranscriptUpdated` | `text`, `isFinal` | Incremental transcript update. Final text is passed through `collapseRepeatedWords` (`local_ai_core`) to collapse immediate word/phrase repeats that are a common STT decoding artifact. |
 | `VoiceThinking` | — | LLM is generating (no tokens yet). |
 | `VoiceResponseStarted` | — | First LLM tokens arrived. |
 | `VoiceResponseDelta` | `textDelta` | Incremental assistant text. |
@@ -65,6 +65,22 @@ session.events.listen((event) {
   }
 });
 ```
+
+## Per-sentence TTS pipelining
+
+As the LLM streams a response, `VoiceSession` extracts complete sentences
+(text ending in `.`/`!`/`?`) from the running buffer and queues each one for
+TTS as soon as it's detected, instead of waiting for the full response
+before synthesis starts. This cuts time-to-first-audio: playback of the
+first sentence can begin while the LLM is still generating the rest.
+
+- `VoiceSpeaking(text: sentence)` fires once per sentence, not once per
+  turn — expect several `VoiceSpeaking` events in a single response.
+- Any leftover text once the stream ends (no trailing punctuation) is
+  flushed as a final "sentence".
+- Barge-in during this multi-sentence playback cancels the whole turn (the
+  in-flight sentence's playback and any still-queued ones) exactly like the
+  single-sentence case.
 
 ## Barge-in
 

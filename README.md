@@ -5,6 +5,21 @@ LLM chat, speech-to-text, text-to-speech, VAD and embeddings behind one
 strongly-typed facade — with a download manager, an LRU runtime scheduler
 and a full-duplex voice pipeline with barge-in.
 
+## Packages on pub.dev
+
+| Package | pub.dev | Role |
+|---|---|---|
+| `local_ai_core` | [pub.dev/packages/local_ai_core](https://pub.dev/packages/local_ai_core) | Pure-Dart interfaces, config, manifests, adapter registry, test fakes |
+| `local_ai_flutter` | [pub.dev/packages/local_ai_flutter](https://pub.dev/packages/local_ai_flutter) | Flutter platform layer (storage, mic, audio, device probe, permissions) |
+| `local_ai_kit` | [pub.dev/packages/local_ai_kit](https://pub.dev/packages/local_ai_kit) | Facade: `LocalAI`, `ModelHub`, download manager, pipeline DSL |
+| `local_ai_gemma` | [pub.dev/packages/local_ai_gemma](https://pub.dev/packages/local_ai_gemma) | `flutter_gemma` → `LocalLlm` adapter |
+| `local_ai_sherpa` | [pub.dev/packages/local_ai_sherpa](https://pub.dev/packages/local_ai_sherpa) | `sherpa_onnx` → VAD/STT/TTS adapters |
+| `local_ai_genkit` | [pub.dev/packages/local_ai_genkit](https://pub.dev/packages/local_ai_genkit) | Optional Genkit orchestration layer |
+| `bedge_ai` | [pub.dev/packages/bedge_ai](https://pub.dev/packages/bedge_ai) | One-dependency umbrella (all of the above) |
+
+All seven packages release together and share a version number — see
+[docs/releasing.md](docs/releasing.md).
+
 ## Features
 
 - **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding)

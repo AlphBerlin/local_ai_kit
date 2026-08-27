@@ -2,9 +2,19 @@
 
 Pluggable, offline-first, streaming-first on-device AI toolkit for Flutter: LLM chat, speech-to-text, text-to-speech, VAD and embeddings behind one strongly-typed facade — with a resumable download manager, an LRU runtime scheduler and a full-duplex voice pipeline with barge-in.
 
-[![pub workspace](https://img.shields.io/badge/melos-workspace-blue)](#)
+[![pub package](https://img.shields.io/pub/v/local_ai_kit.svg)](https://pub.dev/packages/local_ai_kit)
 [![platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS-lightgrey)](#)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](#)
+
+| Package | pub.dev |
+|---|---|
+| `local_ai_core` | [![pub](https://img.shields.io/pub/v/local_ai_core.svg)](https://pub.dev/packages/local_ai_core) |
+| `local_ai_flutter` | [![pub](https://img.shields.io/pub/v/local_ai_flutter.svg)](https://pub.dev/packages/local_ai_flutter) |
+| `local_ai_kit` | [![pub](https://img.shields.io/pub/v/local_ai_kit.svg)](https://pub.dev/packages/local_ai_kit) |
+| `local_ai_gemma` | [![pub](https://img.shields.io/pub/v/local_ai_gemma.svg)](https://pub.dev/packages/local_ai_gemma) |
+| `local_ai_sherpa` | [![pub](https://img.shields.io/pub/v/local_ai_sherpa.svg)](https://pub.dev/packages/local_ai_sherpa) |
+| `local_ai_genkit` | [![pub](https://img.shields.io/pub/v/local_ai_genkit.svg)](https://pub.dev/packages/local_ai_genkit) |
+| `bedge_ai` | [![pub](https://img.shields.io/pub/v/bedge_ai.svg)](https://pub.dev/packages/bedge_ai) |
 
 ## Features
 
@@ -32,13 +42,17 @@ local_ai_kit/                       (melos workspace)
 │   │                               (FFI isolated in worker isolates).
 │   ├── local_ai_genkit/            Optional orchestration layer over LocalLlm
 │   │                               (flows/tools/templates/structured output).
-│   └── local_ai_kit/               Facade: LocalAI, ModelHub, download
-│                                   manager, RuntimeScheduler, VoiceSession,
-│                                   pipeline DSL, config presets.
+│   ├── local_ai_kit/               Facade: LocalAI, ModelHub, download
+│   │                               manager, RuntimeScheduler, VoiceSession,
+│   │                               pipeline DSL, config presets.
+│   └── bedge_ai/                   One-dependency umbrella re-exporting the
+│                                   facade, platform layer and all adapters.
 └── example/                        Minimal demo app (chat + voice).
 ```
 
 Dependency rule: everyone depends on `local_ai_core`; only adapter packages touch their native SDKs; `local_ai_kit` never imports an adapter.
+
+For an app that wants all first-party adapters through one dependency, use `bedge_ai` and import `package:bedge_ai/bedge_ai.dart`.
 
 ## Quick start
 
