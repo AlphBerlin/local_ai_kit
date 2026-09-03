@@ -12,6 +12,7 @@ workspace:
   - packages/local_ai_core
   - packages/local_ai_flutter
   - packages/local_ai_gemma
+  - packages/local_ai_llama_cpp
   - packages/local_ai_genkit
   - packages/local_ai_sherpa
   - packages/local_ai_kit

@@ -1,7 +1,7 @@
 name: bedge_ai
 description: >-
   One-dependency umbrella for LocalAI Kit, including the facade, platform
-  services, Gemma, Sherpa and Genkit adapters.
+  services, Gemma, llama.cpp, Sherpa and Genkit adapters.
 version: 0.0.2
 repository: https://github.com/AlphBerlin/local_ai_kit
 issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
@@ -17,6 +17,7 @@ dependencies:
   local_ai_core: ^0.0.2
   local_ai_flutter: ^0.0.2
   local_ai_gemma: ^0.0.2
+  local_ai_llama_cpp: ^0.0.2
   local_ai_sherpa: ^0.0.2
   local_ai_kit: ^0.0.2
   local_ai_genkit: ^0.0.2

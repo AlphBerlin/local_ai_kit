@@ -53,6 +53,31 @@ class ModelHub implements LocalModelManager {
   Stream<ModelStatus> watchStatus(String modelId) =>
       _manager.watchStatus(modelId);
 
+  /// Registers an app-supplied model file (bring-your-own GGUF, MDM push,
+  /// file picker result) as an installed model without downloading or
+  /// verifying it.
+  ///
+  /// ```dart
+  /// await ai.models.registerExternalModel(
+  ///   const LocalModelManifest(
+  ///     id: 'my-gguf',
+  ///     type: ModelType.llm,
+  ///     provider: ModelProviders.llamaCpp,
+  ///     delivery: ModelDelivery.external,
+  ///     files: [ModelFile(name: 'my.gguf', url: '', sha256: '', sizeBytes: 0)],
+  ///   ),
+  ///   localFilePath: pickedFile.path,
+  /// );
+  /// ```
+  ///
+  /// See `ModelManagerImpl.registerExternalModel` for the linking rules and
+  /// the (deliberate) absence of an integrity check.
+  Future<void> registerExternalModel(
+    LocalModelManifest manifest, {
+    required String localFilePath,
+  }) =>
+      _manager.registerExternalModel(manifest, localFilePath: localFilePath);
+
   /// Installs a TTS voice (`voices/<voiceId>/`).
   Future<void> installVoice(
     String voiceId, {

@@ -90,3 +90,6 @@ app.*.map.json
 /example/*
 
 **/superpowers/
+# llama.cpp native build (packages/local_ai_llama_cpp/native)
+packages/local_ai_llama_cpp/native/llama.cpp/
+packages/local_ai_llama_cpp/native/build/

@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:local_ai_core/local_ai_core.dart';
@@ -72,7 +73,12 @@ class ModelManagerImpl implements LocalModelManager {
     if (_installer.isInstalled(manifest)) {
       final version =
           await _installer.installedVersion(manifest.type, manifest.id);
-      final newer = version != null && manifest.catalogVersion > version;
+      // External (bring-your-own) models are never catalog-tracked, so the
+      // `catalogVersion: 0` sentinel in their marker must not read as
+      // "an update is available".
+      final newer = manifest.delivery != ModelDelivery.external &&
+          version != null &&
+          manifest.catalogVersion > version;
       return _statuses[modelId] = ModelStatus(
         modelId: modelId,
         state: newer ? ModelInstallState.updating : ModelInstallState.installed,
@@ -167,6 +173,8 @@ class ModelManagerImpl implements LocalModelManager {
   @override
   Future<void> update(String modelId) async {
     final manifest = await _catalog.get(modelId);
+    // Nothing to update against: an external model has no remote version.
+    if (manifest.delivery == ModelDelivery.external) return;
     final installed =
         await _installer.installedVersion(manifest.type, manifest.id);
     if (installed != null && installed >= manifest.catalogVersion) return;
@@ -189,6 +197,10 @@ class ModelManagerImpl implements LocalModelManager {
     final manifest = await _catalog.get(modelId);
     final dir = Directory(_paths.modelDir(manifest.type, manifest.id));
     if (!_installer.isInstalled(manifest)) return false;
+    // An external model has no trusted sha256 to check against — the app or
+    // the user supplied the file. `isInstalled` (marker + non-empty files)
+    // is the whole check; see the caveat in docs/model-downloads.md.
+    if (manifest.delivery == ModelDelivery.external) return true;
     for (final file in manifest.files) {
       final sub = file.relativePath != null ? '${file.relativePath}/' : '';
       final target = File('${dir.path}/$sub${file.name}');
@@ -197,6 +209,76 @@ class ModelManagerImpl implements LocalModelManager {
       if (actual.toLowerCase() != file.sha256.toLowerCase()) return false;
     }
     return true;
+  }
+
+  /// Registers a model whose files the app (or the user) already has on
+  /// disk — bring-your-own GGUF, an enterprise MDM push, a sideloaded file
+  /// picker result — without going through download or verification.
+  ///
+  /// [manifest] must declare [ModelDelivery.external]. The file at
+  /// [localFilePath] is **linked** into the standard install location
+  /// (`models/<type>/<id>/<name>`) so a multi-gigabyte weight file is not
+  /// duplicated; Windows, where creating a symlink needs elevation or
+  /// developer mode, copies instead. After this call `isInstalled`,
+  /// `getStatus` and adapter `load()` treat the model exactly like a
+  /// catalog-managed one.
+  ///
+  /// No integrity check happens: unlike a downloaded model, nothing here is
+  /// verified against a sha256. That is the trust model of
+  /// [ModelDelivery.external] — the caller vouches for the file.
+  ///
+  /// [verify] degenerates to an existence check and [update] is a no-op for
+  /// models registered this way.
+  Future<void> registerExternalModel(
+    LocalModelManifest manifest, {
+    required String localFilePath,
+  }) async {
+    if (manifest.delivery != ModelDelivery.external) {
+      throw InvalidStateError(
+        'registerExternalModel expects ModelDelivery.external, got '
+        '${manifest.delivery.name} for model "${manifest.id}".',
+      );
+    }
+    if (manifest.files.length > 1) {
+      throw InvalidStateError(
+        'registerExternalModel takes a single file, but the manifest for '
+        '"${manifest.id}" declares ${manifest.files.length}. Register a '
+        'single-file manifest, or install the model through the catalog.',
+      );
+    }
+    final source = File(localFilePath);
+    if (!source.existsSync()) {
+      throw InvalidStateError(
+        'External model file "$localFilePath" does not exist.',
+      );
+    }
+
+    final fileName = manifest.files.isNotEmpty
+        ? manifest.files.first.name
+        : localFilePath.split(Platform.pathSeparator).last;
+    final target = Directory(_paths.modelDir(manifest.type, manifest.id));
+    if (target.existsSync()) await target.delete(recursive: true);
+    await target.create(recursive: true);
+
+    final linkPath = '${target.path}${Platform.pathSeparator}$fileName';
+    if (Platform.isWindows) {
+      await source.copy(linkPath);
+    } else {
+      await Link(linkPath).create(source.absolute.path);
+    }
+
+    // catalogVersion 0 is the "not catalog-tracked" sentinel.
+    final marker = File('${target.path}${Platform.pathSeparator}installed.json');
+    await marker.writeAsString(jsonEncode(<String, Object?>{
+      'modelId': manifest.id,
+      'catalogVersion': 0,
+      'installedAt': DateTime.now().toIso8601String(),
+      'externalSource': source.absolute.path,
+    }));
+
+    await _catalog.registerManifest(manifest);
+    _setStatus(manifest.id, ModelInstallState.installed,
+        installedCatalogVersion: 0);
   }
 
   /// Installs a TTS voice independently of its base model

@@ -34,6 +34,7 @@ class LocalAI {
     required LocalLlmFacade llmFacade,
     required LocalSttFacade sttFacade,
     required LocalTtsFacade ttsFacade,
+    required LocalEmbeddingFacade embeddingFacade,
     required VoiceSessionFactory voiceFactory,
     required LocalAudioSource? audioSource,
     required LocalAudioOutput? audioOutput,
@@ -44,6 +45,7 @@ class LocalAI {
         _llmFacade = llmFacade,
         _sttFacade = sttFacade,
         _ttsFacade = ttsFacade,
+        _embeddingFacade = embeddingFacade,
         _voiceFactory = voiceFactory,
         _audioSource = audioSource,
         _audioOutput = audioOutput,
@@ -68,6 +70,7 @@ class LocalAI {
   final LocalLlmFacade _llmFacade;
   final LocalSttFacade _sttFacade;
   final LocalTtsFacade _ttsFacade;
+  final LocalEmbeddingFacade _embeddingFacade;
   final VoiceSessionFactory _voiceFactory;
   final LocalAudioSource? _audioSource;
   final LocalAudioOutput? _audioOutput;
@@ -83,6 +86,12 @@ class LocalAI {
 
   /// `ai.tts` facade.
   LocalTtsFacade get tts => _ttsFacade;
+
+  /// `ai.embeddings` facade (text embeddings for RAG / semantic search).
+  ///
+  /// Needs an embedding adapter registered for the configured model's
+  /// provider — `LlamaCppAdapterPlugin` ships one; see docs/adapters.md.
+  LocalEmbeddingFacade get embeddings => _embeddingFacade;
 
   /// `ai.voice`: full-duplex voice sessions with barge-in.
   VoiceSessionFactory get voice => _voiceFactory;
@@ -213,6 +222,13 @@ class LocalAI {
         pitch: pitch,
       );
 
+  /// Embeds [text] (delegates to [embeddings]).
+  Future<List<double>> embed(String text) => _embeddingFacade.embed(text);
+
+  /// Embeds a batch of [texts] (delegates to [embeddings]).
+  Future<List<List<double>>> embedBatch(List<String> texts) =>
+      _embeddingFacade.embedBatch(texts);
+
   /// Starts the typed pipeline DSL (architecture §5.4).
   LocalPipeline pipeline() => LocalPipeline(this);
 
@@ -316,6 +332,11 @@ class LocalAI {
       runtime: scheduler,
       audioOutput: audioOutput,
     );
+    final embeddingFacade = LocalEmbeddingFacade(
+      config: config.embedding,
+      models: manager,
+      runtime: scheduler,
+    );
     final voiceFactory = VoiceSessionFactory(
       config: config,
       runtime: scheduler,
@@ -340,6 +361,7 @@ class LocalAI {
       llmFacade: llmFacade,
       sttFacade: sttFacade,
       ttsFacade: ttsFacade,
+      embeddingFacade: embeddingFacade,
       voiceFactory: voiceFactory,
       audioSource: audioSource,
       audioOutput: audioOutput,

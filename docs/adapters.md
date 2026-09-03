@@ -9,19 +9,19 @@ Adapters bridge native/remote runtimes to the core capability interfaces; they a
 │                      App                           │
 └──────────────────────┬─────────────────────────────┘
                        ▼
-┌────────────────────────────────────────────────────┐
-│  local_ai_kit  (facade / config / pipeline DSL)    │
-└───┬──────────┬──────────┬───────────┬──────────────┘
-    ▼          ▼          ▼           ▼
-┌────────┐┌────────┐┌─────────┐┌──────────────┐
-│ gemma  ││ genkit ││ sherpa  ││ local_ai_    │
-│ adapter││ adapter││ adapter ││ flutter      │
-└───┬────┘└───┬────┘└────┬────┘└──────┬───────┘
-    └─────────┴────┬─────┴────────────┘
-                   ▼
-        ┌──────────────────────┐
-        │    local_ai_core     │  ← only shared dependency; zero AI deps
-        └──────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  local_ai_kit  (facade / config / pipeline DSL)                 │
+└───┬──────────┬───────────┬──────────┬───────────┬───────────────┘
+    ▼          ▼           ▼          ▼           ▼
+┌────────┐┌────────┐┌────────────┐┌─────────┐┌──────────────┐
+│ gemma  ││ genkit ││ llama_cpp  ││ sherpa  ││ local_ai_    │
+│ adapter││ adapter││ adapter    ││ adapter ││ flutter      │
+└───┬────┘└───┬────┘└─────┬──────┘└────┬────┘└──────┬───────┘
+    └─────────┴─────┬─────┴────────────┴────────────┘
+                    ▼
+         ┌──────────────────────┐
+         │    local_ai_core     │  ← only shared dependency; zero AI deps
+         └──────────────────────┘
 ```
 
 Hard rules:
@@ -55,8 +55,9 @@ Each factory receives an `AdapterContext` (`paths`, `networkPolicy`, `audioSourc
 await LocalAI.initialize(
   config,
   plugins: const [
-    GemmaAdapterPlugin(),   // provider 'google-gemma' → LocalLlm
-    SherpaAdapterPlugin(),  // provider 'sherpa-community' → VAD + STT + TTS
+    GemmaAdapterPlugin(),     // provider 'google-gemma'      → LocalLlm
+    LlamaCppAdapterPlugin(),  // provider 'llama-cpp'         → LocalLlm + LocalEmbedding
+    SherpaAdapterPlugin(),    // provider 'sherpa-community'  → VAD + STT + TTS
   ],
 );
 ```
@@ -152,7 +153,78 @@ Bridges `flutter_gemma` and Google's LiteRT-LM runtime to `LocalLlm`:
 - **Model-family detection**: passes `systemInstruction`/turn role flags to `flutter_gemma`'s chat API based on the detected model family (deepseek / qwen / llama-style / gemma-it); it does not itself inject literal turn-marker tokens like `<|im_start|>` — any such templating happens inside `flutter_gemma`, not this adapter.
 - **Repetition Guard & Balanced Sampling**: Default `topK = 40`, `topP = 0.9`, `temperature = 0.8`, with a real-time streaming 3-layer guard (line-level repetition, 3-word n-gram cycle detection, 6-identical-word burst guard) to reduce degenerate loops on small quantized models.
 
-### 2. `SherpaTtsAdapter` / `SherpaSttAdapter` / `SherpaVadAdapter` (`local_ai_sherpa`) — implementation notice
+### 2. `LlamaCppLlmAdapter` / `LlamaCppEmbeddingAdapter` (`local_ai_llama_cpp`)
+
+Runs **any GGUF model** through llama.cpp via `llama_cpp_dart`'s FFI
+bindings, under the provider key `llama-cpp`. One `AdapterPlugin` registers
+both capabilities; a manifest's `ModelType` decides which one a model
+resolves to.
+
+- **Worker isolate per loaded model.** Every llama.cpp call happens inside a
+  dedicated `Isolate` (`src/isolate/llama_worker.dart`); only primitives
+  cross back. A chat model and an embedding model therefore each hold their
+  own isolate and their own `llama_context` — using both at once costs two
+  resident contexts, and both participate normally in the kit's
+  `RuntimeMemoryPolicy` LRU.
+- **Persistent KV cache.** The context stays alive across
+  `generate`/`generateStream` calls; `PromptPlanner` compares the request's
+  history against what is already in the cache and sends only the new tail
+  when the prefix matches verbatim. Any edit to an earlier turn, a changed
+  system prompt, a truncation, or a sampler change resets it — llama.cpp
+  cannot rewrite tokens already committed.
+- **GBNF-constrained structured output.** `generateStructured` compiles the
+  `JsonSchema` into a GBNF grammar (`JsonSchemaToGbnf`) and constrains
+  sampling with it, so malformed JSON is unreachable instead of merely
+  discouraged. Two documented simplifications: generated objects are closed
+  (never a key outside `properties`, whatever `additionalProperties` says)
+  and keys are emitted in declaration order — required first, then
+  optional — which is a subset of legal JSON and matches what llama.cpp's own
+  `json-schema-to-grammar` converter does. The prompt-injection + parse-retry
+  loop remains as a defensive fallback for a model that runs out of tokens
+  mid-object.
+- **Native sampling.** `topK`/`topP`/`temperature` and repeat penalty are
+  llama.cpp's own samplers — no Dart-side repetition guard like the Gemma
+  adapter's.
+- **Honest telemetry.** Unlike the Gemma adapter, this one reports real
+  `promptTokens`/`completionTokens` and distinguishes `stop` (EOS or a chat
+  stop marker), `length` (token budget or a full context) and `cancelled`.
+- **Backend selection.** `RuntimePreference` maps to llama.cpp's
+  `n_gpu_layers` (`cpu` → 0, everything else → offload as much as the build
+  allows; there is no NPU backend in llama.cpp, so `npu` takes the GPU path).
+  Both fallback layers apply: the worker retries on CPU inside `load()`, and
+  if that also fails the kit's `RuntimeScheduler` retries and emits
+  `RuntimeBackendFallback`.
+
+Four limits worth knowing before you build on it:
+
+1. **The native library is your responsibility.** `llama_cpp_dart` is
+   bindings only — its pubspec has no `flutter: plugin:` section, so
+   Flutter never runs the podspecs or Gradle files in that package and the
+   `Llama.xcframework` it ships in `dist/` is not vendored into your app.
+   Build llama.cpp with `packages/local_ai_llama_cpp/native/build_llama.sh`
+   (or `.ps1`) and bundle it per platform, or point the adapter at your own
+   binary with `LlamaCppRuntime.useLibrary(path)`. Those build scripts are
+   developer tooling and are **not** exercised by this repo's CI.
+2. **Cache reuse is off for tokenizers that prepend special tokens** (Llama
+   3, Gemma, …). `llama_cpp_dart`'s `setPrompt` always tokenizes with
+   `add_special = true`, which would inject a second BOS mid-conversation,
+   so those models re-evaluate the whole prompt every turn instead. The
+   worker probes for this at load time; read it back from
+   `LlamaCppLlmAdapter.reusesContextAcrossTurns`.
+3. **Changing sampling rebuilds the context.** llama.cpp builds its sampler
+   chain with the context and `llama_cpp_dart` exposes no way to replace it,
+   so a different temperature/topP — or a structured-output grammar — costs a
+   `Llama` rebuild and drops the KV cache. Weights come from the OS page
+   cache, so it is much cheaper than a cold load, but interleaving
+   `generateStructured` with chat turns pays it on every switch.
+4. **Chat templates are inferred from the model id / file name**, not read
+   from GGUF metadata (`llama_cpp_dart` does not expose
+   `llama_model_chat_template`). `ChatTemplate.detect` handles ChatML,
+   Gemma, Llama 3, Mistral and Phi; anything unrecognised falls back to a
+   plain `User:`/`Assistant:` format, which a chat-tuned model will follow
+   less reliably than its own template.
+
+### 3. `SherpaTtsAdapter` / `SherpaSttAdapter` / `SherpaVadAdapter` (`local_ai_sherpa`) — implementation notice
 
 Despite the package name, pubspec description and this doc's architecture diagram, **none of the three Sherpa adapters currently call into the `sherpa_onnx` Dart package** — it isn't imported anywhere under `packages/local_ai_sherpa/lib`. What they actually do today:
 
@@ -163,9 +235,43 @@ Despite the package name, pubspec description and this doc's architecture diagra
 
 If you're building on this package, treat the STT/TTS/VAD adapters as a working prototype/desktop demo rather than a production on-device (especially mobile) pipeline until they're re-implemented against the actual `sherpa_onnx` FFI bindings.
 
-## Embedding capability: interface-only, no adapter ships yet
+## Embedding capability
 
-`LocalEmbedding`, `EmbeddingConfig`, `ModelType.embedding`, `ModelCapability.embedding` and the `models/embedding/<id>/` storage directory all exist end-to-end in `local_ai_core`, and `registerEmbedding(...)` exists on `AdapterRegistry` — but no package in this repo implements `LocalEmbedding` (no real adapter, no `FakeEmbedding`). "Embeddings" listed as a feature elsewhere in the docs/README describes the scaffolding, not a working capability yet; write your own adapter (following the pattern above) if you need it today.
+`LocalEmbedding`, `EmbeddingConfig`, `ModelType.embedding`,
+`ModelCapability.embedding`, the `models/embedding/<id>/` storage directory
+and `AdapterRegistry.registerEmbedding` have existed end-to-end in
+`local_ai_core` since the start; `LlamaCppEmbeddingAdapter` is the first
+implementation behind them. Wire it like any other capability:
+
+```dart
+final ai = await LocalAI.initialize(
+  const LocalAIConfig(
+    embedding: EmbeddingConfig(
+      modelId: 'nomic-embed-text-v1.5-gguf',
+      dimensions: 256,   // optional Matryoshka truncation
+    ),
+  ),
+  plugins: const [LlamaCppAdapterPlugin()],
+);
+
+final vector = await ai.embed('semantic search query');
+final vectors = await ai.embedBatch(['a', 'b']);
+final score = EmbeddingVectors.cosineSimilarity(vectors[0], vectors[1]);
+```
+
+`ai.embeddings` is the full facade (`ready`, `isLoaded`, `embed`,
+`embedBatch`, `unload`); `ai.embed` / `ai.embedBatch` are shortcuts. The
+model is downloaded and loaded lazily on first use and unloaded by the same
+LRU/idle rules as every other model.
+
+`EmbeddingConfig.dimensions` truncates the vector and re-normalises it —
+valid for models trained with Matryoshka representation learning
+(nomic-embed, bge-m3), meaningless for others, so leave it unset unless the
+model documents support for it.
+
+There is still no `FakeEmbedding` in `local_ai_core`: write a small
+in-memory `LocalEmbedding` in your test (see
+`packages/local_ai_kit/test/embedding_facade_test.dart`) until one ships.
 
 ## Testability: fakes
 

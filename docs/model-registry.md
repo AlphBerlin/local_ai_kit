@@ -62,7 +62,7 @@ final supertonic = Models.byId('supertonic-tts');   // LocalModelManifest?
 | `bundled` | Files ship inside the app bundle (only viable for tiny models). |
 | `download` | Files are downloaded on first use. |
 | `bundledIfSmall` | Resolved at build/packaging time by the app-wide `ModelDeliveryPolicy`. |
-| `external` | User supplies the files (sideload / enterprise MDM). |
+| `external` | App or user supplies the files (sideload / enterprise MDM / file picker). Registered with `ai.models.registerExternalModel` — see [Model Downloads](model-downloads.md#bring-your-own-model-file). |
 
 ### The smart policy
 

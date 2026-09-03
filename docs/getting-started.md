@@ -92,7 +92,7 @@ import 'package:local_ai_sherpa/local_ai_sherpa.dart';
 ```dart
 final ai = await LocalAI.initialize(
   LocalAIConfig.offlineChat(),
-  plugins: const [GemmaAdapterPlugin()],
+  plugins: const [GemmaAdapterPlugin()],  // or LlamaCppAdapterPlugin() for GGUF
 );
 ```
 

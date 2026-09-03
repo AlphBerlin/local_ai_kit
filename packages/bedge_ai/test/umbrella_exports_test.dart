@@ -5,11 +5,12 @@ void main() {
   test('umbrella exposes the facade and all adapter plugins', () {
     final plugins = <AdapterPlugin>[
       const GemmaAdapterPlugin(),
+      const LlamaCppAdapterPlugin(),
       const SherpaAdapterPlugin(),
       const GenkitAdapterPlugin(),
     ];
 
-    expect(plugins, hasLength(3));
+    expect(plugins, hasLength(4));
     expect(LocalAIConfig.offlineChat(), isA<LocalAIConfig>());
   });
 }
