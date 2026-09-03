@@ -1,0 +1,26 @@
+name: local_ai_llama_cpp
+description: >-
+  llama.cpp adapter for LocalAI Kit: runs any GGUF model as a LocalLlm
+  (streaming, GBNF-constrained structured output) and as a LocalEmbedding,
+  with all FFI work isolated in worker isolates.
+version: 0.0.2
+repository: https://github.com/AlphBerlin/local_ai_kit
+issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  local_ai_core: ^0.0.2
+  # Dart FFI bindings generated against llama.cpp's C API. Bindings only —
+  # the shared library itself is built/bundled per platform, see native/.
+  llama_cpp_dart: ^0.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

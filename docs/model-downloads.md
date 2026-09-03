@@ -15,10 +15,57 @@
 | `verify` | `Future<bool> verify(String modelId)` | Full sha256 re-verification of installed files. |
 | `downloadProgress` | `Stream<ModelDownloadProgress> downloadProgress(String modelId)` | Live progress (broadcast, multi-subscriber). |
 | `watchStatus` | `Stream<ModelStatus> watchStatus(String modelId)` | Status changes (broadcast). |
+| `registerExternalModel` | `Future<void> registerExternalModel(LocalModelManifest manifest, {required String localFilePath})` | Registers a file the app already has on disk as an installed model. No download, **no verification** — see below. |
 | `installVoice` | `Future<void> installVoice(String voiceId, {required String ttsModelId, DownloadPolicy policy})` | Installs a TTS voice into `voices/<voiceId>/`. |
 | `installPack` | `Future<void> installPack(String packId, {DownloadPolicy policy})` | `ensureInstalled` for every model of a `ModelPack`. |
 | `refreshCatalog` | `Future<void> refreshCatalog()` | Pulls the remote catalog and merges. |
 | `updatable` | `Set<String> get updatable` | Installed models with a newer catalog version available. |
+
+## Bring your own model file
+
+`registerExternalModel` is the entry point for a model whose files you
+already have: a GGUF the user picked from the file system, an enterprise MDM
+push, a build that side-loads weights. It is the only consumer of
+`ModelDelivery.external`.
+
+```dart
+await ai.models.registerExternalModel(
+  const LocalModelManifest(
+    id: 'my-local-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    delivery: ModelDelivery.external,   // required
+    files: [ModelFile(name: 'my.gguf', url: '', sha256: '', sizeBytes: 0)],
+  ),
+  localFilePath: pickedFile.path,
+);
+```
+
+What it does:
+
+- the manifest must declare `ModelDelivery.external`, and the file must
+  exist — otherwise `InvalidStateError`;
+- the file is **symlinked** into `models/<type>/<id>/<name>` so a
+  multi-gigabyte weight file is not duplicated. Windows, where symlinks need
+  elevation or developer mode, copies instead;
+- `installed.json` is written with `catalogVersion: 0` — the
+  "not catalog-tracked" sentinel — and the manifest is added to the merged
+  in-memory catalog and persisted, so `isInstalled`, `getStatus`, `catalog.get`
+  and adapter `load()` all treat it like a catalog model;
+- `remove` deletes the install directory (and the symlink) but never the
+  source file.
+
+Two behaviours differ from catalog-managed models, deliberately:
+
+| | Catalog model | External model |
+|---|---|---|
+| `verify` | full streamed sha256 of every file | existence check only — there is no trusted hash to compare against |
+| `update` | reinstalls when the catalog version is newer | no-op — there is no remote version |
+
+**Nothing is verified.** A corrupt or malicious file gets no integrity check
+at all; that is the trust model of `ModelDelivery.external` — the app or the
+user vouched for the file. If you accept files from users, do your own
+checks before calling this.
 
 ## Install state machine
 

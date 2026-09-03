@@ -20,7 +20,7 @@ void main(List<String> args) {
   var failures = 0;
   for (final entity in dir.listSync(recursive: true)) {
     if (entity is! File) continue;
-    if (!RegExp(r'\.(onnx|tflite|task|bin)$').hasMatch(entity.path)) continue;
+    if (!RegExp(r'\.(onnx|tflite|task|bin|gguf)$').hasMatch(entity.path)) continue;
     final sizeMB = entity.lengthSync() / (1024 * 1024);
     if (sizeMB >= thresholdMB) {
       stderr.writeln('FAIL: ${entity.path} is ${sizeMB.toStringAsFixed(1)}MB '

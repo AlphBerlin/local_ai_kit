@@ -19,6 +19,10 @@ const String kPlaceholderSha256 =
 abstract final class ModelProviders {
   static const String googleGemma = 'google-gemma';
   static const String sherpaCommunity = 'sherpa-community';
+
+  /// Any GGUF model run through llama.cpp (`local_ai_llama_cpp`), chat and
+  /// embedding alike.
+  static const String llamaCpp = 'llama-cpp';
 }
 
 /// Built-in model manifests.
@@ -732,6 +736,72 @@ abstract final class Models {
     ],
   );
 
+  // ---------------------------------------------------------------------------
+  // GGUF models (llama.cpp adapter, `local_ai_llama_cpp`)
+  // ---------------------------------------------------------------------------
+
+  /// Qwen 2.5 0.5B Instruct in GGUF, for the llama.cpp adapter.
+  static const LocalModelManifest qwen25_05bGguf = LocalModelManifest(
+    id: 'qwen-2.5-0.5b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Qwen 2.5 0.5B Instruct (GGUF)',
+    description:
+        'Small ChatML chat model in GGUF Q4_K_M, run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 1024,
+    languages: ['en', 'zh'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.multilingual,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'qwen2.5-0.5b-instruct-q4_k_m.gguf',
+        url:
+            'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 491000000,
+      ),
+    ],
+  );
+
+  /// Nomic Embed Text v1.5 in GGUF — the embedding counterpart of the
+  /// llama.cpp chat models. Supports Matryoshka truncation down to 64 dims
+  /// through `EmbeddingConfig.dimensions`.
+  static const LocalModelManifest nomicEmbedText = LocalModelManifest(
+    id: 'nomic-embed-text-v1.5-gguf',
+    type: ModelType.embedding,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Nomic Embed Text v1.5 (GGUF)',
+    description: '768-dimension text embeddings for on-device RAG '
+        '(Matryoshka-truncatable).',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 2048,
+    minMemoryMB: 512,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {ModelCapability.embedding},
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'nomic-embed-text-v1.5.Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 84110000,
+      ),
+    ],
+  );
+
   /// All built-in manifests, keyed by id.
   static const List<LocalModelManifest> all = [
     qwen35_08b,
@@ -752,6 +822,8 @@ abstract final class Models {
     vitsPiper,
     supertonic,
     kokoroTts,
+    qwen25_05bGguf,
+    nomicEmbedText,
   ];
 
   /// Lookup helper; returns `null` for unknown ids.

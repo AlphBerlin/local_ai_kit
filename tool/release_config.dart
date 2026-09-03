@@ -27,6 +27,11 @@ const releasePackages = <ReleasePackage>[
     usesFlutter: true,
   ),
   ReleasePackage(
+    name: 'local_ai_llama_cpp',
+    directory: 'packages/local_ai_llama_cpp',
+    usesFlutter: true,
+  ),
+  ReleasePackage(
     name: 'local_ai_sherpa',
     directory: 'packages/local_ai_sherpa',
     usesFlutter: true,

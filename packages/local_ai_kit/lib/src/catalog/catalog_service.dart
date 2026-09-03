@@ -111,6 +111,19 @@ class ModelCatalogService implements LocalModelCatalog {
     await _persistMerged();
   }
 
+  /// Adds (or replaces) [manifest] in the merged in-memory catalog and
+  /// persists it, so `get`/`list`/`isInstalled` see an app-supplied model
+  /// exactly like a catalog one.
+  ///
+  /// Used by `ModelManagerImpl.registerExternalModel` for bring-your-own
+  /// model files; a subsequent remote catalog refresh never removes it
+  /// (merge rule 3), but a remote entry with the same id and a higher
+  /// `catalogVersion` does replace it.
+  Future<void> registerManifest(LocalModelManifest manifest) async {
+    _merged = <String, LocalModelManifest>{..._merged, manifest.id: manifest};
+    await _persistMerged();
+  }
+
   @override
   Future<void> installPack(String packId) {
     throw UnsupportedError(
