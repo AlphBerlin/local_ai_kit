@@ -221,10 +221,12 @@ class _ModelsSheetState extends State<ModelsSheet> {
                     final isDownloading = progress != null;
 
                     return Card(
-                      elevation: isSelected ? 2 : 0,
+                      elevation: 0,
+                      color: theme.colorScheme.surfaceContainerLow,
+                      surfaceTintColor: Colors.transparent,
                       margin: const EdgeInsets.only(bottom: 8),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                         side: BorderSide(
                           color: isSelected
                               ? theme.colorScheme.primary
