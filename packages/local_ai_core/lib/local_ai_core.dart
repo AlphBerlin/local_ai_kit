@@ -42,6 +42,7 @@ export 'src/models/device_capabilities.dart';
 export 'src/models/local_model_manager.dart';
 export 'src/models/local_voice.dart';
 export 'src/models/manifest.dart';
+export 'src/models/model_compatibility.dart';
 export 'src/models/model_delivery.dart';
 export 'src/models/model_file.dart';
 export 'src/models/model_status.dart';
@@ -65,6 +66,7 @@ export 'src/registry/adapter_registry.dart';
 // Runtime
 export 'src/runtime/local_model_runtime.dart';
 export 'src/runtime/memory_policy.dart';
+export 'src/runtime/model_load_progress.dart';
 
 // STT
 export 'src/stt/local_stt.dart';

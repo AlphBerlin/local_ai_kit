@@ -1,6 +1,7 @@
 /// Top-level kit configuration with presets (architecture §4.3).
 library;
 
+import '../models/model_compatibility.dart';
 import '../models/model_delivery.dart';
 import '../runtime/memory_policy.dart';
 import 'component_configs.dart';
@@ -20,6 +21,9 @@ class LocalAIConfig {
     this.memoryPolicy = const RuntimeMemoryPolicy(),
     this.runtimePreference = RuntimePreference.auto,
     this.remoteCatalogUrl,
+    this.compatibilityPolicy = const ModelCompatibilityPolicy(),
+    this.compatibilityEnforcement = CompatibilityEnforcement.enforce,
+    this.warmUpOnInitialize = false,
   });
 
   /// Preset: small models, aggressive unloading, CPU-only. For low-RAM
@@ -79,6 +83,28 @@ class LocalAIConfig {
   /// Optional remote catalog endpoint (HTTPS JSON, architecture §5.5).
   final Uri? remoteCatalogUrl;
 
+  /// Thresholds used by `ModelCompatibilityChecker` before a download and
+  /// before a load.
+  final ModelCompatibilityPolicy compatibilityPolicy;
+
+  /// What a blocking compatibility issue does.
+  ///
+  /// [CompatibilityEnforcement.enforce] (the default) throws
+  /// `IncompatibleDeviceError` instead of starting a download the device
+  /// cannot use, or loading a model that cannot fit. Set
+  /// [CompatibilityEnforcement.warn] to keep the reports but never fail, or
+  /// [CompatibilityEnforcement.off] to skip probing entirely.
+  final CompatibilityEnforcement compatibilityEnforcement;
+
+  /// Load every configured model during `LocalAI.initialize` instead of on
+  /// first use.
+  ///
+  /// Trades a slower start for a first `generate`/`transcribe` that does
+  /// not block. `initialize` still returns as soon as wiring is done — the
+  /// warm-up runs in the background and its progress is observable through
+  /// `ai.runtime.loadProgress(modelId)`.
+  final bool warmUpOnInitialize;
+
   LocalAIConfig copyWith({
     LlmConfig? llm,
     VadConfig? vad,
@@ -89,6 +115,9 @@ class LocalAIConfig {
     RuntimeMemoryPolicy? memoryPolicy,
     RuntimePreference? runtimePreference,
     Uri? remoteCatalogUrl,
+    ModelCompatibilityPolicy? compatibilityPolicy,
+    CompatibilityEnforcement? compatibilityEnforcement,
+    bool? warmUpOnInitialize,
   }) {
     return LocalAIConfig(
       llm: llm ?? this.llm,
@@ -100,6 +129,10 @@ class LocalAIConfig {
       memoryPolicy: memoryPolicy ?? this.memoryPolicy,
       runtimePreference: runtimePreference ?? this.runtimePreference,
       remoteCatalogUrl: remoteCatalogUrl ?? this.remoteCatalogUrl,
+      compatibilityPolicy: compatibilityPolicy ?? this.compatibilityPolicy,
+      compatibilityEnforcement:
+          compatibilityEnforcement ?? this.compatibilityEnforcement,
+      warmUpOnInitialize: warmUpOnInitialize ?? this.warmUpOnInitialize,
     );
   }
 }

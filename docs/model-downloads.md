@@ -117,6 +117,12 @@ ai.models.watchStatus(Models.gemma3nE2b.id).listen((s) {
 
 Both streams are broadcast: multiple widgets may subscribe independently.
 
+`downloadProgress` is rate-limited to one event per 150 ms while downloading — a fast link delivers tens of thousands of socket chunks per second, and no display can show them. State changes and the final byte counts are always delivered unthrottled, so a progress bar still lands exactly on 100%.
+
+`bytesPerSecond` and `eta` measure only the bytes transferred in the current session. Resuming a download at 1.9 GB does not report a phantom gigabyte-per-second for its first seconds.
+
+Downloading is only the first wait. Loading the model afterwards is the second, and it needs its own UI — see [Runtime & Memory](runtime-memory.md#loading-phases-warm-up-and-pinning) for `ai.runtime.loadProgress(modelId)`.
+
 ## Wi-Fi only & DownloadPolicy
 
 ```dart
@@ -147,14 +153,35 @@ Install packs through `ai.models`, not `ai.catalog` — `ModelCatalogService.ins
 
 ## Compatibility checks
 
-Before offering a model for download, check it against the probed device:
+A model can be several gigabytes. Check the device **before** committing the user to that download, not after:
 
 ```dart
-final manifest = await ai.catalog.get(Models.gemma3nE2b.id);
-final report = await ai.runtime.checkCompatibility(manifest);
+final report = await ai.models.checkCompatibility(Models.gemma3nE2b.id);
 if (!report.isCompatible) {
-  print(report.summary); // e.g. memory or platform mismatch reasons
+  return showBlocked(report.summary);   // disk, RAM, platform, accelerator
 }
+if (report.hasWarnings) {
+  showAdvisory(report.warnings.map((i) => i.message));
+}
+await ai.models.ensureInstalled(Models.gemma3nE2b.id);
 ```
 
-`CompatibilityReport` carries `reasons`, `availableMemoryMB` and `requiredMemoryMB`; `ai.runtime.deviceCapabilities()` returns the raw `DeviceCapabilities` snapshot (RAM, free disk, platform, detected accelerators).
+`checkCompatibility` never throws for an incompatible model — it returns a report you can render. For a whole picker screen, `ai.models.compatible(type: ModelType.llm)` returns each catalog entry paired with its report, incompatible ones filtered out by default.
+
+The checks that gate a download:
+
+| Check | Blocks? | Against |
+|---|---|---|
+| `disk` | yes | download size × 1.2 versus free disk |
+| `totalMemory` | yes | `manifest.minMemoryMB` versus physical RAM |
+| `platform` | yes | `manifest.platforms` versus the device platform |
+| `accelerator` | yes for `requiredAccelerators` | detected accelerators |
+| `availableMemory` | warning | RAM free right now — transient, so it advises rather than blocks |
+| `contextWindow` | warning | configured `maxContextTokens` versus `manifest.contextLength` |
+| `unknown` | warning | a metric the probe could not read; the check is skipped, never guessed |
+
+A manifest that leaves `minMemoryMB` at its `0` default gets an estimate derived from the weight file size (`weights × 1.15 + 256MB`). Because it is an estimate it only ever warns — a heuristic over file sizes must not block a download. Turn it off with `ModelCompatibilityPolicy(estimateMemoryFromFileSize: false)`.
+
+`install` and `ensureInstalled` run the same check themselves and throw `IncompatibleDeviceError` — carrying the full report — before the first byte moves. See [Runtime & Memory](runtime-memory.md#device-capabilities--compatibility) for `compatibilityEnforcement` and the policy presets.
+
+`ai.runtime.deviceCapabilities()` returns the raw `DeviceCapabilities` snapshot (RAM, free disk, platform, detected accelerators) behind all of this.

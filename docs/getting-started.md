@@ -107,7 +107,7 @@ Key parameters of `LocalAI.initialize`:
 | `enableAudio` | `bool` | `true` | Creates the shared microphone/speaker stack. Set `false` for text-only apps. |
 | `paths` | `LocalStoragePaths?` | `FlutterStoragePaths.resolve()` | Override the storage layout (mainly for tests). |
 | `networkPolicy` | `NetworkPolicy?` | `FlutterNetworkPolicy()` | Override connectivity handling. |
-| `deviceProbe` | `Future<DeviceCapabilities> Function()?` | platform probe | Override device capability detection. |
+| `deviceProbe` | `Future<DeviceCapabilities> Function()?` | `FlutterDeviceProbe().probe` | Override device capability detection. Tests should always inject one, otherwise they assert against whatever host runs them. |
 
 Every component in `LocalAIConfig` is optional — a `null` component means its facade throws `InvalidStateError` on use, and its model is never downloaded.
 
@@ -128,7 +128,35 @@ ai.models.downloadProgress(modelId).listen((p) {
 await ai.models.ensureInstalled(modelId);
 ```
 
-See [Model Downloads](model-downloads.md) for Wi-Fi-only policies, resume semantics and error handling.
+Check the device before you offer the download — a model can be several gigabytes, and this is cheap:
+
+```dart
+final report = await ai.models.checkCompatibility(modelId);
+if (!report.isCompatible) {
+  return showBlocked(report.summary);   // disk, RAM, platform, accelerator
+}
+```
+
+`ensureInstalled` runs the same check and throws `IncompatibleDeviceError` on a blocking issue, so this is for building your UI rather than for safety.
+
+See [Model Downloads](model-downloads.md) for Wi-Fi-only policies, resume semantics, the full check table and error handling.
+
+Downloading is one wait; loading the model is a second one. Give it a loader too:
+
+```dart
+StreamBuilder<ModelLoadProgress>(
+  stream: ai.runtime.loadProgress(modelId),
+  builder: (context, snapshot) {
+    final p = snapshot.data;
+    if (p == null || p.phase == ModelLoadPhase.ready) return const ChatView();
+    // `fraction` is null on the very first load — nothing is known about
+    // how long it takes on this device yet.
+    return LinearProgressIndicator(value: p.fraction);
+  },
+);
+```
+
+Or load ahead of time with `await ai.warmUp()` / `LocalAIConfig(warmUpOnInitialize: true)`. See [Runtime & Memory](runtime-memory.md).
 
 ## 4. First generation
 

@@ -25,8 +25,16 @@ class ModelManagerImpl implements LocalModelManager {
     required NetworkPolicy networkPolicy,
     FreeDiskProbe? freeDiskProbe,
     HttpClient? httpClient,
+    Future<DeviceCapabilities> Function()? deviceProbe,
+    ModelCompatibilityPolicy compatibilityPolicy =
+        const ModelCompatibilityPolicy(),
+    CompatibilityEnforcement compatibilityEnforcement =
+        CompatibilityEnforcement.enforce,
   })  : _paths = paths,
         _catalog = catalog,
+        _deviceProbe = deviceProbe,
+        _compatibilityPolicy = compatibilityPolicy,
+        _compatibilityEnforcement = compatibilityEnforcement,
         _installer = ModelInstaller(paths: paths),
         _downloader = DownloadManager(
           paths: paths,
@@ -39,6 +47,9 @@ class ModelManagerImpl implements LocalModelManager {
   final ModelCatalogService _catalog;
   final ModelInstaller _installer;
   final DownloadManager _downloader;
+  final Future<DeviceCapabilities> Function()? _deviceProbe;
+  final ModelCompatibilityPolicy _compatibilityPolicy;
+  final CompatibilityEnforcement _compatibilityEnforcement;
 
   final Map<String, ModelStatus> _statuses = {};
   final Map<String, StreamController<ModelStatus>> _statusControllers = {};
@@ -50,6 +61,57 @@ class ModelManagerImpl implements LocalModelManager {
   /// Recovers from a previous crash (half-installed dirs) and warms the
   /// status cache. Called once by `LocalAI.initialize`.
   Future<void> initialize() => _installer.recoverFromCrash();
+
+  // ---------------------------------------------------------------------------
+  // Compatibility
+  // ---------------------------------------------------------------------------
+
+  /// Checks whether this device can run [modelId] — **before** committing
+  /// the user to a multi-gigabyte download.
+  ///
+  /// Covers free disk for the download itself, RAM against the manifest's
+  /// `minMemoryMB` (or an estimate from the file sizes when the manifest
+  /// does not declare one), the manifest's platform list and its required
+  /// accelerators. Never throws for an incompatible model — read
+  /// [CompatibilityReport.isCompatible] and
+  /// [CompatibilityReport.warnings] and decide what to show.
+  Future<CompatibilityReport> checkCompatibility(String modelId) async {
+    final manifest = await _catalog.get(modelId);
+    return checkManifestCompatibility(manifest);
+  }
+
+  /// [checkCompatibility] against an already-resolved manifest, so a
+  /// catalog listing can be filtered without one `get` per row.
+  Future<CompatibilityReport> checkManifestCompatibility(
+      LocalModelManifest manifest) async {
+    final probe = _deviceProbe;
+    if (probe == null) return const CompatibilityReport.compatible();
+    final DeviceCapabilities device;
+    try {
+      device = await probe();
+    } on Object {
+      // A failing probe must not block a download the device may well
+      // handle; the download manager still runs its own disk pre-flight.
+      return const CompatibilityReport.compatible();
+    }
+    return ModelCompatibilityChecker.check(
+      manifest: manifest,
+      device: device,
+      policy: _compatibilityPolicy,
+    );
+  }
+
+  /// Runs [checkCompatibility] and applies the enforcement policy.
+  Future<CompatibilityReport?> _gateCompatibility(
+      LocalModelManifest manifest) async {
+    if (_compatibilityEnforcement == CompatibilityEnforcement.off) return null;
+    final report = await checkManifestCompatibility(manifest);
+    if (!report.isCompatible &&
+        _compatibilityEnforcement == CompatibilityEnforcement.enforce) {
+      throw IncompatibleDeviceError(report);
+    }
+    return report;
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -100,8 +162,11 @@ class ModelManagerImpl implements LocalModelManager {
   Stream<ModelStatus> watchStatus(String modelId) {
     final controller = _statusControllers.putIfAbsent(
         modelId, () => StreamController<ModelStatus>.broadcast());
-    // Emit the current snapshot to new listeners.
-    getStatus(modelId).then(controller.add).catchError((Object _) {});
+    // Emit the current snapshot to new listeners. `getStatus` hits the
+    // disk, so the controller may already be closed by the time it lands.
+    getStatus(modelId).then((status) {
+      if (!controller.isClosed) controller.add(status);
+    }).catchError((Object _) {});
     return controller.stream;
   }
 
@@ -133,14 +198,29 @@ class ModelManagerImpl implements LocalModelManager {
     // Serialize concurrent installs of the same model behind one Future.
     final existing = _inflight[modelId];
     if (existing != null) return existing;
+    // Block body, not an arrow: `_inflight.remove` returns the removed
+    // `Future<void>` — this same future — and `whenComplete` waits on a
+    // Future returned by its callback, so the arrow form makes `install`
+    // wait on itself and never complete.
     final future = _installInternal(modelId, policy ?? const DownloadPolicy())
-        .whenComplete(() => _inflight.remove(modelId));
+        .whenComplete(() {
+      _inflight.remove(modelId);
+    });
     _inflight[modelId] = future;
     return future;
   }
 
   Future<void> _installInternal(String modelId, DownloadPolicy policy) async {
     final manifest = await _catalog.get(modelId);
+    // Pre-flight before a single byte moves: an incompatible device fails
+    // here, with a report the app can show, instead of after a 2GB
+    // download the model could never be loaded from.
+    try {
+      await _gateCompatibility(manifest);
+    } on LocalAIError catch (e) {
+      _setStatus(modelId, ModelInstallState.failed, error: e);
+      rethrow;
+    }
     final cancelToken = _cancelTokens[modelId] = CancelToken();
     try {
       _setStatus(modelId, ModelInstallState.queued);
@@ -149,7 +229,10 @@ class ModelManagerImpl implements LocalModelManager {
         policy: policy,
         cancelToken: cancelToken,
         onProgress: (progress) {
-          _progressControllers[modelId]?.add(progress);
+          final controller = _progressControllers[modelId];
+          if (controller != null && !controller.isClosed) {
+            controller.add(progress);
+          }
           _setStatus(modelId, progress.state, progress: progress);
         },
       );
@@ -268,7 +351,8 @@ class ModelManagerImpl implements LocalModelManager {
     }
 
     // catalogVersion 0 is the "not catalog-tracked" sentinel.
-    final marker = File('${target.path}${Platform.pathSeparator}installed.json');
+    final marker =
+        File('${target.path}${Platform.pathSeparator}installed.json');
     await marker.writeAsString(jsonEncode(<String, Object?>{
       'modelId': manifest.id,
       'catalogVersion': 0,
@@ -338,6 +422,25 @@ class ModelManagerImpl implements LocalModelManager {
 
   // ---------------------------------------------------------------------------
 
+  /// Closes the status/progress broadcast controllers and the HTTP
+  /// connection pool. Without this, every model ever watched kept a
+  /// `StreamController` alive for the process lifetime.
+  Future<void> dispose() async {
+    for (final token in _cancelTokens.values) {
+      token.cancel();
+    }
+    _cancelTokens.clear();
+    for (final controller in _statusControllers.values) {
+      await controller.close();
+    }
+    for (final controller in _progressControllers.values) {
+      await controller.close();
+    }
+    _statusControllers.clear();
+    _progressControllers.clear();
+    _downloader.dispose();
+  }
+
   void _setStatus(
     String modelId,
     ModelInstallState state, {
@@ -355,6 +458,7 @@ class ModelManagerImpl implements LocalModelManager {
           installedCatalogVersion ?? previous?.installedCatalogVersion,
     );
     _statuses[modelId] = status;
-    _statusControllers[modelId]?.add(status);
+    final controller = _statusControllers[modelId];
+    if (controller != null && !controller.isClosed) controller.add(status);
   }
 }

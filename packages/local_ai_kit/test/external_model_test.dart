@@ -86,8 +86,7 @@ void main() {
   test('the weight file is linked, not copied, on POSIX', () async {
     await manager.registerExternalModel(_manifest, localFilePath: source.path);
 
-    final installed =
-        '${paths.modelDir(ModelType.llm, 'byo-gguf')}/byo.gguf';
+    final installed = '${paths.modelDir(ModelType.llm, 'byo-gguf')}/byo.gguf';
     expect(FileSystemEntity.isLinkSync(installed), isTrue);
     expect(Link(installed).targetSync(), source.absolute.path);
     expect(File(installed).readAsStringSync(), 'GGUF weights, pretend.');
@@ -96,8 +95,8 @@ void main() {
   test('the marker records the not-catalog-tracked sentinel', () async {
     await manager.registerExternalModel(_manifest, localFilePath: source.path);
 
-    final marker = File(
-        '${paths.modelDir(ModelType.llm, 'byo-gguf')}/installed.json');
+    final marker =
+        File('${paths.modelDir(ModelType.llm, 'byo-gguf')}/installed.json');
     final json = jsonDecode(marker.readAsStringSync()) as Map<String, Object?>;
     expect(json['catalogVersion'], 0);
     expect(json['externalSource'], source.absolute.path);
@@ -138,8 +137,7 @@ void main() {
     await manager.registerExternalModel(_manifest,
         localFilePath: replacement.path);
 
-    final installed =
-        '${paths.modelDir(ModelType.llm, 'byo-gguf')}/byo.gguf';
+    final installed = '${paths.modelDir(ModelType.llm, 'byo-gguf')}/byo.gguf';
     expect(File(installed).readAsStringSync(), 'Different weights.');
   });
 
@@ -183,8 +181,7 @@ void main() {
     );
   });
 
-  test('remove deletes the install without touching the source file',
-      () async {
+  test('remove deletes the install without touching the source file', () async {
     await manager.registerExternalModel(_manifest, localFilePath: source.path);
     await manager.remove('byo-gguf');
 

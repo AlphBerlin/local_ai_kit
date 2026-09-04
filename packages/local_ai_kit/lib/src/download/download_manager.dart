@@ -36,12 +36,16 @@ class DownloadManager {
   })  : _paths = paths,
         _networkPolicy = networkPolicy,
         _freeDiskProbe = freeDiskProbe ?? _unknownFreeDisk,
+        _ownsClient = httpClient == null,
         _client = httpClient ?? HttpClient();
 
   final LocalStoragePaths _paths;
   final NetworkPolicy _networkPolicy;
   final FreeDiskProbe _freeDiskProbe;
   final HttpClient _client;
+
+  /// Only a client we created is ours to close in [dispose].
+  final bool _ownsClient;
 
   static const _backoffCap = Duration(seconds: 30);
   static const _flushEveryBytes = 4 * 1024 * 1024; // flush + meta every 4MB
@@ -141,7 +145,11 @@ class DownloadManager {
         info.verified = true;
         await meta.save(dir);
       }
-      if (meta.files.every((f) => f.verified)) return dir;
+      if (meta.files.every((f) => f.verified)) {
+        progress.currentFile = null;
+        progress.flush();
+        return dir;
+      }
     }
 
     final failed = meta.files.firstWhere((f) => !f.verified);
@@ -315,6 +323,9 @@ class DownloadManager {
     } finally {
       await sink.close();
       await meta.save(dir);
+      // The byte counts are final for this file; make sure they are seen
+      // even if the last chunk landed inside the throttle window.
+      progress.flush();
     }
   }
 
@@ -339,6 +350,12 @@ class DownloadManager {
     final digest = await sha256.bind(file.openRead()).first;
     return digest.toString();
   }
+
+  /// Releases the HTTP connection pool. Only closes a client this manager
+  /// created; an injected one stays the caller's to manage.
+  void dispose() {
+    if (_ownsClient) _client.close(force: true);
+  }
 }
 
 class _HttpStatusException implements Exception {
@@ -357,29 +374,74 @@ class _ContentRange {
 }
 
 /// Smoothed throughput / ETA computation + progress fan-out.
+///
+/// Two things this deliberately does not do:
+///  * it does not count bytes that were already on disk when the download
+///    resumed towards throughput. Dividing *total* received bytes by time
+///    spent *this session* reports a 900MB/s "download" the moment a
+///    resumed transfer starts, and an ETA to match.
+///  * it does not emit on every socket chunk. A 2GB download over a fast
+///    link delivers tens of thousands of chunks per second; forwarding
+///    each one to a `StreamBuilder` rebuilds the UI far more often than a
+///    display can show, for no extra information.
 class _ProgressTracker {
   _ProgressTracker(this.modelId, this.meta, this.onProgress)
-      : _startedAt = DateTime.now();
+      : _startedAt = DateTime.now(),
+        _baselineBytes = meta.receivedBytes;
+
+  /// Minimum wall time between two `downloading` progress events. State
+  /// changes always emit immediately, regardless of this.
+  static const _minEmitInterval = Duration(milliseconds: 150);
 
   final String modelId;
   final ResumeMeta meta;
   final void Function(ModelDownloadProgress progress)? onProgress;
   final DateTime _startedAt;
+
+  /// Bytes already on disk when this session started — excluded from the
+  /// throughput window so a resume does not report an absurd speed.
+  final int _baselineBytes;
+
   String? currentFile;
 
   ModelInstallState _state = ModelInstallState.downloading;
+  DateTime? _lastEmitAt;
 
-  void tick() => emit(_state);
+  /// Progress from a received chunk: rate-limited.
+  void tick() => _emit(_state, throttle: true);
 
-  void emit(ModelInstallState state) {
+  /// Progress from a state change: always delivered.
+  void emit(ModelInstallState state) => _emit(state, throttle: false);
+
+  /// Delivers the current byte counts regardless of the rate limit.
+  ///
+  /// Called when a file finishes and once more before `download` returns:
+  /// without it the throttle can swallow the last tick of a transfer and
+  /// leave a progress bar parked short of 100%.
+  void flush() => _emit(_state, throttle: false);
+
+  void _emit(ModelInstallState state, {required bool throttle}) {
+    final stateChanged = state != _state;
     _state = state;
     final emit = onProgress;
     if (emit == null) return;
-    final elapsed =
-        DateTime.now().difference(_startedAt).inMilliseconds / 1000.0;
+
+    final now = DateTime.now();
+    final lastEmitAt = _lastEmitAt;
+    if (throttle &&
+        !stateChanged &&
+        lastEmitAt != null &&
+        now.difference(lastEmitAt) < _minEmitInterval) {
+      return;
+    }
+    _lastEmitAt = now;
+
+    final elapsed = now.difference(_startedAt).inMilliseconds / 1000.0;
     final received = meta.receivedBytes;
     final total = meta.totalBytes;
-    final speed = elapsed > 0.05 ? (received / elapsed).round() : 0;
+    final transferred = received - _baselineBytes;
+    final speed =
+        elapsed > 0.05 && transferred > 0 ? (transferred / elapsed).round() : 0;
     final remaining = total - received;
     emit(ModelDownloadProgress(
       modelId: modelId,
@@ -387,7 +449,7 @@ class _ProgressTracker {
       receivedBytes: received,
       totalBytes: total,
       bytesPerSecond: speed,
-      eta: speed > 0
+      eta: speed > 0 && remaining > 0
           ? Duration(milliseconds: (remaining / speed * 1000).round())
           : null,
       currentFile: currentFile,

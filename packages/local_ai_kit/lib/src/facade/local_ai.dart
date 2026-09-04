@@ -41,6 +41,7 @@ class LocalAI {
     SkillRegistry? skills,
   })  : _registry = registry,
         _catalog = catalog,
+        _manager = manager,
         _scheduler = scheduler,
         _llmFacade = llmFacade,
         _sttFacade = sttFacade,
@@ -66,6 +67,7 @@ class LocalAI {
 
   final AdapterRegistry _registry;
   final ModelCatalogService _catalog;
+  final ModelManagerImpl _manager;
   final RuntimeScheduler _scheduler;
   final LocalLlmFacade _llmFacade;
   final LocalSttFacade _sttFacade;
@@ -233,6 +235,61 @@ class LocalAI {
   LocalPipeline pipeline() => LocalPipeline(this);
 
   // ---------------------------------------------------------------------------
+  // Warm-up
+  // ---------------------------------------------------------------------------
+
+  /// Model ids the current [config] wires up, in the order a voice session
+  /// needs them.
+  List<String> get configuredModelIds => <String>[
+        if (config.vad != null) config.vad!.modelId,
+        if (config.stt != null) config.stt!.modelId,
+        if (config.llm != null) config.llm!.modelId,
+        if (config.tts != null) config.tts!.modelId,
+        if (config.embedding != null) config.embedding!.modelId,
+      ];
+
+  /// Downloads (if needed) and loads models ahead of first use, so the
+  /// first `generate` / `transcribe` / `speak` returns without a
+  /// multi-second stall.
+  ///
+  /// Defaults to every model in [config]. Progress per model is observable
+  /// through `ai.runtime.loadProgress(modelId)` and
+  /// `ai.models.downloadProgress(modelId)`.
+  ///
+  /// A failure on one model does not abort the rest: the returned map holds
+  /// `null` for each model that is ready and the thrown error for each one
+  /// that is not, so a caller can warm four models and surface only the one
+  /// that failed.
+  Future<Map<String, Object?>> warmUp({
+    List<String>? modelIds,
+    bool download = true,
+  }) async {
+    final ids = modelIds ?? configuredModelIds;
+    final results = <String, Object?>{};
+    for (final id in ids) {
+      try {
+        if (download) await models.ensureInstalled(id);
+        await _scheduler.loadModel(id);
+        results[id] = null;
+      } on Object catch (e) {
+        results[id] = e;
+      }
+    }
+    return results;
+  }
+
+  /// Keeps [modelId] resident: never evicted by the LRU policy, the idle
+  /// sweep or a background trim.
+  ///
+  /// The right call for the one model an app uses constantly (the chat
+  /// LLM) when a voice session keeps loading and unloading around it.
+  void pinModel(String modelId) => _scheduler.setPinned(modelId, pinned: true);
+
+  /// Releases a [pinModel] pin; the model becomes evictable again.
+  void unpinModel(String modelId) =>
+      _scheduler.setPinned(modelId, pinned: false);
+
+  // ---------------------------------------------------------------------------
   // Wiring
   // ---------------------------------------------------------------------------
 
@@ -251,6 +308,14 @@ class LocalAI {
     final resolvedPaths = paths ?? await FlutterStoragePaths.resolve();
     await resolvedPaths.ensureInitialized();
     final resolvedNetwork = networkPolicy ?? FlutterNetworkPolicy();
+
+    // The kit ships a real device probe; before this it was only used when
+    // an app happened to pass one, which quietly turned every compatibility
+    // check into "compatible" and every disk pre-flight into a no-op.
+    final defaultProbe = FlutterDeviceProbe();
+    final resolvedDeviceProbe = deviceProbe ?? defaultProbe.probe;
+    final resolvedFreeDiskProbe = freeDiskProbe ??
+        (String _) async => (await resolvedDeviceProbe()).freeDiskMB;
 
     // Audio stack (microphone + speaker) is created lazily-early here so
     // adapters receive shared instances in their AdapterContext.
@@ -280,7 +345,10 @@ class LocalAI {
       paths: resolvedPaths,
       catalog: catalog,
       networkPolicy: resolvedNetwork,
-      freeDiskProbe: freeDiskProbe,
+      freeDiskProbe: resolvedFreeDiskProbe,
+      deviceProbe: resolvedDeviceProbe,
+      compatibilityPolicy: config.compatibilityPolicy,
+      compatibilityEnforcement: config.compatibilityEnforcement,
     );
     await manager.initialize();
 
@@ -288,7 +356,9 @@ class LocalAI {
       catalog: catalog,
       registry: registry,
       policy: config.memoryPolicy,
-      deviceProbe: deviceProbe,
+      deviceProbe: resolvedDeviceProbe,
+      compatibilityPolicy: config.compatibilityPolicy,
+      compatibilityEnforcement: config.compatibilityEnforcement,
       loadOptionsFor: (manifest) => switch (manifest.type) {
         ModelType.llm when config.llm != null => LlmLoadOptions(
             modelId: manifest.id,
@@ -365,12 +435,19 @@ class LocalAI {
       voiceFactory: voiceFactory,
       audioSource: audioSource,
       audioOutput: audioOutput,
-      skills: mcpPlugins != null
-          ? SkillRegistry(initialPlugins: mcpPlugins)
-          : null,
+      skills:
+          mcpPlugins != null ? SkillRegistry(initialPlugins: mcpPlugins) : null,
     );
     ai._lifecycle = lifecycle;
     ai._lifecycleSub = lifecycleSub;
+
+    if (config.warmUpOnInitialize) {
+      // Deliberately not awaited: `initialize` stays fast and the app can
+      // render while the models load. Progress is on
+      // `ai.runtime.loadProgress(id)`; failures surface there and on the
+      // first real call, so nothing is swallowed silently.
+      unawaited(ai.warmUp());
+    }
     return ai;
   }
 
@@ -385,12 +462,13 @@ class LocalAI {
   AppLifecycleObserver? _lifecycle;
   StreamSubscription<AppLifecyclePhase>? _lifecycleSub;
 
-  /// Releases runtime, audio and lifecycle resources.
+  /// Releases runtime, download, audio and lifecycle resources.
   Future<void> dispose() async {
     await _lifecycleSub?.cancel();
     _lifecycle?.dispose();
     await _audioSource?.stop();
     await _audioOutput?.stop();
     await _scheduler.dispose();
+    await _manager.dispose();
   }
 }
