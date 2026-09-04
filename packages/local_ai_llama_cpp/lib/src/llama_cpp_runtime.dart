@@ -52,7 +52,63 @@ abstract final class LlamaCppRuntime {
         'android' => 'libmtmd.so',
         'linux' => 'libmtmd.so',
         'windows' => 'mtmd.dll',
-        'ios' || 'macos' => null,
+        'macos' => _resolveMacosLibrary(),
+        'ios' => null,
         _ => null,
       };
+
+  static String? _resolveMacosLibrary() {
+    // 1. Explicit environment variable
+    final envPath = Platform.environment['LLAMA_CPP_LIB_PATH'];
+    if (envPath != null && envPath.isNotEmpty && File(envPath).existsSync()) {
+      return envPath;
+    }
+
+    // 2. App bundle Frameworks directory (e.g. Flutter macOS app)
+    try {
+      final exe = File(Platform.resolvedExecutable);
+      final frameworks = Directory('${exe.parent.parent.path}/Frameworks');
+      if (frameworks.existsSync()) {
+        final mtmd = File('${frameworks.path}/libmtmd.dylib');
+        if (mtmd.existsSync()) return mtmd.path;
+        final llama = File('${frameworks.path}/libllama.dylib');
+        if (llama.existsSync()) return llama.path;
+      }
+    } catch (_) {}
+
+    // 3. Prebuilt binaries shipped with llama_cpp_dart in pub-cache
+    try {
+      final home = Platform.environment['HOME'];
+      final pubCache = Platform.environment['PUB_CACHE'] ??
+          (home != null ? '$home/.pub-cache' : null);
+      if (pubCache != null) {
+        final hostedDir = Directory('$pubCache/hosted/pub.dev');
+        if (hostedDir.existsSync()) {
+          final entries = hostedDir
+              .listSync()
+              .whereType<Directory>()
+              .where((d) => d.path.contains('llama_cpp_dart'))
+              .toList();
+          for (final entry in entries) {
+            final mtmd = File('${entry.path}/bin/MAC_ARM64/libmtmd.dylib');
+            if (mtmd.existsSync()) return mtmd.path;
+            final llama = File('${entry.path}/bin/MAC_ARM64/libllama.dylib');
+            if (llama.existsSync()) return llama.path;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 4. Common Homebrew or system installs
+    for (final candidate in [
+      '/opt/homebrew/lib/libllama.dylib',
+      '/usr/local/lib/libllama.dylib',
+    ]) {
+      try {
+        if (File(candidate).existsSync()) return candidate;
+      } catch (_) {}
+    }
+
+    return 'libmtmd.dylib';
+  }
 }

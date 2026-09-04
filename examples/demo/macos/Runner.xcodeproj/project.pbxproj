@@ -349,7 +349,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "echo \"$PRODUCT_NAME.app\" > \"$PROJECT_DIR\"/Flutter/ephemeral/.app_filename && \"$FLUTTER_ROOT\"/packages/flutter_tools/bin/macos_assemble.sh embed\nif [ -d \"$HOME/Library/Caches/flutter_gemma/native/macos_arm64\" ]; then\n  cp -f \"$HOME\"/Library/Caches/flutter_gemma/native/macos_arm64/*.dylib \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/\" 2>/dev/null || true\n  codesign --force --sign - \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"/*.dylib 2>/dev/null || true\nfi\n";
+			shellScript = "echo \"$PRODUCT_NAME.app\" > \"$PROJECT_DIR\"/Flutter/ephemeral/.app_filename && \"$FLUTTER_ROOT\"/packages/flutter_tools/bin/macos_assemble.sh embed\nif [ -d \"$HOME/Library/Caches/flutter_gemma/native/macos_arm64\" ]; then\n  cp -f \"$HOME\"/Library/Caches/flutter_gemma/native/macos_arm64/*.dylib \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/\" 2>/dev/null || true\n  codesign --force --sign - \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"/*.dylib 2>/dev/null || true\nfi\nPUB_CACHE_DIR=\"${PUB_CACHE:-$HOME/.pub-cache}\"\nLLAMA_DART_DIR=$(find \"$PUB_CACHE_DIR/hosted/pub.dev\" -maxdepth 1 -name \"llama_cpp_dart*\" 2>/dev/null | sort -V | tail -n 1)\nif [ -n \"$LLAMA_DART_DIR\" ] && [ -d \"$LLAMA_DART_DIR/bin/MAC_ARM64\" ]; then\n  cp -f \"$LLAMA_DART_DIR/bin/MAC_ARM64\"/*.dylib \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/\" 2>/dev/null || true\n  codesign --force --sign - \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"/libllama*.dylib \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"/libmtmd*.dylib \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"/libggml*.dylib 2>/dev/null || true\nfi\n";
 		};
 		33CC111E2044C6BF0003C045 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
