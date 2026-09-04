@@ -114,25 +114,141 @@ class LocalAIDemoApp extends StatelessWidget {
   final bool useMock;
   final List<AdapterPlugin>? plugins;
 
+  static const _seedColor = Color(0xFF6C5CE7);
+
+  static ThemeData _buildTheme(Brightness brightness) {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: _seedColor,
+      brightness: brightness,
+    );
+    final base = ThemeData(colorScheme: colorScheme, useMaterial3: true);
+
+    return base.copyWith(
+      scaffoldBackgroundColor: colorScheme.surface,
+      splashFactory: InkSparkle.splashFactory,
+      textTheme: base.textTheme.copyWith(
+        titleLarge: base.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
+        titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.35),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
+          color: colorScheme.onSurface,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: colorScheme.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(100),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        selectedColor: colorScheme.secondaryContainer,
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surfaceContainerLow,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: colorScheme.primary,
+        linearTrackColor: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      dividerTheme: DividerThemeData(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+        space: 1,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: colorScheme.inverseSurface.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        textStyle: TextStyle(color: colorScheme.onInverseSurface, fontSize: 12),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'LocalAI Kit Demo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD0BCFF),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
       themeMode: ThemeMode.system,
       home: DemoHomePage(useMock: useMock, plugins: plugins),
     );
@@ -1095,28 +1211,106 @@ class _DemoHomePageState extends State<DemoHomePage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        toolbarHeight: 64,
+        title: Row(
           children: [
-            Icon(Icons.hub_outlined, color: Colors.deepPurpleAccent),
-            SizedBox(width: 8),
-            Text('LocalAI Kit', style: TextStyle(fontWeight: FontWeight.bold)),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.tertiary,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.hub_rounded,
+                  color: Colors.white, size: 19),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('LocalAI Kit'),
+                Text(
+                  'On-device AI, running locally',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(
-                icon: Icon(Icons.chat_bubble_outline),
-                text: 'Text Generation (LLM)'),
-            Tab(icon: Icon(Icons.volume_up), text: 'Text-to-Speech (TTS)'),
-            Tab(
-                icon: Icon(Icons.record_voice_over),
-                text: 'Speech-to-Text (STT)'),
-            Tab(icon: Icon(Icons.mic), text: 'Voice Assistant'),
-            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Model Catalog'),
-            Tab(icon: Icon(Icons.terminal), text: 'Live Logs'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              splashBorderRadius: BorderRadius.circular(100),
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              indicatorPadding: const EdgeInsets.symmetric(vertical: 4),
+              labelColor: theme.colorScheme.onPrimaryContainer,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 13),
+              unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500, fontSize: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tabs: const [
+                Tab(
+                  height: 40,
+                  icon: Icon(Icons.chat_bubble_outline, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Text Generation',
+                ),
+                Tab(
+                  height: 40,
+                  icon: Icon(Icons.volume_up_outlined, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Text-to-Speech',
+                ),
+                Tab(
+                  height: 40,
+                  icon: Icon(Icons.record_voice_over_outlined, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Speech-to-Text',
+                ),
+                Tab(
+                  height: 40,
+                  icon: Icon(Icons.mic_none_rounded, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Voice Assistant',
+                ),
+                Tab(
+                  height: 40,
+                  icon: Icon(Icons.inventory_2_outlined, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Model Catalog',
+                ),
+                Tab(
+                  height: 40,
+                  icon: Icon(Icons.terminal_rounded, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Live Logs',
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -1144,14 +1338,21 @@ class _DemoHomePageState extends State<DemoHomePage>
         children: [
           // LLM Dropdown Selector
           Card(
-            elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.5),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.psychology, size: 22),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.psychology_outlined,
+                        size: 18, color: theme.colorScheme.onPrimaryContainer),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: DropdownButtonHideUnderline(
@@ -1175,12 +1376,18 @@ class _DemoHomePageState extends State<DemoHomePage>
 
           // Status & Download Banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: _status.startsWith('Error')
                   ? theme.colorScheme.errorContainer
                   : theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: (_status.startsWith('Error')
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.outlineVariant)
+                    .withValues(alpha: 0.3),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1483,20 +1690,35 @@ class _DemoHomePageState extends State<DemoHomePage>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: theme.colorScheme.outlineVariant),
             ),
             child: _outputText.isEmpty && _lastToolCalls.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text(
-                        _isLlmDownloading
-                            ? 'Model is downloading… Output will appear once download completes.'
-                            : 'AI response output will stream here…',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isLlmDownloading
+                                ? Icons.downloading_outlined
+                                : Icons.auto_awesome_outlined,
+                            size: 28,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _isLlmDownloading
+                                ? 'Model is downloading… Output will appear once download completes.'
+                                : 'AI response output will stream here…',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -1510,7 +1732,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                           decoration: BoxDecoration(
                             color: theme.colorScheme.secondaryContainer
                                 .withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: theme.colorScheme.secondary
                                   .withValues(alpha: 0.3),
@@ -1613,8 +1835,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -1622,8 +1842,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.volume_up,
-                          color: Colors.deepPurpleAccent),
+                      Icon(Icons.volume_up, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text('Text-to-Speech Model & Parameters',
                           style: theme.textTheme.titleMedium
@@ -1663,7 +1882,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                       color: isTtsInstalled
                           ? Colors.green.withValues(alpha: 0.1)
                           : Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                           color: isTtsInstalled
                               ? Colors.green.withValues(alpha: 0.3)
@@ -1723,7 +1942,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                             labelText: 'Spoken Language',
                             prefixIcon: const Icon(Icons.language, size: 20),
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                                borderRadius: BorderRadius.circular(16)),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                           ),
@@ -1891,7 +2110,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                                 prefixIcon: const Icon(Icons.record_voice_over,
                                     size: 20),
                                 border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8)),
+                                    borderRadius: BorderRadius.circular(16)),
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                               ),
@@ -2129,7 +2348,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: _isTtsPlaying
-                              ? Colors.deepPurpleAccent
+                              ? theme.colorScheme.primary
                               : theme.colorScheme.primaryContainer,
                         ),
                         child: Icon(
@@ -2175,7 +2394,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest
                           .withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -2193,8 +2412,9 @@ class _DemoHomePageState extends State<DemoHomePage>
                           decoration: BoxDecoration(
                             color: _isTtsPlaying
                                 ? (index / 28 <= _ttsPlaybackProgress
-                                    ? Colors.deepPurpleAccent
-                                    : Colors.deepPurple.shade200)
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.primary
+                                        .withValues(alpha: 0.3))
                                 : theme.colorScheme.outlineVariant,
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -2209,11 +2429,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                     value:
                         _ttsPlaybackProgress > 0 ? _ttsPlaybackProgress : 0.0,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _isTtsPlaying
-                          ? Colors.deepPurpleAccent
-                          : theme.colorScheme.primary,
-                    ),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                   ),
                   const SizedBox(height: 12),
 
@@ -2237,21 +2454,24 @@ class _DemoHomePageState extends State<DemoHomePage>
   }
 
   Widget _buildStatChip(String label, String value) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.deepPurpleAccent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10, color: theme.colorScheme.onSurfaceVariant)),
           Text(value,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurpleAccent)),
+                  color: theme.colorScheme.primary)),
         ],
       ),
     );
@@ -2273,8 +2493,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2282,8 +2500,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.record_voice_over,
-                          color: Colors.deepPurpleAccent),
+                      Icon(Icons.record_voice_over,
+                          color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text('STT Model & Microphone',
                           style: theme.textTheme.titleMedium
@@ -2311,7 +2529,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                       color: isSttInstalled
                           ? Colors.green.withValues(alpha: 0.1)
                           : Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                           color: isSttInstalled
                               ? Colors.green.withValues(alpha: 0.3)
@@ -2400,10 +2618,6 @@ class _DemoHomePageState extends State<DemoHomePage>
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2499,8 +2713,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2508,8 +2720,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.settings_voice,
-                          color: Colors.deepPurpleAccent),
+                      Icon(Icons.settings_voice,
+                          color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text('Voice Pipeline Configuration',
                           style: theme.textTheme.titleMedium
@@ -2741,10 +2953,6 @@ class _DemoHomePageState extends State<DemoHomePage>
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2778,8 +2986,8 @@ class _DemoHomePageState extends State<DemoHomePage>
                   const Divider(height: 24),
                   Row(
                     children: [
-                      const Icon(Icons.volume_up,
-                          size: 18, color: Colors.deepPurpleAccent),
+                      Icon(Icons.volume_up,
+                          size: 18, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text('Assistant Spoken Response',
                           style: theme.textTheme.titleSmall
@@ -2957,7 +3165,7 @@ class _DemoHomePageState extends State<DemoHomePage>
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: Padding(

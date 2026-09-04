@@ -1,17 +1,35 @@
-# local_ai_kit_example
+# LocalAI Kit — Demo App
 
-A new Flutter project.
+Interactive Flutter demo for [LocalAI Kit](https://github.com/AlphBerlin/local_ai_kit),
+exercising every capability behind the `LocalAI` facade on a Material 3 UI
+that adapts to light and dark mode. See `lib/main.dart` for the full source.
 
-## Getting Started
+## What's inside
 
-This project is a starting point for a Flutter application.
+- **Text Generation (LLM)** — streaming chat against SmolLM2, Qwen 2.5/3.5,
+  DeepSeek R1 or Gemma 3n/4, with optional MCP skills (calculator, device
+  clock, device info, mock weather) and an optional Genkit orchestration
+  layer.
+- **Text-to-Speech (TTS)** — Supertonic, Kokoro or Piper synthesis with
+  speed/pitch controls, a live waveform, and an audio player.
+- **Speech-to-Text (STT)** — microphone capture with live partial
+  hypotheses and a final transcript.
+- **Voice Assistant** — a full-duplex Mic → VAD → STT → LLM → TTS session
+  with barge-in.
+- **Model Catalog** — browse, install, and remove every model in the
+  built-in catalog with live download progress.
+- **Live Logs** — a searchable, filterable stream of everything the app is
+  doing under the hood.
 
-A few resources to get you started if this is your first Flutter project:
+## Getting started
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```sh
+cd examples/demo
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This is a Flutter project; see the
+[online documentation](https://docs.flutter.dev/) for general Flutter
+setup help. For LocalAI Kit itself, start with the
+[root README](../../README.md) and [docs/getting-started.md](../../docs/getting-started.md).

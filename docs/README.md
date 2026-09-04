@@ -49,7 +49,8 @@ local_ai_kit/                       (melos workspace)
 │   │                               pipeline DSL, config presets.
 │   └── bedge_ai/                   One-dependency umbrella re-exporting the
 │                                   facade, platform layer and all adapters.
-└── example/                        Minimal demo app (chat + voice).
+└── examples/demo/                  Demo app: LLM chat, TTS, STT, voice
+                                   assistant, model catalog, live logs.
 ```
 
 Dependency rule: everyone depends on `local_ai_core`; only adapter packages touch their native SDKs; `local_ai_kit` never imports an adapter.

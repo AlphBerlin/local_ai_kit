@@ -84,7 +84,8 @@ local_ai_kit/                       (melos workspace)
 │                                   pipeline DSL, config presets.
 │   ├── bedge_ai/                    One-dependency umbrella re-exporting the
 │                                   facade, platform layer and all adapters.
-└── example/                        Minimal demo app (chat + voice).
+└── examples/demo/                  Demo app: LLM chat, TTS, STT, voice
+                                   assistant, model catalog, live logs.
 ```
 
 Dependency rule: everyone depends on `local_ai_core`; only adapter packages
@@ -162,7 +163,10 @@ Pipeline presets: `LocalPipeline.presets.textChat(ai)` /
   memory strategies): `docs-internal/architecture.md`
 - [Releasing to pub.dev](docs/releasing.md) — first publication and tagged
   releases for all eight packages.
-- See `example/lib/main.dart` for a complete minimal app.
+- See `examples/demo/lib/main.dart` for a complete app: LLM chat with MCP
+  skills/Genkit orchestration, TTS, STT, a full-duplex voice assistant with
+  barge-in, a model catalog/download manager, and live logs — all on a
+  Material 3 UI that adapts to light and dark mode.
 
 ## Development
 
