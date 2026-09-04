@@ -31,7 +31,7 @@ import 'prompt_plan.dart';
 ///
 /// Every llama.cpp call happens in a worker isolate ([LlamaWorker]); no
 /// `llama_cpp_dart` type appears in this class's API.
-class LlamaCppLlmAdapter implements LocalLlm {
+class LlamaCppLlmAdapter with StructuredOutputSupport implements LocalLlm {
   LlamaCppLlmAdapter({required LocalStoragePaths paths}) : _paths = paths;
 
   /// Registered provider key (matches `ModelProviders.llamaCpp`).

@@ -58,6 +58,7 @@ await LocalAI.initialize(
     GemmaAdapterPlugin(),     // provider 'google-gemma'      → LocalLlm
     LlamaCppAdapterPlugin(),  // provider 'llama-cpp'         → LocalLlm + LocalEmbedding
     SherpaAdapterPlugin(),    // provider 'sherpa-community'  → VAD + STT + TTS
+    GenkitAdapterPlugin(),    // wraps registered LLMs        → Genkit orchestration
   ],
 );
 ```
@@ -218,11 +219,12 @@ Four limits worth knowing before you build on it:
    cache, so it is much cheaper than a cold load, but interleaving
    `generateStructured` with chat turns pays it on every switch.
 4. **Chat templates are inferred from the model id / file name**, not read
-   from GGUF metadata (`llama_cpp_dart` does not expose
-   `llama_model_chat_template`). `ChatTemplate.detect` handles ChatML,
-   Gemma, Llama 3, Mistral and Phi; anything unrecognised falls back to a
-   plain `User:`/`Assistant:` format, which a chat-tuned model will follow
-   less reliably than its own template.
+    from GGUF metadata (`llama_cpp_dart` does not expose
+    `llama_model_chat_template`). `ChatTemplate.detect` handles ChatML
+    (Qwen, SmolLM2, LFM2.5, DeepSeek R1), Gemma, Llama 3, Mistral/Ministral,
+    and Phi; anything unrecognised falls back to a plain `User:`/`Assistant:`
+    format, which a chat-tuned model will follow less reliably than its own
+    template.
 
 ### 3. `SherpaTtsAdapter` / `SherpaSttAdapter` / `SherpaVadAdapter` (`local_ai_sherpa`) — implementation notice
 

@@ -26,7 +26,7 @@ Computed helpers: `totalSizeBytes`, `totalSizeMB`. Serialization: `toJson()` / `
 
 ## Built-in catalog (`Models`)
 
-`Models` is the always-available offline fallback. Well-known provider keys live in `ModelProviders` (`googleGemma`, `sherpaCommunity`).
+`Models` is the always-available offline fallback. Well-known provider keys live in `ModelProviders` (`googleGemma`, `sherpaCommunity`, `llamaCpp`).
 
 | Constant | id | Type | Delivery | Notes |
 |---|---|---|---|---|
@@ -39,6 +39,17 @@ Computed helpers: `totalSizeBytes`, `totalSizeMB`. Serialization: `toJson()` / `
 | `Models.gemma4E2b` | `gemma-4-e2b-it` | LLM | `download` | Gemma 4 E2B IT (LiteRT-LM), 8k context, ~2.59 GB. |
 | `Models.gemma4E4b` | `gemma-4-e4b-it` | LLM | `download` | Gemma 4 E4B IT (LiteRT-LM), 8k context, ~3.66 GB. |
 | `Models.gemma3nE2b` | `gemma-3n-e2b-it-int4` | LLM | `download` | Gemma 3n E2B IT (LiteRT-LM), 32k context, ~2.59 GB. |
+| `Models.qwen25_05bGguf` | `qwen-2.5-0.5b-instruct-gguf` | LLM (GGUF) | `download` | Qwen 2.5 0.5B Instruct (GGUF Q4_K_M), 32k context, ~491 MB via llama.cpp. |
+| `Models.llama32_1bGguf` | `llama-3.2-1b-instruct-gguf` | LLM (GGUF) | `download` | Meta Llama 3.2 1B Instruct (GGUF Q4_K_M), 8k context, ~808 MB via llama.cpp. |
+| `Models.smollm2_360mGguf` | `smollm2-360m-instruct-gguf` | LLM (GGUF) | `download` | SmolLM2 360M Instruct (GGUF Q4_K_M), 2k context, ~229 MB via llama.cpp. |
+| `Models.lfm25_12bJp` | `lfm2.5-1.2b-jp-gguf` | LLM (GGUF) | `download` | Liquid AI LFM2.5 1.2B JP (GGUF Q4_K_M), 32k context, 731 MB — Japanese dialogue. |
+| `Models.qwen35_08bGguf` | `qwen-3.5-0.8b-instruct-gguf` | LLM (GGUF) | `download` | Qwen 3.5 0.8B Instruct (GGUF Q4_K_M), 32k context, 563 MB — ultra-small general model. |
+| `Models.lfm25_12bInstruct` | `lfm2.5-1.2b-instruct-gguf` | LLM (GGUF) | `download` | Liquid AI LFM2.5 1.2B Instruct (GGUF Q4_K_M), 32k context, 731 MB — general edge assistant. |
+| `Models.lfm25_26b` | `lfm2.5-2.6b-gguf` | LLM (GGUF) | `download` | Liquid AI LFM2.5 2.6B (GGUF Q4_K_M), 32k context, 1.67 GB — balanced edge model. |
+| `Models.qwen35_4bGguf` | `qwen-3.5-4b-instruct-gguf` | LLM (GGUF) | `download` | Qwen 3.5 4B Instruct (GGUF Q4_K_M), 32k context, 2.71 GB — best small general/multilingual. |
+| `Models.ministral3_3b` | `ministral-3-3b-instruct-gguf` | LLM (GGUF) | `download` | Ministral 3 3B Instruct (GGUF Q4_K_M), 32k context, ~2.05 GB — general instruction. |
+| `Models.lfm25_8bA1b` | `lfm2.5-8b-a1b-gguf` | LLM (GGUF) | `download` | Liquid AI LFM2.5 8B A1B (GGUF Q4_K_M), 32k context, 5.16 GB — MoE speed for desktop/laptop. |
+| `Models.nomicEmbedText` | `nomic-embed-text-v1.5-gguf` | Embedding | `download` | Nomic Embed Text v1.5 (GGUF Q4_K_M), 2k context, ~84 MB — 768-dim embeddings for RAG. |
 | `Models.sileroVad` | `silero-vad` | VAD | `bundledIfSmall` | Silero VAD, ~0.6 MB — bundled under the smart policy. |
 | `Models.senseVoiceSmall` | `sherpa-onnx-sense-voice-zh-en-ja-ko-yue` | STT | `download` | SenseVoice Small multilingual ASR (zh/en/ja/ko/yue), ~234 MB + tokens. |
 | `Models.zipformerSmall` | `sherpa-onnx-streaming-zipformer-en-20m` | STT | `download` | Fast streaming English Zipformer ASR, ~70 MB. |

@@ -54,7 +54,10 @@ abstract final class ChatTemplate {
         has('tulu-3')) {
       return LlamaChatFormat.llama3;
     }
-    if (has('mistral') || has('mixtral') || has('zephyr')) {
+    if (has('mistral') ||
+        has('ministral') ||
+        has('mixtral') ||
+        has('zephyr')) {
       return LlamaChatFormat.mistral;
     }
     if (has('phi-3') || has('phi3') || has('phi-4') || has('phi4')) {
@@ -66,6 +69,7 @@ abstract final class ChatTemplate {
         has('yi-') ||
         has('hermes') ||
         has('olmo') ||
+        has('lfm') ||
         has('instruct') ||
         has('-it-') ||
         has('chat')) {

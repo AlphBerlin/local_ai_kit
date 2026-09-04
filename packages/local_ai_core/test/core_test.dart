@@ -72,6 +72,7 @@ void main() {
         delivery: ModelDelivery.download,
       ));
       expect(llm, isA<FakeLlm>());
+      expect(registry.registeredLlmProviders, contains('fake'));
       expect(
         () => registry.resolveStt(const LocalModelManifest(
           id: 'm2',

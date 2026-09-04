@@ -213,5 +213,77 @@ void main() {
       expect(qwen4.id, 'qwen-3.5-4b-instruct');
       expect(qwen4.files.first.url, contains('Qwen3.5-4B_int8.litertlm'));
     });
+
+    test('llama.cpp GGUF manifests exist and have valid configuration', () {
+      final qwenGguf = Models.qwen25_05bGguf;
+      expect(qwenGguf.id, 'qwen-2.5-0.5b-instruct-gguf');
+      expect(qwenGguf.type, ModelType.llm);
+      expect(qwenGguf.provider, ModelProviders.llamaCpp);
+      expect(qwenGguf.quantization, 'q4_k_m');
+      expect(qwenGguf.files.single.name, endsWith('.gguf'));
+
+      final llamaGguf = Models.llama32_1bGguf;
+      expect(llamaGguf.id, 'llama-3.2-1b-instruct-gguf');
+      expect(llamaGguf.type, ModelType.llm);
+      expect(llamaGguf.provider, ModelProviders.llamaCpp);
+      expect(llamaGguf.quantization, 'q4_k_m');
+      expect(llamaGguf.files.single.name, endsWith('.gguf'));
+      expect(llamaGguf.files.single.url, contains('Llama-3.2-1B-Instruct'));
+
+      final smolGguf = Models.smollm2_360mGguf;
+      expect(smolGguf.id, 'smollm2-360m-instruct-gguf');
+      expect(smolGguf.type, ModelType.llm);
+      expect(smolGguf.provider, ModelProviders.llamaCpp);
+      expect(smolGguf.quantization, 'q4_k_m');
+      expect(smolGguf.files.single.name, endsWith('.gguf'));
+
+      final nomicGguf = Models.nomicEmbedText;
+      expect(nomicGguf.id, 'nomic-embed-text-v1.5-gguf');
+      expect(nomicGguf.type, ModelType.embedding);
+      expect(nomicGguf.provider, ModelProviders.llamaCpp);
+      expect(nomicGguf.quantization, 'q4_k_m');
+      expect(nomicGguf.files.single.name, endsWith('.gguf'));
+
+      final lfmJp = Models.lfm25_12bJp;
+      expect(lfmJp.id, 'lfm2.5-1.2b-jp-gguf');
+      expect(lfmJp.languages, contains('ja'));
+      expect(lfmJp.files.single.name, contains('LFM2.5-1.2B-JP'));
+
+      final qwen35_08 = Models.qwen35_08bGguf;
+      expect(qwen35_08.id, 'qwen-3.5-0.8b-instruct-gguf');
+      expect(qwen35_08.files.single.name, contains('qwen3.5-0.8b'));
+
+      final lfmInstruct = Models.lfm25_12bInstruct;
+      expect(lfmInstruct.id, 'lfm2.5-1.2b-instruct-gguf');
+      expect(lfmInstruct.files.single.name, contains('LFM2.5-1.2B-Instruct'));
+
+      final lfm26 = Models.lfm25_26b;
+      expect(lfm26.id, 'lfm2.5-2.6b-gguf');
+      expect(lfm26.files.single.name, contains('LFM2.5-2.6B'));
+
+      final qwen35_4 = Models.qwen35_4bGguf;
+      expect(qwen35_4.id, 'qwen-3.5-4b-instruct-gguf');
+      expect(qwen35_4.files.single.name, contains('qwen3.5-4b'));
+
+      final ministral = Models.ministral3_3b;
+      expect(ministral.id, 'ministral-3-3b-instruct-gguf');
+      expect(ministral.files.single.name, contains('Ministral-3-3B'));
+
+      final lfm8b = Models.lfm25_8bA1b;
+      expect(lfm8b.id, 'lfm2.5-8b-a1b-gguf');
+      expect(lfm8b.files.single.name, contains('LFM2.5-8B-A1B'));
+
+      expect(Models.byId('qwen-2.5-0.5b-instruct-gguf'), isNotNull);
+      expect(Models.byId('llama-3.2-1b-instruct-gguf'), isNotNull);
+      expect(Models.byId('smollm2-360m-instruct-gguf'), isNotNull);
+      expect(Models.byId('lfm2.5-1.2b-jp-gguf'), isNotNull);
+      expect(Models.byId('qwen-3.5-0.8b-instruct-gguf'), isNotNull);
+      expect(Models.byId('lfm2.5-1.2b-instruct-gguf'), isNotNull);
+      expect(Models.byId('lfm2.5-2.6b-gguf'), isNotNull);
+      expect(Models.byId('qwen-3.5-4b-instruct-gguf'), isNotNull);
+      expect(Models.byId('ministral-3-3b-instruct-gguf'), isNotNull);
+      expect(Models.byId('lfm2.5-8b-a1b-gguf'), isNotNull);
+      expect(Models.byId('nomic-embed-text-v1.5-gguf'), isNotNull);
+    });
   });
 }

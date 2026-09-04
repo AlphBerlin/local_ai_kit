@@ -13,9 +13,17 @@ void main() {
           LlamaChatFormat.llama3);
       expect(ChatTemplate.detect('mistral-7b-instruct-v0.3.gguf'),
           LlamaChatFormat.mistral);
+      expect(ChatTemplate.detect('Ministral-3-3B-Instruct-2512-Q4_K_M.gguf'),
+          LlamaChatFormat.mistral);
       expect(ChatTemplate.detect('Phi-3-mini-4k-instruct-q4.gguf'),
           LlamaChatFormat.phi);
       expect(ChatTemplate.detect('SmolLM2-360M-Instruct-Q8_0.gguf'),
+          LlamaChatFormat.chatml);
+      expect(ChatTemplate.detect('LFM2.5-1.2B-JP-Q4_K_M.gguf'),
+          LlamaChatFormat.chatml);
+      expect(ChatTemplate.detect('LFM2.5-2.6B-Q4_K_M.gguf'),
+          LlamaChatFormat.chatml);
+      expect(ChatTemplate.detect('LFM2.5-8B-A1B-Q4_K_M.gguf'),
           LlamaChatFormat.chatml);
     });
 

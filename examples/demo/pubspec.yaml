@@ -13,6 +13,7 @@ dependencies:
   local_ai_kit:
   local_ai_gemma:
   local_ai_genkit:
+  local_ai_llama_cpp:
   local_ai_sherpa:
 
 
