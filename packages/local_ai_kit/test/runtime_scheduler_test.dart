@@ -622,4 +622,111 @@ void main() {
       )),
     );
   });
+
+  group('review follow-ups', () {
+    test('unpinning does not release a session lock', () async {
+      final scheduler = build(
+        adapters: {'a': _SlowLlm(), 'b': _SlowLlm(), 'c': _SlowLlm()},
+        policy: const RuntimeMemoryPolicy(maxLoadedModels: 2),
+      );
+      addTearDown(scheduler.dispose);
+
+      await scheduler.loadModel('a');
+      scheduler.setPinned('a', pinned: true);
+      // A voice session locks the same model for its lifetime.
+      scheduler.setLocked('a', locked: true);
+      scheduler.setPinned('a', pinned: false);
+
+      clock.advance(const Duration(minutes: 1));
+      await scheduler.loadModel('b');
+      clock.advance(const Duration(minutes: 1));
+      await scheduler.loadModel('c');
+
+      expect(scheduler.isLoaded('a'), isTrue,
+          reason: 'the session lock outlives the pin');
+      expect(scheduler.pinnedModels, isEmpty);
+    });
+
+    test('a joined load counts as a miss for the joiner too', () async {
+      final gate = Completer<void>();
+      final scheduler = build(adapters: {'a': _SlowLlm(gate: gate)});
+      addTearDown(scheduler.dispose);
+
+      final first = scheduler.loadModel('a');
+      final second = scheduler.loadModel('a');
+      final third = scheduler.loadModel('a');
+      await pumpEventQueue();
+      gate.complete();
+      await Future.wait([first, second, third]);
+
+      expect(scheduler.cacheStats.misses, 3,
+          reason: 'all three callers waited for the load');
+      expect(scheduler.cacheStats.hits, 0);
+    });
+
+    test('a full disk does not make an installed model unloadable', () async {
+      final scheduler = build(
+        adapters: {'a': _SlowLlm()},
+        manifests: {'a': llmManifest('a', sizeBytes: 2048 * 1024 * 1024)},
+        deviceProbe: () async => const DeviceCapabilities(
+          totalMemoryMB: 8192,
+          availableMemoryMB: 6144,
+          freeDiskMB: 10, // nowhere near the download budget
+          platform: 'android',
+        ),
+      );
+      addTearDown(scheduler.dispose);
+
+      await expectLater(scheduler.loadModel('a'), completes);
+      expect(scheduler.isLoaded('a'), isTrue);
+    });
+
+    test('the load gate still enforces RAM', () async {
+      final scheduler = build(
+        adapters: {'a': _SlowLlm()},
+        manifests: {'a': llmManifest('a', minMemoryMB: 6000)},
+        deviceProbe: () async => const DeviceCapabilities(
+          totalMemoryMB: 2048,
+          availableMemoryMB: 1024,
+          freeDiskMB: 65536,
+          platform: 'android',
+        ),
+      );
+      addTearDown(scheduler.dispose);
+
+      await expectLater(
+        scheduler.loadModel('a'),
+        throwsA(isA<IncompatibleDeviceError>()),
+      );
+    });
+
+    test('a probe failure does not make the device look CPU-only', () async {
+      final manifest = LocalModelManifest(
+        id: 'a',
+        type: ModelType.llm,
+        provider: 'test-provider',
+        delivery: ModelDelivery.download,
+        platforms: const ['android'],
+        requiredAccelerators: const {Accelerator.gpu},
+        files: const [
+          ModelFile(
+            name: 'a.bin',
+            url: 'https://example.invalid/a.bin',
+            sha256: kPlaceholderSha256,
+            sizeBytes: 0,
+          ),
+        ],
+      );
+      final scheduler = build(
+        adapters: {'a': _SlowLlm()},
+        manifests: {'a': manifest},
+        deviceProbe: () async => throw StateError('probe unavailable'),
+      );
+      addTearDown(scheduler.dispose);
+
+      await expectLater(scheduler.loadModel('a'), completes,
+          reason: 'a transient probe error must not block a GPU model');
+      expect(scheduler.isLoaded('a'), isTrue);
+    });
+  });
 }

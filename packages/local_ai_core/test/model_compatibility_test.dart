@@ -8,6 +8,7 @@ LocalModelManifest manifest({
   int? contextLength,
   Set<Accelerator> required = const {},
   Set<Accelerator> preferred = const {},
+  Set<String> unknownRequired = const {},
 }) {
   return LocalModelManifest(
     id: 'test-model',
@@ -19,6 +20,7 @@ LocalModelManifest manifest({
     contextLength: contextLength,
     requiredAccelerators: required,
     preferredAccelerators: preferred,
+    unknownRequiredAccelerators: unknownRequired,
     files: [
       ModelFile(
         name: 'weights.bin',
@@ -38,6 +40,7 @@ DeviceCapabilities device({
   int freeDiskMB = 65536,
   String platform = 'android',
   Set<Accelerator> accelerators = const {Accelerator.cpu},
+  bool acceleratorsKnown = true,
 }) {
   return DeviceCapabilities(
     totalMemoryMB: totalMemoryMB,
@@ -45,6 +48,7 @@ DeviceCapabilities device({
     freeDiskMB: freeDiskMB,
     platform: platform,
     accelerators: accelerators,
+    acceleratorsKnown: acceleratorsKnown,
   );
 }
 
@@ -391,11 +395,158 @@ void main() {
       expect(json.containsKey('preferredAccelerators'), isFalse);
     });
 
-    test('an unknown accelerator name from a newer catalog is skipped', () {
+    test('an unknown REQUIRED accelerator is preserved, not dropped', () {
       final json = manifest(required: {Accelerator.gpu}).toJson()
         ..['requiredAccelerators'] = ['gpu', 'quantum_tpu'];
       final decoded = LocalModelManifest.fromJson(json);
+
       expect(decoded.requiredAccelerators, {Accelerator.gpu});
+      expect(decoded.unknownRequiredAccelerators, {'quantum_tpu'},
+          reason: 'dropping it would turn a hard requirement into silence');
+    });
+
+    test('an unknown PREFERRED accelerator is skipped', () {
+      final json = manifest(preferred: {Accelerator.gpu}).toJson()
+        ..['preferredAccelerators'] = ['gpu', 'quantum_tpu'];
+      final decoded = LocalModelManifest.fromJson(json);
+
+      expect(decoded.preferredAccelerators, {Accelerator.gpu});
+      expect(decoded.unknownRequiredAccelerators, isEmpty,
+          reason: 'an unrecognised preference costs nothing');
+    });
+
+    test('preserved unknown required names survive a re-encode', () {
+      final decoded = LocalModelManifest.fromJson(
+        manifest(required: {Accelerator.gpu}).toJson()
+          ..['requiredAccelerators'] = ['gpu', 'quantum_tpu'],
+      );
+      final round = LocalModelManifest.fromJson(decoded.toJson());
+      expect(round.requiredAccelerators, {Accelerator.gpu});
+      expect(round.unknownRequiredAccelerators, {'quantum_tpu'});
+    });
+  });
+
+  group('unknown required accelerators', () {
+    test('block, because the requirement cannot even be evaluated', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(unknownRequired: {'quantum_tpu'}),
+        device: device(accelerators: {Accelerator.cpu, Accelerator.gpu}),
+      );
+      expect(report.isCompatible, isFalse);
+      expect(report.reasons.single, contains('quantum_tpu'));
+      expect(report.blockers.single.check, CompatibilityCheck.accelerator);
+    });
+
+    test('block even alongside a satisfied known requirement', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(
+          required: {Accelerator.gpu},
+          unknownRequired: {'quantum_tpu'},
+        ),
+        device: device(accelerators: {Accelerator.cpu, Accelerator.gpu}),
+      );
+      expect(report.isCompatible, isFalse);
+    });
+  });
+
+  group('unprobed accelerators', () {
+    test('do not read as "this device has no GPU"', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(required: {Accelerator.gpu}),
+        device: device(acceleratorsKnown: false),
+      );
+      expect(report.isCompatible, isTrue,
+          reason: 'a transient probe failure must not block a capable device');
+      expect(
+        of(report, CompatibilityCheck.unknown).map((i) => i.message),
+        contains(contains('accelerators could not be probed')),
+      );
+    });
+
+    test('skip the preferred-accelerator warning too', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(preferred: {Accelerator.gpu}),
+        device: device(acceleratorsKnown: false),
+      );
+      expect(of(report, CompatibilityCheck.accelerator), isEmpty);
+    });
+
+    test('an unknown required NAME still blocks, probe or no probe', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(unknownRequired: {'quantum_tpu'}),
+        device: device(acceleratorsKnown: false),
+      );
+      expect(report.isCompatible, isFalse);
+    });
+
+    test('a manifest with no accelerator requirement stays silent', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(),
+        device: device(acceleratorsKnown: false),
+      );
+      expect(of(report, CompatibilityCheck.unknown), isEmpty);
+      expect(of(report, CompatibilityCheck.accelerator), isEmpty);
+    });
+  });
+
+  group('stage', () {
+    // 1000MB of files, only 100MB free: a blocking disk finding at download.
+    final big = manifest(sizeBytes: 1000 * mb, minMemoryMB: 100);
+    final full = device(freeDiskMB: 100);
+
+    test('the download stage enforces the disk requirement', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: big,
+        device: full,
+      );
+      expect(report.isCompatible, isFalse);
+      expect(report.blockers.single.check, CompatibilityCheck.disk);
+    });
+
+    test('the load stage does not — the files are already installed', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: big,
+        device: full,
+        stage: CompatibilityStage.load,
+      );
+      expect(report.isCompatible, isTrue,
+          reason: 'a full disk must not make an installed model unloadable');
+      expect(of(report, CompatibilityCheck.disk), isEmpty);
+    });
+
+    test('the load stage still enforces RAM and platform', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(minMemoryMB: 6000, platforms: const ['ios']),
+        device: device(platform: 'android', totalMemoryMB: 2048),
+        stage: CompatibilityStage.load,
+      );
+      expect(report.isCompatible, isFalse);
+      expect(
+          report.blockers.map((i) => i.check),
+          containsAll(
+              [CompatibilityCheck.platform, CompatibilityCheck.totalMemory]));
+    });
+  });
+
+  group('DeviceCapabilities.unknown', () {
+    test('reports every check as skipped rather than passing them', () {
+      final report = ModelCompatibilityChecker.check(
+        manifest: manifest(minMemoryMB: 6000, sizeBytes: 1000 * mb),
+        device: const DeviceCapabilities.unknown(),
+      );
+      expect(report.isCompatible, isTrue);
+      expect(
+        of(report, CompatibilityCheck.unknown).map((i) => i.message),
+        containsAll([
+          contains('Platform could not be detected'),
+          contains('Total RAM could not be probed'),
+          contains('Free disk space could not be probed'),
+        ]),
+      );
+    });
+
+    test('does not claim the device is CPU-only', () {
+      expect(const DeviceCapabilities.unknown().acceleratorsKnown, isFalse);
     });
   });
 }

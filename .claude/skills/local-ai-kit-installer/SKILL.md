@@ -77,8 +77,13 @@ Default to the umbrella when the user has no binary-size constraint:
 
 ```yaml
 dependencies:
-  bedge_ai: ^0.0.3   # check the real current version before writing it
+  bedge_ai: ^<VERSION>   # replace with the version you read, see below
 ```
+
+`<VERSION>` is a placeholder on purpose — it will not resolve, so it cannot
+be pasted into a real pubspec by accident. Read the actual value from
+`packages/local_ai_kit/pubspec.yaml` (all first-party packages share one
+version) or from the package's pub.dev page, and write that.
 
 Split into individual packages when the app ships only some capabilities and
 binary size matters — an unused adapter drags its whole native runtime
@@ -95,9 +100,10 @@ the adapters in use:
 `local_ai_core` and `local_ai_flutter` come in transitively — never add them
 by hand unless the target is a pure-Dart package.
 
-Pin the version by reading the current one from
+Pin every version by reading the current one from
 `packages/local_ai_kit/pubspec.yaml` (all packages share one version) or from
-pub.dev. Never invent a version number.
+pub.dev. Never invent a version number, and never copy one out of this skill
+or out of the repo's docs — both go stale the moment a release lands.
 
 ### 3. Configure the platforms
 
@@ -154,10 +160,12 @@ await ai.models.ensureInstalled(modelId);
 `ai.models.compatible(type: ModelType.llm)` returns the whole catalog already
 filtered for this device, which is what a model-picker screen wants.
 
-`install` / `ensureInstalled` run the same check themselves and throw
-`IncompatibleDeviceError` on a blocking issue, so this is for building UI,
-not for safety. `LocalAIConfig(compatibilityEnforcement: ...)` changes that
-to `warn` or `off`.
+`install` / `ensureInstalled` run the same check themselves. What they do
+with a blocking issue is set by `LocalAIConfig.compatibilityEnforcement`:
+`enforce` (the default) throws `IncompatibleDeviceError`, `warn` reports and
+continues, `off` skips the check. So this call is for building UI, not for
+safety — and do not tell the user it "always throws" without checking which
+mode their config selects.
 
 **On desktop this check is strict for a real reason:** most catalog manifests
 list `['android', 'ios', 'macos']`, so on Linux and Windows they are

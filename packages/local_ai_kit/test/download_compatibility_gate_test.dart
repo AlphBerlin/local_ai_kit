@@ -61,6 +61,40 @@ const _bigModel = LocalModelManifest(
   ],
 );
 
+/// A TTS model with one installable voice, used to prove that voice
+/// downloads go through the same gate as model downloads.
+const _ttsModel = LocalModelManifest(
+  id: 'big-mobile-tts',
+  type: ModelType.tts,
+  provider: 'sherpa-community',
+  delivery: ModelDelivery.download,
+  platforms: ['android', 'ios'],
+  minMemoryMB: 6000,
+  files: [
+    ModelFile(
+      name: 'tts.onnx',
+      url: 'http://127.0.0.1:1/tts.onnx',
+      sha256: kPlaceholderSha256,
+      sizeBytes: 1024 * 1024,
+    ),
+  ],
+  voices: [
+    LocalVoice(
+      id: 'v1',
+      name: 'Voice One',
+      language: 'en',
+      files: [
+        ModelFile(
+          name: 'v1.bin',
+          url: 'http://127.0.0.1:1/v1.bin',
+          sha256: kPlaceholderSha256,
+          sizeBytes: 1024,
+        ),
+      ],
+    ),
+  ],
+);
+
 DeviceCapabilities caps({
   int totalMemoryMB = 8192,
   int availableMemoryMB = 7000,
@@ -86,6 +120,7 @@ void main() {
     CompatibilityEnforcement enforcement = CompatibilityEnforcement.enforce,
   }) async {
     await catalog.registerManifest(_bigModel);
+    await catalog.registerManifest(_ttsModel);
     return ModelManagerImpl(
       paths: paths,
       catalog: catalog,
@@ -252,6 +287,54 @@ void main() {
 
       final report = await m.checkCompatibility('big-mobile-llm');
       expect(report.isCompatible, isTrue);
+    });
+  });
+
+  group('review follow-ups', () {
+    test('installVoice honours the same gate as install', () async {
+      final m = await manager(device: caps(totalMemoryMB: 2048));
+
+      await expectLater(
+        m.installVoice('v1', ttsModelId: 'big-mobile-tts'),
+        throwsA(isA<IncompatibleDeviceError>()),
+        reason: 'voice assets are useless without the model they belong to',
+      );
+      expect(Directory(paths.downloadDir('v1')).existsSync(), isFalse);
+    });
+
+    test('a probe failure reports skipped checks, not a silent pass', () async {
+      await catalog.registerManifest(_bigModel);
+      final m = ModelManagerImpl(
+        paths: paths,
+        catalog: catalog,
+        networkPolicy: _TestNetworkPolicy(),
+        deviceProbe: () async => throw StateError('probe unavailable'),
+      );
+
+      final report = await m.checkCompatibility('big-mobile-llm');
+
+      expect(report.isCompatible, isTrue);
+      expect(report.hasWarnings, isTrue,
+          reason: 'the reason the checks were skipped must be visible');
+      expect(
+        report.warnings.map((i) => i.check),
+        contains(CompatibilityCheck.unknown),
+      );
+    });
+
+    test('dispose completes even with a paused subscriber', () async {
+      final m = await manager(device: caps());
+
+      final sub = m.watchStatus('big-mobile-llm').listen((_) {});
+      addTearDown(sub.cancel);
+      sub.pause();
+
+      // A broadcast controller with a paused listener never completes
+      // `close()`; dispose must not wait on it.
+      await expectLater(
+        m.dispose().timeout(const Duration(seconds: 5)),
+        completes,
+      );
     });
   });
 }

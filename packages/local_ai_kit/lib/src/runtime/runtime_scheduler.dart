@@ -126,12 +126,16 @@ class RuntimeScheduler implements LocalModelRuntime {
 
   @override
   void setPinned(String modelId, {required bool pinned}) {
+    // Deliberately does not touch `LoadedModel.locked`. A pin and a session
+    // lock are independent reasons to keep a model resident; unpinning must
+    // not release a lock a live voice session is holding. Eviction, the idle
+    // sweep and the background trim all consult `_pinned` alongside
+    // `locked`, so the pin needs no representation on the handle.
     if (pinned) {
       _pinned.add(modelId);
     } else {
       _pinned.remove(modelId);
     }
-    setLocked(modelId, locked: pinned);
   }
 
   @override
@@ -211,7 +215,13 @@ class RuntimeScheduler implements LocalModelRuntime {
     // A joiner does not re-emit a phase: `loadProgress` replays the real
     // in-flight phase to it, and a synthetic `queued` would rewind that.
     final inFlight = _loading[modelId];
-    if (inFlight != null) return inFlight;
+    if (inFlight != null) {
+      // The joiner waits for a load just like the caller that started it,
+      // so it is a miss too — counting only the starter would understate
+      // how much time the cache is costing.
+      _misses++;
+      return inFlight;
+    }
     _misses++;
     // The callback must be a block, not an expression: `Map.remove` returns
     // the removed value — here the very future being built — and
@@ -295,7 +305,6 @@ class RuntimeScheduler implements LocalModelRuntime {
       backend: backend,
       loadedAt: now,
       lastUsedAt: now,
-      locked: _pinned.contains(manifest.id),
       estimatedBytes: _estimateResidentBytes(manifest),
     );
     _handles[manifest.id] = _LoadedHandle(info: info, adapter: adapter);
@@ -448,40 +457,33 @@ class RuntimeScheduler implements LocalModelRuntime {
     if (isFresh) return cached;
 
     final probe = _deviceProbe;
-    if (probe == null) {
-      return const DeviceCapabilities(
-        totalMemoryMB: 0,
-        availableMemoryMB: 0,
-        freeDiskMB: 0,
-        platform: 'unknown',
-      );
-    }
+    if (probe == null) return const DeviceCapabilities.unknown();
     try {
       _capabilities = await probe();
       _capabilitiesProbedAt = _clock.now();
       return _capabilities!;
     } on Object {
       // A failing probe must not fail the load it was gating. Fall back to
-      // the last good snapshot, or to "everything unknown".
-      return cached ??
-          const DeviceCapabilities(
-            totalMemoryMB: 0,
-            availableMemoryMB: 0,
-            freeDiskMB: 0,
-            platform: 'unknown',
-          );
+      // the last good snapshot, or to "everything unknown" — which is not
+      // the same as "a CPU-only device with no disk and no RAM", and
+      // `DeviceCapabilities.unknown` is what keeps the checker from reading
+      // it that way.
+      return cached ?? const DeviceCapabilities.unknown();
     }
   }
 
   @override
   Future<CompatibilityReport> checkCompatibility(
-      LocalModelManifest manifest) async {
+    LocalModelManifest manifest, {
+    CompatibilityStage stage = CompatibilityStage.load,
+  }) async {
     final device = await deviceCapabilities();
     final requestedContext = _loadOptionsFor?.call(manifest);
     return ModelCompatibilityChecker.check(
       manifest: manifest,
       device: device,
       policy: _compatibilityPolicy,
+      stage: stage,
       requestedContextTokens: requestedContext is LlmLoadOptions
           ? requestedContext.maxContextTokens
           : null,

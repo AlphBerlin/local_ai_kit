@@ -654,10 +654,75 @@ in `AGENTS.md` is part of what it must relay.
 
 ---
 
+## 8a. Review follow-ups (post-merge)
+
+PR #3 merged before its automated review landed, so these fixes ship
+separately. Sixteen findings were raised; fifteen were valid and are fixed
+here. Each was verified against the code before being acted on — a bot
+finding is a bug report, not an instruction.
+
+Three of them are defects in §5/§6 as originally designed, not slips:
+
+**The load gate enforced the download's disk budget.** One checker served
+both gates, so `loadModel` re-applied "free disk ≥ download size × 1.2" to a
+model whose files were *already installed*. A device that filled up after
+installing would refuse to load a model sitting on its own disk. Fixed with
+`CompatibilityStage`: `download` runs every check, `load` omits the disk one.
+The distinction is now the first thing the enum's doc comment explains.
+
+**An unprobed device was read as a CPU-only device.** The probe-failure
+fallback returned `DeviceCapabilities` with the default
+`accelerators = {cpu}`, and the checker took that as a finding — so a
+transient probe error blocked any model requiring a GPU. This directly
+contradicted the principle in §5.3 ("an unprobed metric is neither a pass nor
+a fail") that the same commit claims to implement. Fixed with
+`DeviceCapabilities.unknown()` and an `acceleratorsKnown` flag; the `{cpu}`
+default is now explicitly a placeholder rather than a measurement. The same
+constructor fixes the manager's probe-failure path, which returned a bare
+`compatible()` with no warning at all — a silent pass, which §5.3 also
+forbids.
+
+**Tolerant accelerator decoding was fail-open for requirements.** Skipping an
+unrecognised accelerator name is right for `preferredAccelerators` and wrong
+for `requiredAccelerators`: it turns a hard requirement into silence, letting
+a model download onto a device the catalog says cannot run it. Unknown
+required names are now kept in `unknownRequiredAccelerators` and block, with
+a message naming the backend and telling the user to upgrade the kit.
+Preferred stays tolerant.
+
+The rest: `installVoice` bypassed the gate entirely (voice assets are useless
+without their model); `dispose` awaited `close()` on broadcast controllers,
+which never completes while a subscriber is paused; `tick()` re-emitted the
+tracker's state, so every file after the first reported `verifying` while
+downloading; throughput was `received - baseline`, which under-reports when a
+server ignores `Range` and the file restarts; `warmUp` loaded the LLM without
+its configured backend preference, silently pinning it to `auto`; the
+free-disk pre-flight read a cached value, so a second download was sized
+against space the first had already claimed; `setPinned(false)` cleared
+`LoadedModel.locked`, releasing a lock a live voice session was holding; and
+joined loads were not counted as misses, understating what the cache costs.
+
+Documentation fixes: `InsufficientDiskError` timing, the enforcement modes at
+three call sites that claimed an unconditional throw, and a non-copyable
+version placeholder in the skill.
+
+**Not fixed — needs a decision.** `FlutterNetworkPolicy._map` collapses every
+unrecognised `ConnectivityResult` onto `NetworkStatus.unknown`, including
+Android `vpn` and iOS `other` — and iOS reports `other` for *any* active VPN.
+`canDownload` then fails open without consulting `wifiOnly`, so a cellular
+download behind a VPN bypasses the policy. Real, and outside this work's
+diff. The naive fix (block `unknown` on mobile) would stop every iOS VPN user
+downloading on Wi-Fi, which is worse; a correct fix needs `_map` to stop
+discarding the distinction between "VPN over wifi" and "VPN over cellular",
+which is a platform-layer change with its own design. Documented in the
+skill's troubleshooting reference so nobody relies on `wifiOnly` as a
+guarantee in the meantime.
+
 ## 9. Verification
 
 `flutter analyze` is clean across the workspace and every package's suite
-passes: 246 tests, up from 174 before this slice.
+passes: **267 tests**, up from 174 before this slice (246 at the first
+commit, plus 21 covering the §8a review follow-ups).
 
 | Suite | What it covers |
 |---|---|

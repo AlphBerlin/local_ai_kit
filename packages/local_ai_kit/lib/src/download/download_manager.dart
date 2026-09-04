@@ -103,6 +103,10 @@ class DownloadManager {
 
         progress.currentFile = file.name;
         if (!info.isComplete) {
+          // `tick()` re-emits the tracker's current state, which the
+          // previous file left on `verifying`. Without this, every chunk of
+          // file 2..n reports `verifying` while it is plainly downloading.
+          progress.emit(ModelInstallState.downloading);
           await _downloadFile(
             file,
             info,
@@ -310,7 +314,7 @@ class DownloadManager {
         cancelToken?.throwIfCancelled();
         sink.add(chunk);
         info.received += chunk.length;
-        progress.tick();
+        progress.tick(chunk.length);
         sinceFlush += chunk.length;
         if (sinceFlush >= _flushEveryBytes) {
           await sink.flush();
@@ -386,8 +390,7 @@ class _ContentRange {
 ///    display can show, for no extra information.
 class _ProgressTracker {
   _ProgressTracker(this.modelId, this.meta, this.onProgress)
-      : _startedAt = DateTime.now(),
-        _baselineBytes = meta.receivedBytes;
+      : _startedAt = DateTime.now();
 
   /// Minimum wall time between two `downloading` progress events. State
   /// changes always emit immediately, regardless of this.
@@ -398,17 +401,24 @@ class _ProgressTracker {
   final void Function(ModelDownloadProgress progress)? onProgress;
   final DateTime _startedAt;
 
-  /// Bytes already on disk when this session started — excluded from the
-  /// throughput window so a resume does not report an absurd speed.
-  final int _baselineBytes;
+  /// Bytes this session actually pulled over the network.
+  ///
+  /// Counted per chunk rather than derived as `received - baseline`: when a
+  /// server ignores `Range`, the file restarts and `meta.receivedBytes`
+  /// falls back to zero, so the derived figure would report a 1GB re-download
+  /// of a 900MB partial as 100MB transferred.
+  int _sessionBytes = 0;
 
   String? currentFile;
 
   ModelInstallState _state = ModelInstallState.downloading;
   DateTime? _lastEmitAt;
 
-  /// Progress from a received chunk: rate-limited.
-  void tick() => _emit(_state, throttle: true);
+  /// Progress from a received chunk of [chunkBytes]: rate-limited.
+  void tick(int chunkBytes) {
+    _sessionBytes += chunkBytes;
+    _emit(_state, throttle: true);
+  }
 
   /// Progress from a state change: always delivered.
   void emit(ModelInstallState state) => _emit(state, throttle: false);
@@ -439,9 +449,9 @@ class _ProgressTracker {
     final elapsed = now.difference(_startedAt).inMilliseconds / 1000.0;
     final received = meta.receivedBytes;
     final total = meta.totalBytes;
-    final transferred = received - _baselineBytes;
-    final speed =
-        elapsed > 0.05 && transferred > 0 ? (transferred / elapsed).round() : 0;
+    final speed = elapsed > 0.05 && _sessionBytes > 0
+        ? (_sessionBytes / elapsed).round()
+        : 0;
     final remaining = total - received;
     emit(ModelDownloadProgress(
       modelId: modelId,

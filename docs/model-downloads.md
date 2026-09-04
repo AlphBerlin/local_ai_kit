@@ -182,6 +182,6 @@ The checks that gate a download:
 
 A manifest that leaves `minMemoryMB` at its `0` default gets an estimate derived from the weight file size (`weights × 1.15 + 256MB`). Because it is an estimate it only ever warns — a heuristic over file sizes must not block a download. Turn it off with `ModelCompatibilityPolicy(estimateMemoryFromFileSize: false)`.
 
-`install` and `ensureInstalled` run the same check themselves and throw `IncompatibleDeviceError` — carrying the full report — before the first byte moves. See [Runtime & Memory](runtime-memory.md#device-capabilities--compatibility) for `compatibilityEnforcement` and the policy presets.
+`install` and `ensureInstalled` run the same check themselves before the first byte moves. Under the default `CompatibilityEnforcement.enforce` a blocking issue throws `IncompatibleDeviceError`, carrying the full report; under `warn` it is reported and the download proceeds; under `off` no check runs at all. See [Runtime & Memory](runtime-memory.md#device-capabilities--compatibility) for `compatibilityEnforcement` and the policy presets.
 
 `ai.runtime.deviceCapabilities()` returns the raw `DeviceCapabilities` snapshot (RAM, free disk, platform, detected accelerators) behind all of this.

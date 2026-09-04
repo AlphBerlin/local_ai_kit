@@ -64,6 +64,21 @@ class ModelCompatibilityPolicy {
   final bool estimateMemoryFromFileSize;
 }
 
+/// Which gate a compatibility check is running for.
+///
+/// The two gates ask different questions. Before a **download** the free
+/// disk needed to fetch and install the files matters. Before a **load**
+/// those files are already installed, so re-applying the download's disk
+/// requirement would refuse to load a model that is sitting on disk and
+/// perfectly usable, merely because the device has since filled up.
+enum CompatibilityStage {
+  /// Runs every check, including the download + install disk requirement.
+  download,
+
+  /// Skips the disk check; the files are already installed.
+  load,
+}
+
 /// How the kit reacts to a failed compatibility check.
 enum CompatibilityEnforcement {
   /// Never check. Downloads and loads proceed exactly as before.
@@ -119,17 +134,24 @@ abstract final class ModelCompatibilityChecker {
   /// [requestedContextTokens] is the app's configured context window (e.g.
   /// `LlmConfig.maxContextTokens`); pass it to have the checker warn when
   /// the model cannot serve it.
+  ///
+  /// [stage] selects which gate this is: [CompatibilityStage.download]
+  /// (the default) includes the disk requirement, [CompatibilityStage.load]
+  /// omits it because the files are already installed.
   static CompatibilityReport check({
     required LocalModelManifest manifest,
     required DeviceCapabilities device,
     ModelCompatibilityPolicy policy = const ModelCompatibilityPolicy(),
     int? requestedContextTokens,
+    CompatibilityStage stage = CompatibilityStage.download,
   }) {
     final issues = <CompatibilityIssue>[];
 
     _checkPlatform(issues, manifest, device);
     final requiredMemoryMB = _checkMemory(issues, manifest, device, policy);
-    _checkDisk(issues, manifest, device, policy);
+    if (stage == CompatibilityStage.download) {
+      _checkDisk(issues, manifest, device, policy);
+    }
     _checkAccelerators(issues, manifest, device);
     _checkContextWindow(issues, manifest, requestedContextTokens);
 
@@ -275,6 +297,37 @@ abstract final class ModelCompatibilityChecker {
     LocalModelManifest manifest,
     DeviceCapabilities device,
   ) {
+    // A required accelerator whose *name* this build does not recognise
+    // always blocks: the manifest states a hard requirement we cannot even
+    // evaluate, so we cannot claim the device meets it.
+    for (final name in manifest.unknownRequiredAccelerators) {
+      issues.add(CompatibilityIssue(
+        check: CompatibilityCheck.accelerator,
+        severity: CompatibilitySeverity.blocking,
+        message: 'Model "${manifest.id}" requires the "$name" backend, which '
+            'this version of the kit does not know about. Upgrade the kit, or '
+            'pick a model this build can evaluate.',
+      ));
+    }
+
+    if (manifest.requiredAccelerators.isEmpty &&
+        manifest.preferredAccelerators.isEmpty) {
+      return;
+    }
+
+    if (!device.acceleratorsKnown) {
+      // The probe never ran or failed, so the `{cpu}` default is a
+      // placeholder. Reading it as "this device has no GPU" would block a
+      // capable device over a transient probe error.
+      issues.add(const CompatibilityIssue(
+        check: CompatibilityCheck.unknown,
+        severity: CompatibilitySeverity.warning,
+        message: 'Hardware accelerators could not be probed; the accelerator '
+            'check was skipped.',
+      ));
+      return;
+    }
+
     for (final accelerator in manifest.requiredAccelerators) {
       if (!device.supports(accelerator)) {
         issues.add(CompatibilityIssue(

@@ -137,7 +137,7 @@ if (!report.isCompatible) {
 }
 ```
 
-`ensureInstalled` runs the same check and throws `IncompatibleDeviceError` on a blocking issue, so this is for building your UI rather than for safety.
+`ensureInstalled` runs the same check itself. What it does with a blocking issue depends on `LocalAIConfig.compatibilityEnforcement`: `enforce` (the default) throws `IncompatibleDeviceError`, `warn` reports and continues, and `off` skips the check entirely. So treat this call as the way to build your UI, not as the safety net.
 
 See [Model Downloads](model-downloads.md) for Wi-Fi-only policies, resume semantics, the full check table and error handling.
 

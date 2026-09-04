@@ -4,6 +4,7 @@ library;
 import 'dart:async';
 import '../models/device_capabilities.dart';
 import '../models/manifest.dart';
+import '../models/model_compatibility.dart';
 import 'memory_policy.dart';
 import 'model_load_progress.dart';
 
@@ -137,7 +138,17 @@ abstract interface class LocalModelRuntime {
   Future<DeviceCapabilities> deviceCapabilities();
 
   /// Checks whether [manifest] can run on this device.
-  Future<CompatibilityReport> checkCompatibility(LocalModelManifest manifest);
+  ///
+  /// Defaults to [CompatibilityStage.load], which omits the download's disk
+  /// requirement — the runtime loads models that are already installed, and
+  /// re-applying that budget would refuse a perfectly usable model just
+  /// because the device has since filled up. Pass
+  /// [CompatibilityStage.download] to gate a download instead, or use
+  /// `ai.models.checkCompatibility`, which does that for you.
+  Future<CompatibilityReport> checkCompatibility(
+    LocalModelManifest manifest, {
+    CompatibilityStage stage,
+  });
 
   /// Lifecycle events stream (broadcast).
   Stream<RuntimeEvent> get events;

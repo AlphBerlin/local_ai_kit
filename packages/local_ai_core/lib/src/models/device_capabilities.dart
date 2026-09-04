@@ -13,7 +13,23 @@ class DeviceCapabilities {
     required this.platform,
     this.socModel,
     this.accelerators = const {Accelerator.cpu},
+    this.acceleratorsKnown = true,
   });
+
+  /// Nothing could be probed.
+  ///
+  /// Every metric reads `0` and [acceleratorsKnown] is `false`, so a
+  /// compatibility check against this reports each affected check as
+  /// *unknown* rather than silently passing it — or, worse, reading the
+  /// `{cpu}` default as a positive finding that the device has no GPU.
+  const DeviceCapabilities.unknown()
+      : totalMemoryMB = 0,
+        availableMemoryMB = 0,
+        freeDiskMB = 0,
+        platform = 'unknown',
+        socModel = null,
+        accelerators = const {Accelerator.cpu},
+        acceleratorsKnown = false;
 
   /// Total physical RAM.
   final int totalMemoryMB;
@@ -31,7 +47,16 @@ class DeviceCapabilities {
   final String? socModel;
 
   /// Detected hardware accelerators (always contains [Accelerator.cpu]).
+  ///
+  /// Only meaningful when [acceleratorsKnown] is `true`.
   final Set<Accelerator> accelerators;
+
+  /// Whether [accelerators] is a real probe result.
+  ///
+  /// `false` means the probe failed or never ran, so the `{cpu}` default
+  /// is a placeholder, not a finding. A checker must not conclude "this
+  /// device has no GPU" from it.
+  final bool acceleratorsKnown;
 
   bool supports(Accelerator accelerator) => accelerators.contains(accelerator);
 }

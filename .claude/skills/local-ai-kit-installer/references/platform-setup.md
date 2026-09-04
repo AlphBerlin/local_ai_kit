@@ -86,9 +86,13 @@ No manifest changes. Two things to know instead:
   compatibility checker reports them incompatible here. That is accurate, not
   a bug: those models have no Windows/Linux runtime path. The GGUF models
   served by `local_ai_llama_cpp` do list desktop platforms.
-- `FlutterNetworkPolicy.canDownload` fails **open** on desktop, where
-  `connectivity_plus` reports `unknown`. A real network failure surfaces from
-  the download itself rather than being pre-blocked.
+- `FlutterNetworkPolicy.canDownload` fails **open** on `NetworkStatus.unknown`,
+  which is what desktop reports; a real network failure then surfaces from the
+  download itself rather than being pre-blocked. Note that the same fail-open
+  path is reachable on mobile — `_map` sends Android `vpn` and iOS `other`
+  (which is what iOS reports for *any* active VPN) to `unknown` too, so a
+  cellular download behind a VPN can slip past `DownloadPolicy.wifiOnly`. See
+  `references/troubleshooting.md`.
 
 ## llama.cpp native library
 

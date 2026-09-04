@@ -49,10 +49,15 @@ never as a way to silence an error you have not explained.
 
 ### `InsufficientDiskError`
 
-From the downloader's own pre-flight, which needs `size × 1.2`. Distinct
-from the `disk` compatibility issue: this one fires once the download is
-already under way, so seeing it means the compatibility gate was off or the
-free space changed in between.
+From `DownloadManager._preflight`, which needs `size × 1.2`. It runs at the
+top of `download()` — before the scratch directory is created and before any
+file is fetched — so it is a second pre-flight, not a mid-transfer failure.
+
+Distinct from the `disk` compatibility issue only in *who* checks: the
+compatibility gate runs first, against the probed device; this one runs
+against the injected `FreeDiskProbe`. Seeing it usually means the gate was
+disabled (`CompatibilityEnforcement.off`/`warn`), no device probe was wired,
+or free space fell between the two checks.
 
 ### `ModelCorruptedError`
 
@@ -64,6 +69,16 @@ manifest's `sha256` matches what the URL actually serves.
 
 `DownloadPolicy.wifiOnly` defaults to **`true`**. On cellular the download
 does not start. This is the most common "the download does nothing" report.
+
+The inverse also exists, and is worth knowing before you rely on
+`wifiOnly` to protect a data plan: `FlutterNetworkPolicy._map` collapses
+every `ConnectivityResult` it does not recognise onto `NetworkStatus.unknown`
+— which on Android includes `vpn`, and on iOS includes `other`, the result
+iOS reports whenever a VPN is active. `canDownload` then **fails open** on
+`unknown` without consulting `wifiOnly`, so a user on cellular behind a VPN
+can start a multi-gigabyte download the policy was meant to defer. Treat
+`wifiOnly` as best-effort until that is fixed, and check `currentStatus()`
+yourself if the guarantee matters.
 
 ```dart
 await ai.models.ensureInstalled(

@@ -47,6 +47,7 @@ class LocalModelManifest {
     this.description,
     this.requiredAccelerators = const {},
     this.preferredAccelerators = const {},
+    this.unknownRequiredAccelerators = const {},
   });
 
   /// Unique id, e.g. `gemma-3n-e2b-it-int4`.
@@ -113,6 +114,16 @@ class LocalModelManifest {
   /// carries a warning that generation falls back to CPU.
   final Set<Accelerator> preferredAccelerators;
 
+  /// Required accelerator names this build of the kit does not recognise.
+  ///
+  /// A remote catalog written against a newer core can name a backend that
+  /// did not exist when this app was built. Dropping such a name would turn
+  /// a hard requirement into silence and let the model be downloaded and
+  /// loaded on a device that cannot run it, so the names are kept here and
+  /// the checker blocks on them. `preferredAccelerators` stays tolerant:
+  /// an unrecognised *preference* costs nothing.
+  final Set<String> unknownRequiredAccelerators;
+
   /// Total size of all [files] in bytes.
   int get totalSizeBytes => files.fold<int>(0, (sum, f) => sum + f.sizeBytes);
 
@@ -136,9 +147,12 @@ class LocalModelManifest {
         'catalogVersion': catalogVersion,
         if (displayName != null) 'displayName': displayName,
         if (description != null) 'description': description,
-        if (requiredAccelerators.isNotEmpty)
-          'requiredAccelerators':
-              requiredAccelerators.map((a) => a.name).toList(),
+        if (requiredAccelerators.isNotEmpty ||
+            unknownRequiredAccelerators.isNotEmpty)
+          'requiredAccelerators': [
+            ...requiredAccelerators.map((a) => a.name),
+            ...unknownRequiredAccelerators,
+          ],
         if (preferredAccelerators.isNotEmpty)
           'preferredAccelerators':
               preferredAccelerators.map((a) => a.name).toList(),
@@ -172,18 +186,33 @@ class LocalModelManifest {
       description: json['description'] as String?,
       requiredAccelerators: _accelerators(json['requiredAccelerators']),
       preferredAccelerators: _accelerators(json['preferredAccelerators']),
+      unknownRequiredAccelerators:
+          _unknownAccelerators(json['requiredAccelerators']),
     );
   }
 
-  /// Tolerant accelerator decoding: an unknown name from a newer remote
-  /// catalog is skipped rather than failing the whole manifest.
+  static final Set<String> _acceleratorNames =
+      Accelerator.values.map((a) => a.name).toSet();
+
+  /// Decodes the names this build recognises. An unrecognised name from a
+  /// newer remote catalog is skipped here rather than failing the whole
+  /// manifest — see [_unknownAccelerators] for where the required ones go.
   static Set<Accelerator> _accelerators(Object? raw) {
     if (raw is! List) return const {};
-    final names = Accelerator.values.map((a) => a.name).toSet();
     return raw
         .whereType<String>()
-        .where(names.contains)
+        .where(_acceleratorNames.contains)
         .map(Accelerator.values.byName)
+        .toSet();
+  }
+
+  /// The names [_accelerators] could not decode, kept so a *required*
+  /// accelerator this build has never heard of still blocks.
+  static Set<String> _unknownAccelerators(Object? raw) {
+    if (raw is! List) return const {};
+    return raw
+        .whereType<String>()
+        .where((name) => !_acceleratorNames.contains(name))
         .toSet();
   }
 

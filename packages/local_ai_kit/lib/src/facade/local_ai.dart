@@ -269,7 +269,18 @@ class LocalAI {
     for (final id in ids) {
       try {
         if (download) await models.ensureInstalled(id);
-        await _scheduler.loadModel(id);
+        // Loading an already-resident model is a no-op, so the backend is
+        // fixed by whoever loads it first. Warming up without the configured
+        // preference would silently pin the LLM to `auto` and leave later
+        // requests unable to get the backend the app asked for.
+        await _scheduler.loadModel(
+          id,
+          preference: id == config.llm?.modelId
+              ? (config.llm!.runtime == RuntimePreference.auto
+                  ? config.runtimePreference
+                  : config.llm!.runtime)
+              : null,
+        );
         results[id] = null;
       } on Object catch (e) {
         results[id] = e;
@@ -314,8 +325,16 @@ class LocalAI {
     // check into "compatible" and every disk pre-flight into a no-op.
     final defaultProbe = FlutterDeviceProbe();
     final resolvedDeviceProbe = deviceProbe ?? defaultProbe.probe;
+    // The disk pre-flight must see the disk as it is *now*: a second
+    // download started inside the probe's cache window would otherwise be
+    // sized against the free space the first one already claimed. Only the
+    // probe we own can be force-refreshed; an app-supplied `deviceProbe`
+    // keeps whatever caching its owner chose.
     final resolvedFreeDiskProbe = freeDiskProbe ??
-        (String _) async => (await resolvedDeviceProbe()).freeDiskMB;
+        (deviceProbe == null
+            ? (String _) async =>
+                (await defaultProbe.probe(forceRefresh: true)).freeDiskMB
+            : (String _) async => (await resolvedDeviceProbe()).freeDiskMB);
 
     // Audio stack (microphone + speaker) is created lazily-early here so
     // adapters receive shared instances in their AdapterContext.

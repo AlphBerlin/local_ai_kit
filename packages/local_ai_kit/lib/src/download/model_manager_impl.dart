@@ -85,14 +85,20 @@ class ModelManagerImpl implements LocalModelManager {
   Future<CompatibilityReport> checkManifestCompatibility(
       LocalModelManifest manifest) async {
     final probe = _deviceProbe;
-    if (probe == null) return const CompatibilityReport.compatible();
-    final DeviceCapabilities device;
-    try {
-      device = await probe();
-    } on Object {
-      // A failing probe must not block a download the device may well
-      // handle; the download manager still runs its own disk pre-flight.
-      return const CompatibilityReport.compatible();
+    DeviceCapabilities device;
+    if (probe == null) {
+      device = const DeviceCapabilities.unknown();
+    } else {
+      try {
+        device = await probe();
+      } on Object {
+        // A failing probe must not block a download the device may well
+        // handle — but it must not silently pass either. Checking against
+        // `unknown` keeps the report compatible while recording an
+        // *unknown* warning per skipped check, so the reason is visible
+        // rather than invented.
+        device = const DeviceCapabilities.unknown();
+      }
     }
     return ModelCompatibilityChecker.check(
       manifest: manifest,
@@ -373,6 +379,11 @@ class ModelManagerImpl implements LocalModelManager {
     DownloadPolicy policy = const DownloadPolicy(),
   }) async {
     final manifest = await _catalog.get(ttsModelId);
+    // A voice is useless without the TTS model it belongs to, so it goes
+    // through the same gate: downloading megabytes of voice assets for a
+    // model this device cannot run wastes exactly the bytes the gate exists
+    // to protect.
+    await _gateCompatibility(manifest);
     final voice = manifest.voices?.firstWhere(
       (v) => v.id == voiceId,
       orElse: () => throw ModelNotFoundError(voiceId),
@@ -430,11 +441,15 @@ class ModelManagerImpl implements LocalModelManager {
       token.cancel();
     }
     _cancelTokens.clear();
+    // Start the closes but do not await them: a broadcast controller with a
+    // *paused* subscriber does not complete `close()` until that subscriber
+    // resumes or cancels, and awaiting it here would strand the maps and
+    // leak the HTTP client for as long as the pause lasts.
     for (final controller in _statusControllers.values) {
-      await controller.close();
+      unawaited(controller.close());
     }
     for (final controller in _progressControllers.values) {
-      await controller.close();
+      unawaited(controller.close());
     }
     _statusControllers.clear();
     _progressControllers.clear();
