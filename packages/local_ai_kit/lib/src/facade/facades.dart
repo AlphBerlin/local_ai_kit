@@ -243,3 +243,54 @@ class LocalTtsFacade {
   /// Immediately truncates playback (barge-in support).
   Future<void> stopSpeaking() => _audioOutput?.stop() ?? Future.value();
 }
+
+/// `ai.embeddings` facade.
+///
+/// Wired the same way as the other capability facades: ensure installed →
+/// ensure loaded through the [RuntimeScheduler] (so an embedding model
+/// participates in LRU eviction and idle unloading like any other model) →
+/// call the shared adapter.
+class LocalEmbeddingFacade {
+  LocalEmbeddingFacade({
+    required EmbeddingConfig? config,
+    required ModelManagerImpl models,
+    required RuntimeScheduler runtime,
+  })  : _config = config,
+        _gate = _CapabilityGate(models: models, runtime: runtime);
+
+  final EmbeddingConfig? _config;
+  final _CapabilityGate _gate;
+
+  EmbeddingConfig _requireConfig() {
+    final config = _config;
+    if (config == null) {
+      throw const InvalidStateError(
+          'Embeddings are not configured: pass LocalAIConfig(embedding: ...).');
+    }
+    return config;
+  }
+
+  Future<LocalEmbedding> _ready() async {
+    final config = _requireConfig();
+    return _gate.ready<LocalEmbedding>(
+        config.modelId, RuntimePreference.auto, 'embedding');
+  }
+
+  /// Ensures the embedding model is downloaded and loaded, returning the
+  /// underlying adapter.
+  Future<LocalEmbedding> ready() => _ready();
+
+  /// Whether the configured embedding model is currently loaded.
+  bool get isLoaded =>
+      _config != null && _gate.runtime.isLoaded(_config.modelId);
+
+  /// Embeds a single [text].
+  Future<List<double>> embed(String text) async => (await _ready()).embed(text);
+
+  /// Embeds a batch of [texts] in one call.
+  Future<List<List<double>>> embedBatch(List<String> texts) async =>
+      (await _ready()).embedBatch(texts);
+
+  /// Unloads the embedding model (it reloads lazily on next use).
+  Future<void> unload() => _gate.runtime.unloadModel(_requireConfig().modelId);
+}

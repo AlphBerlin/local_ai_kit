@@ -13,21 +13,22 @@ and a full-duplex voice pipeline with barge-in.
 | `local_ai_flutter` | [pub.dev/packages/local_ai_flutter](https://pub.dev/packages/local_ai_flutter) | Flutter platform layer (storage, mic, audio, device probe, permissions) |
 | `local_ai_kit` | [pub.dev/packages/local_ai_kit](https://pub.dev/packages/local_ai_kit) | Facade: `LocalAI`, `ModelHub`, download manager, pipeline DSL |
 | `local_ai_gemma` | [pub.dev/packages/local_ai_gemma](https://pub.dev/packages/local_ai_gemma) | `flutter_gemma` → `LocalLlm` adapter |
+| `local_ai_llama_cpp` | [pub.dev/packages/local_ai_llama_cpp](https://pub.dev/packages/local_ai_llama_cpp) | llama.cpp → `LocalLlm` + `LocalEmbedding` adapters (any GGUF) |
 | `local_ai_sherpa` | [pub.dev/packages/local_ai_sherpa](https://pub.dev/packages/local_ai_sherpa) | `sherpa_onnx` → VAD/STT/TTS adapters |
 | `local_ai_genkit` | [pub.dev/packages/local_ai_genkit](https://pub.dev/packages/local_ai_genkit) | Optional Genkit orchestration layer |
 | `bedge_ai` | [pub.dev/packages/bedge_ai](https://pub.dev/packages/bedge_ai) | One-dependency umbrella (all of the above) |
 
-All seven packages release together and share a version number — see
+All eight packages release together and share a version number — see
 [docs/releasing.md](docs/releasing.md).
 
 ## Features
 
 - **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding)
   are registered explicitly via `AdapterPlugin`s; unused native runtimes
-  never enter your binary. (`embedding` is interface-only today — no
-  adapter ships yet, see [Adapters](docs/adapters.md).)
+  never enter your binary.
 - **On-Device Models** (catalog entries; see [implementation status](docs/faq.md#which-platforms-are-supported) for the STT/TTS/VAD caveat below):
-  - **LLMs**: Qwen 2.5/3.5 (0.5B–4B via LiteRT-LM), SmolLM2 360M, DeepSeek R1 Distill Qwen 1.5B, Gemma 3n/4 E2B/E4B.
+  - **LLMs**: Qwen 2.5/3.5 (0.5B–4B via LiteRT-LM), SmolLM2 360M, DeepSeek R1 Distill Qwen 1.5B, Gemma 3n/4 E2B/E4B — plus **any GGUF model** through the llama.cpp adapter.
+  - **Embeddings**: Nomic Embed Text v1.5 (GGUF) via llama.cpp — the first working `LocalEmbedding` implementation; `ai.embed(...)` / `ai.embedBatch(...)`.
   - **TTS**: Supertonic 3 (Supertone Inc. — 31+ languages, 10 voice styles `F1`–`F5`/`M1`–`M5`), Kokoro TTS v0.19, Piper Lessac Low. Ships today by shelling out to a Python/`sherpa-onnx` subprocess on desktop, with a native macOS-voice and a synthesized-waveform fallback; not yet wired to the `sherpa_onnx` Dart FFI bindings.
   - **STT**: Zipformer, SenseVoice Small, Whisper base/tiny, Moonshine tiny — same subprocess-based implementation as TTS above.
   - **VAD**: currently a lightweight Dart RMS-energy heuristic with adaptive noise-floor tracking, **not** the Silero ONNX model the adapter name implies.
@@ -36,6 +37,14 @@ All seven packages release together and share a version number — see
   installed models, flags updates instead of overwriting).
 - **Streaming-first** — generation, transcription, synthesis and download
   progress are all `Stream`s; one-shot results are folded streams.
+- **Any GGUF via llama.cpp** — persistent KV cache across turns, GBNF
+  grammar-constrained structured output (invalid JSON is unreachable, not
+  just unlikely), llama.cpp's native samplers, and real token accounting.
+  The native library is built and bundled by you — see
+  [`packages/local_ai_llama_cpp/native/`](packages/local_ai_llama_cpp/native/README.md).
+- **Bring your own model file** — `ai.models.registerExternalModel(manifest,
+  localFilePath: …)` links a GGUF you already have on disk into the standard
+  install location (no download, and deliberately no verification).
 - **Balanced Sampling & Repetition Guard** — built-in `topK` (40), `topP` (0.9), `temperature` controls and real-time streaming n-gram / burst guards to eliminate infinite generation loops.
 - **Pristine 44.1 kHz Studio Audio** — zero-latency in-memory flow matching, direct Float32 PCM streaming, and native multi-voice fallback across 31+ languages.
 - **Resumable downloads** — HTTP `Range` resume, `.part` temp files,
@@ -62,6 +71,10 @@ local_ai_kit/                       (melos workspace)
 │   │                               recorder, audio player, network policy,
 │   │                               device probe, permissions, lifecycle.
 │   ├── local_ai_gemma/             flutter_gemma → LocalLlm adapter.
+│   ├── local_ai_llama_cpp/         llama.cpp → LocalLlm + LocalEmbedding
+│   │                               (any GGUF; FFI in worker isolates,
+│   │                               GBNF structured output, native build
+│   │                               scripts under native/).
 │   ├── local_ai_sherpa/            sherpa_onnx → LocalVad/LocalStt/LocalTts
 │   │                               (FFI isolated in worker isolates).
 │   ├── local_ai_genkit/            Optional orchestration layer over LocalLlm
@@ -86,6 +99,7 @@ For an app that wants all first-party adapters through one dependency, use
 ```dart
 import 'package:local_ai_kit/local_ai_kit.dart';
 import 'package:local_ai_gemma/local_ai_gemma.dart';
+import 'package:local_ai_llama_cpp/local_ai_llama_cpp.dart';
 import 'package:local_ai_sherpa/local_ai_sherpa.dart';
 
 Future<void> main() async {
@@ -95,6 +109,7 @@ Future<void> main() async {
     LocalAIConfig.voiceAssistant(),
     plugins: const [
       GemmaAdapterPlugin(),
+      LlamaCppAdapterPlugin(),  // any GGUF chat/embedding model
       SherpaAdapterPlugin(),
     ],
   );
@@ -147,7 +162,7 @@ Pipeline presets: `LocalPipeline.presets.textChat(ai)` /
 - Architecture (layering, interfaces, state machines, merge/ download /
   memory strategies): `docs-internal/architecture.md`
 - [Releasing to pub.dev](docs/releasing.md) — first publication and tagged
-  releases for all seven packages.
+  releases for all eight packages.
 - See `examples/demo/lib/main.dart` for a complete app: LLM chat with MCP
   skills/Genkit orchestration, TTS, STT, a full-duplex voice assistant with
   barge-in, a model catalog/download manager, and live logs — all on a

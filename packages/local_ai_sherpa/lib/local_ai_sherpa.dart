@@ -6,5 +6,6 @@ library;
 
 export 'src/sherpa_adapter_plugin.dart';
 export 'src/sherpa_stt_adapter.dart';
+export 'src/sherpa_stt_model_layout.dart';
 export 'src/sherpa_tts_adapter.dart';
 export 'src/sherpa_vad_adapter.dart';

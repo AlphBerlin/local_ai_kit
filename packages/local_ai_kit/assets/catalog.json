@@ -1,6 +1,6 @@
 {
-  "catalogVersion": 4,
-  "updatedAt": "2026-08-25T00:00:00Z",
+  "catalogVersion": 7,
+  "updatedAt": "2026-09-04T00:00:00Z",
   "comment": "Built-in offline model catalog with direct high-speed weights for lightweight on-device models.",
   "models": [
     {
@@ -352,6 +352,257 @@
       ]
     },
     {
+      "id": "sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Tiny English",
+      "description": "Quantized Moonshine v2 offline English speech recognition (~45 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 128,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 45000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Tiny Japanese",
+      "description": "Quantized Moonshine v2 offline Japanese speech recognition (~45 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 128,
+      "languages": ["ja"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 45000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Tiny Korean",
+      "description": "Quantized Moonshine v2 offline Korean speech recognition (~45 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 128,
+      "languages": ["ko"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 45000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-ar-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Arabic",
+      "description": "Quantized Moonshine v2 offline Arabic speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["ar"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-ar-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-ar-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-en-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base English",
+      "description": "Quantized Moonshine v2 offline English speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-en-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-en-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-es-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Spanish",
+      "description": "Quantized Moonshine v2 offline Spanish speech recognition (~65 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["es"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-es-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-es-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 65000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-ja-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Japanese",
+      "description": "Quantized Moonshine v2 offline Japanese speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["ja"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-ja-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-ja-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-uk-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Ukrainian",
+      "description": "Quantized Moonshine v2 offline Ukrainian speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["uk"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-uk-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-uk-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-vi-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Vietnamese",
+      "description": "Quantized Moonshine v2 offline Vietnamese speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["vi"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-vi-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-vi-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-zh-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Chinese",
+      "description": "Quantized Moonshine v2 offline Chinese speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["zh"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-zh-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-zh-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Dolphin Base",
+      "description": "Multilingual Dolphin CTC speech recognition (~318 MB).",
+      "delivery": "download",
+      "minMemoryMB": 512,
+      "languages": ["zh", "ja", "th", "ru", "ko", "id", "vi", "ct", "hi", "ur", "ms", "uz", "ar", "fa", "bn", "ta", "te", "ug", "gu", "my", "tl", "kk", "or", "ne", "mn", "km", "jv", "lo", "si", "fil", "ps", "pa", "kab", "ba", "ks", "tg", "su", "mr", "ky", "az", "zh-CN", "zh-TW", "zh-WU", "zh-SICHUAN", "zh-SHANXI", "zh-ANHUI", "zh-TIANJIN", "zh-NINGXIA", "zh-SHAANXI", "zh-HEBEI", "zh-SHANDONG", "zh-GUANGDONG", "zh-SHANGHAI", "zh-HUBEI", "zh-LIAONING", "zh-GANSU", "zh-FUJIAN", "zh-HUNAN", "zh-HENAN", "zh-YUNNAN", "zh-MINNAN", "zh-WENZHOU", "multilingual"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline", "multilingual"],
+      "license": "Apache-2.0",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 318000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Dolphin Base int8",
+      "description": "Quantized multilingual Dolphin CTC speech recognition (~104 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["zh", "ja", "th", "ru", "ko", "id", "vi", "ct", "hi", "ur", "ms", "uz", "ar", "fa", "bn", "ta", "te", "ug", "gu", "my", "tl", "kk", "or", "ne", "mn", "km", "jv", "lo", "si", "fil", "ps", "pa", "kab", "ba", "ks", "tg", "su", "mr", "ky", "az", "zh-CN", "zh-TW", "zh-WU", "zh-SICHUAN", "zh-SHANXI", "zh-ANHUI", "zh-TIANJIN", "zh-NINGXIA", "zh-SHAANXI", "zh-HEBEI", "zh-SHANDONG", "zh-GUANGDONG", "zh-SHANGHAI", "zh-HUBEI", "zh-LIAONING", "zh-GANSU", "zh-FUJIAN", "zh-HUNAN", "zh-HENAN", "zh-YUNNAN", "zh-MINNAN", "zh-WENZHOU", "multilingual"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline", "multilingual"],
+      "license": "Apache-2.0",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 104000000
+      }]
+    },
+    {
       "id": "vits-piper-en-lessac",
       "type": "tts",
       "provider": "sherpa-community",
@@ -526,6 +777,270 @@
           "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-en-v0_19.tar.bz2",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
           "sizeBytes": 319625534
+        }
+      ]
+    },
+    {
+      "id": "qwen-2.5-0.5b-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "Qwen 2.5 0.5B Instruct (GGUF)",
+      "description": "Small ChatML chat model in GGUF Q4_K_M, run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 1024,
+      "languages": ["en", "zh"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming", "multilingual"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 491000000
+        }
+      ]
+    },
+    {
+      "id": "llama-3.2-1b-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "Llama 3.2 1B Instruct (GGUF)",
+      "description": "Meta Llama 3.2 1B instruction-tuned model in GGUF Q4_K_M, run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 8192,
+      "minMemoryMB": 1536,
+      "languages": ["en", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming", "multilingual"],
+      "license": "llama3.2",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+          "url": "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 808000000
+        }
+      ]
+    },
+    {
+      "id": "smollm2-360m-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "SmolLM2 360M Instruct (GGUF)",
+      "description": "Ultra-lightweight SmolLM2 360M model in GGUF Q4_K_M, run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 2048,
+      "minMemoryMB": 512,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "smollm2-360m-instruct-q4_k_m.gguf",
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/resolve/main/smollm2-360m-instruct-q4_k_m.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 229000000
+        }
+      ]
+    },
+    {
+      "id": "nomic-embed-text-v1.5-gguf",
+      "type": "embedding",
+      "provider": "llama-cpp",
+      "displayName": "Nomic Embed Text v1.5 (GGUF)",
+      "description": "768-dimension text embeddings for on-device RAG in GGUF Q4_K_M.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 2048,
+      "minMemoryMB": 512,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["embedding"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "nomic-embed-text-v1.5.Q4_K_M.gguf",
+          "url": "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 84110000
+        }
+      ]
+    },
+    {
+      "id": "lfm2.5-1.2b-jp-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "LFM2.5 1.2B JP (GGUF)",
+      "description": "Liquid AI LFM2.5 1.2B model optimized for Japanese dialogue in GGUF Q4_K_M (731 MB).",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 1024,
+      "languages": ["ja"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "liquid-community",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "LFM2.5-1.2B-JP-Q4_K_M.gguf",
+          "url": "https://huggingface.co/LiquidAI/LFM2.5-1.2B-JP-GGUF/resolve/main/LFM2.5-1.2B-JP-Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 731000000
+        }
+      ]
+    },
+    {
+      "id": "qwen-3.5-0.8b-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "Qwen 3.5 0.8B Instruct (GGUF)",
+      "description": "Ultra-small general model in GGUF Q4_K_M (563 MB), run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 1024,
+      "languages": ["en", "zh", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming", "multilingual"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "qwen3.5-0.8b-instruct-q4_k_m.gguf",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-0.8B-GGUF/resolve/main/qwen3.5-0.8b-instruct-q4_k_m.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 563000000
+        }
+      ]
+    },
+    {
+      "id": "lfm2.5-1.2b-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "LFM2.5 1.2B Instruct (GGUF)",
+      "description": "General edge assistant in GGUF Q4_K_M (731 MB) from Liquid AI, run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 1024,
+      "languages": ["en", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "liquid-community",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+          "url": "https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF/resolve/main/LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 731000000
+        }
+      ]
+    },
+    {
+      "id": "lfm2.5-2.6b-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "LFM2.5 2.6B (GGUF)",
+      "description": "Balanced edge model with high quality in GGUF Q4_K_M (1.67 GB) from Liquid AI.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 2048,
+      "languages": ["en", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "liquid-community",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "LFM2.5-2.6B-Q4_K_M.gguf",
+          "url": "https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/resolve/main/LFM2.5-2.6B-Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 1670000000
+        }
+      ]
+    },
+    {
+      "id": "qwen-3.5-4b-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "Qwen 3.5 4B Instruct (GGUF)",
+      "description": "High-capability small general/multilingual model in GGUF Q4_K_M (2.71 GB), run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 4096,
+      "languages": ["en", "zh", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming", "multilingual"],
+      "license": "apache-2.0",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "qwen3.5-4b-instruct-q4_k_m.gguf",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B-GGUF/resolve/main/qwen3.5-4b-instruct-q4_k_m.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2710000000
+        }
+      ]
+    },
+    {
+      "id": "ministral-3-3b-instruct-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "Ministral 3 3B Instruct (GGUF)",
+      "description": "Mistral AI general text/instruction model in GGUF Q4_K_M (~2.05 GB), run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 3072,
+      "languages": ["en", "fr", "multilingual"],
+      "platforms": ["android", "ios", "macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming", "multilingual"],
+      "license": "mistral-community",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+          "url": "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF/resolve/main/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 2050000000
+        }
+      ]
+    },
+    {
+      "id": "lfm2.5-8b-a1b-gguf",
+      "type": "llm",
+      "provider": "llama-cpp",
+      "displayName": "LFM2.5 8B A1B (GGUF)",
+      "description": "High-performance MoE model for desktop/laptop in GGUF Q4_K_M (5.16 GB), run through llama.cpp.",
+      "delivery": "download",
+      "quantization": "q4_k_m",
+      "contextLength": 32768,
+      "minMemoryMB": 6144,
+      "languages": ["en", "multilingual"],
+      "platforms": ["macos", "windows", "linux"],
+      "capabilities": ["chat", "streaming"],
+      "license": "liquid-community",
+      "catalogVersion": 1,
+      "files": [
+        {
+          "name": "LFM2.5-8B-A1B-Q4_K_M.gguf",
+          "url": "https://huggingface.co/LiquidAI/LFM2.5-8B-A1B-GGUF/resolve/main/LFM2.5-8B-A1B-Q4_K_M.gguf",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "sizeBytes": 5160000000
         }
       ]
     }

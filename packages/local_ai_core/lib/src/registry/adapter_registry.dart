@@ -94,6 +94,21 @@ class AdapterRegistry {
   EmbeddingAdapterFactory? embeddingFactory(String provider) =>
       _embedding[provider];
 
+  /// Registered LLM provider keys.
+  Iterable<String> get registeredLlmProviders => _llm.keys;
+
+  /// Registered STT provider keys.
+  Iterable<String> get registeredSttProviders => _stt.keys;
+
+  /// Registered TTS provider keys.
+  Iterable<String> get registeredTtsProviders => _tts.keys;
+
+  /// Registered VAD provider keys.
+  Iterable<String> get registeredVadProviders => _vad.keys;
+
+  /// Registered Embedding provider keys.
+  Iterable<String> get registeredEmbeddingProviders => _embedding.keys;
+
   /// Whether an adapter exists for [provider] + capability [type].
   bool supports(String provider, ModelType type) => switch (type) {
         ModelType.llm => _llm.containsKey(provider),

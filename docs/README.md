@@ -12,13 +12,14 @@ Pluggable, offline-first, streaming-first on-device AI toolkit for Flutter: LLM 
 | `local_ai_flutter` | [![pub](https://img.shields.io/pub/v/local_ai_flutter.svg)](https://pub.dev/packages/local_ai_flutter) |
 | `local_ai_kit` | [![pub](https://img.shields.io/pub/v/local_ai_kit.svg)](https://pub.dev/packages/local_ai_kit) |
 | `local_ai_gemma` | [![pub](https://img.shields.io/pub/v/local_ai_gemma.svg)](https://pub.dev/packages/local_ai_gemma) |
+| `local_ai_llama_cpp` | [![pub](https://img.shields.io/pub/v/local_ai_llama_cpp.svg)](https://pub.dev/packages/local_ai_llama_cpp) |
 | `local_ai_sherpa` | [![pub](https://img.shields.io/pub/v/local_ai_sherpa.svg)](https://pub.dev/packages/local_ai_sherpa) |
 | `local_ai_genkit` | [![pub](https://img.shields.io/pub/v/local_ai_genkit.svg)](https://pub.dev/packages/local_ai_genkit) |
 | `bedge_ai` | [![pub](https://img.shields.io/pub/v/bedge_ai.svg)](https://pub.dev/packages/bedge_ai) |
 
 ## Features
 
-- **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding) are registered explicitly via `AdapterPlugin`s; unused native runtimes never enter your binary. `embedding` is interface-only today (no adapter ships yet); the built-in STT/TTS/VAD adapters currently run via a desktop Python subprocess and a Dart heuristic rather than native `sherpa_onnx` FFI — see [Adapters](adapters.md) and the [FAQ](faq.md) for the exact status.
+- **Pluggable adapters** — capabilities (LLM / STT / TTS / VAD / embedding) are registered explicitly via `AdapterPlugin`s; unused native runtimes never enter your binary. The llama.cpp adapter runs any GGUF model and ships the first working `embedding` implementation; the built-in STT/TTS/VAD adapters currently run via a desktop Python subprocess and a Dart heuristic rather than native `sherpa_onnx` FFI — see [Adapters](adapters.md) and the [FAQ](faq.md) for the exact status.
 - **Offline-first** — the built-in model catalog works without network; an optional remote catalog is merged by `catalogVersion` (never deletes installed models, flags updates instead of overwriting).
 - **Streaming-first** — generation, transcription, synthesis and download progress are all `Stream`s; one-shot results are folded streams.
 - **Resumable downloads** — HTTP `Range` resume, `.part` temp files, atomic `meta.json` writes, streamed sha256 verification, exponential backoff retry, and atomic same-partition install.
@@ -38,6 +39,7 @@ local_ai_kit/                       (melos workspace)
 │   │                               recorder, audio player, network policy,
 │   │                               device probe, permissions, lifecycle.
 │   ├── local_ai_gemma/             flutter_gemma → LocalLlm adapter.
+│   ├── local_ai_llama_cpp/         llama.cpp → LocalLlm + LocalEmbedding.
 │   ├── local_ai_sherpa/            sherpa_onnx → LocalVad/LocalStt/LocalTts
 │   │                               (FFI isolated in worker isolates).
 │   ├── local_ai_genkit/            Optional orchestration layer over LocalLlm

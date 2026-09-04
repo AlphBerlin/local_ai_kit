@@ -12,10 +12,14 @@ class MockAdapterPlugin implements AdapterPlugin {
     AppLogger.info('PLUGIN',
         'Registering MockAdapterPlugin for Google Gemma & Sherpa providers');
 
-    // Register LLM adapter for both Gemma and Mock providers
+    // Register LLM adapter for Gemma, llama.cpp, and Mock providers
     registry.registerLlm(
       ModelProviders.googleGemma,
       (context) => _DemoMockLlm(provider: ModelProviders.googleGemma),
+    );
+    registry.registerLlm(
+      ModelProviders.llamaCpp,
+      (context) => _DemoMockLlm(provider: ModelProviders.llamaCpp),
     );
     registry.registerLlm(
       'mock',
@@ -82,7 +86,7 @@ class _DemoMockLlm with StructuredOutputSupport implements LocalLlm {
         request.messages.lastOrNull?.content ?? 'Explain on-device AI';
     AppLogger.info('LLM_MOCK', 'generateStream requested: "$prompt"');
 
-    final response = _generateMockResponse(prompt);
+    final response = _generateMockResponse(request);
     final words = response.split(' ');
 
     for (var i = 0; i < words.length; i++) {
@@ -97,11 +101,70 @@ class _DemoMockLlm with StructuredOutputSupport implements LocalLlm {
   }
 
   @override
-  Future<LlmResponse> generate(LlmRequest request) =>
-      LlmResponse.fold(generateStream(request));
+  Future<LlmResponse> generate(LlmRequest request) async {
+    final response = _generateMockResponse(request);
+    return LlmResponse(
+      text: response,
+      finishReason: LlmFinishReason.stop,
+    );
+  }
 
-  String _generateMockResponse(String prompt) {
-    final lower = prompt.toLowerCase();
+  String _generateMockResponse(LlmRequest request) {
+    final systemPrompt = request.messages
+        .where((m) => m.role == LlmRole.system)
+        .map((m) => m.content)
+        .join('\n');
+    final lastUserMsg = request.messages
+        .lastWhere(
+          (m) => m.role == LlmRole.user,
+          orElse: () => const LlmMessage(role: LlmRole.user, content: ''),
+        )
+        .content;
+    final allContent =
+        request.messages.map((m) => '${m.role.name}: ${m.content}').join('\n');
+    final lower = lastUserMsg.toLowerCase();
+
+    // If this is a feedback turn with a TOOL_RESULT:
+    if (allContent.contains('TOOL_RESULT for "calculate"')) {
+      final match = RegExp(r'TOOL_RESULT for "calculate":\s*([^\n]+)')
+          .firstMatch(allContent);
+      final calcRes = match?.group(1) ?? 'the calculated value';
+      return 'The calculation result is: $calcRes.';
+    }
+    if (allContent.contains('TOOL_RESULT for "get_weather"')) {
+      return 'The weather is currently clear and pleasant with mild temperatures.';
+    }
+    if (allContent.contains('TOOL_RESULT for "get_current_time"')) {
+      return 'The current time has been checked and verified.';
+    }
+    if (allContent.contains('TOOL_RESULT for "get_device_info"')) {
+      return 'Device hardware details have been retrieved.';
+    }
+
+    // If available tools are advertised in the system prompt:
+    if (systemPrompt.contains('## AVAILABLE TOOLS')) {
+      if (lower.contains('calculate') ||
+          lower.contains('+') ||
+          lower.contains('-') ||
+          lower.contains('*') ||
+          lower.contains('/') ||
+          lower.contains('math') ||
+          lower.contains('plus')) {
+        return '```json\n{"tool": "calculate", "arguments": {"expression": "2 + 2"}}\n```';
+      }
+      if (lower.contains('weather') || lower.contains('temperature')) {
+        return '```json\n{"tool": "get_weather", "arguments": {"city": "Tokyo"}}\n```';
+      }
+      if (lower.contains('time') || lower.contains('date')) {
+        return '```json\n{"tool": "get_current_time", "arguments": {}}\n```';
+      }
+      if (lower.contains('device') ||
+          lower.contains('battery') ||
+          lower.contains('memory')) {
+        return '```json\n{"tool": "get_device_info", "arguments": {}}\n```';
+      }
+    }
+
     if (lower.contains('one sentence') ||
         lower.contains('explain on-device ai')) {
       return 'On-device AI executes intelligent neural network models directly on your local hardware, ensuring private, offline, zero-latency processing without cloud dependencies.';

@@ -2,9 +2,12 @@
 
 **Date:** 2026-08-25 (revised 2026-08-26 after review)
 
-**Status:** Revised after code review invalidated two load-bearing
-assumptions (native binding choice, "no plumbing needed" for BYO models).
-See revision notes inline. Pending re-approval before `writing-plans`.
+**Status:** Implemented in `packages/local_ai_llama_cpp/` (see
+"Implementation notes" at the end for where the build deviated from this
+document and what `llama_cpp_dart` turned out to constrain). Previously:
+revised after code review invalidated two load-bearing assumptions (native
+binding choice, "no plumbing needed" for BYO models); see revision notes
+inline.
 
 ## Goal
 
@@ -234,3 +237,70 @@ existing `RuntimeMemoryPolicy` LRU scheduler with no special-casing —
 | Full 5-platform matrix in v1 increases validation surface (mobile GPU backends, app-store binary size, symlink-vs-copy behavior for `registerExternalModel` on Windows) | `ModelDeliveryPolicy` keeps large GGUF files out of the app bundle by default; the Windows copy-fallback for BYO models is a documented, deliberate cost rather than a silent gap |
 | Two isolates per fully-loaded llama.cpp setup (chat + embedding) adds idle memory overhead vs. Gemma's single adapter | Same `RuntimeMemoryPolicy`/LRU unload-when-idle mechanics apply to both; document that using both capabilities simultaneously costs two resident contexts |
 | `registerExternalModel` bypasses sha256 verification and the download state machine entirely — a malicious or corrupt BYO file has no integrity check | Acceptable for v1: this mirrors the trust model of `ModelDelivery.external`'s intent (the app/user explicitly supplied the file); document that no verification happens, unlike catalog-managed models |
+
+
+## Implementation notes (2026-09-03)
+
+The design held up. The `llama_cpp_dart` 0.2.2 API was verified before any
+adapter code was written, as the risk table required, and it does carry
+everything three sections depended on: `SamplerParams.grammarStr` /
+`grammarRoot` for GBNF, `ContextParams.embeddings` + `poolingType` for the
+embedding adapter, and `ModelParams.nGpuLayers` for backend selection.
+Four things came out differently.
+
+**1. `llama_cpp_dart` ships no usable native binary — confirmed, and worse
+than assumed.** The spec expected to own the build; it does. What the
+verification added: that package's pubspec has no `flutter: plugin:`
+section, so Flutter never runs the podspecs under its `ios/` and `macos/`
+directories, never runs its `android/` Gradle build, and does not vendor the
+`Llama.xcframework` it ships in `dist/`. Those directories are leftovers of
+an example app, not a delivery mechanism. `native/build_llama.sh` /
+`build_llama.ps1` plus `LlamaCppRuntime.useLibrary()` are the whole story
+for getting a library onto a device.
+
+**2. The native build is scripts, not a wrapper CMake project.** §1 proposed
+a CMake project vendoring llama.cpp as a submodule. A wrapper `CMakeLists`
+that only calls `add_subdirectory(llama.cpp)` adds nothing over invoking
+llama.cpp's own CMake with the right flags, so the scripts do that directly
+and clone the source at a configurable ref instead of carrying a submodule.
+The deliverable is unchanged: one shared library per platform with the
+platform's GPU backend. The **CI matrix remains unbuilt** — the risk table's
+first row is still open, and `native/README.md` says so plainly.
+
+**3. Two `llama_cpp_dart` constraints the design did not anticipate, both
+affecting §2's persistent-KV-cache claim.**
+
+* `setPrompt` hardcodes `add_special = true` when tokenizing. For a model
+  whose tokenizer prepends a BOS (Llama 3, Gemma), continuing a cached
+  context would inject a second BOS mid-sequence. The worker probes for this
+  at load time (`tokenize(x, true).length != tokenize(x, false).length`) and
+  reports `supportsCachedContinuation`; when false, the adapter re-evaluates
+  the full prompt every turn. ChatML-family models (Qwen, SmolLM2, DeepSeek
+  distills) do get the cache benefit. Fixing this properly needs either an
+  upstream `addSpecial` parameter on `setPrompt` or driving `llama_batch`
+  through raw FFI here.
+* The sampler chain is built with the context and cannot be replaced, so a
+  per-request grammar or a changed temperature/topP forces a `Llama`
+  rebuild, which drops the KV cache. §3's "pass this grammar to llama.cpp's
+  sampling params" therefore costs a context rebuild per structured-output
+  call, not a free parameter change. Weights come back from the OS page
+  cache, so it is far cheaper than a cold load, but it is a real cost and is
+  documented in `docs/adapters.md` and the package README.
+
+**4. Additions beyond the spec, both small and in `local_ai_kit` only.**
+`LocalEmbeddingFacade` (`ai.embeddings`, plus `ai.embed`/`ai.embedBatch`
+shortcuts) — §4 shipped the first `LocalEmbedding` implementation, and
+without a facade it was only reachable through the runtime scheduler.
+`ModelCatalogService.registerManifest`, which `registerExternalModel` needs
+to make an app-supplied manifest resolvable. Two GGUF catalog entries
+(`qwen-2.5-0.5b-instruct-gguf`, `nomic-embed-text-v1.5-gguf`) and the
+`llama-cpp` provider key were added to `local_ai_core` — data and a routing
+constant, not interface changes.
+
+**Testing** matches §6: 66 device-free unit tests cover the GBNF translator,
+context-window truncation, the KV-cache reuse decision, chat templates,
+backend selection, GGUF file selection, streaming stop-sequence detection
+and embedding post-processing; 11 more in `local_ai_kit` cover
+`registerExternalModel` and the embedding facade. Actual model loading and
+inference remain manually validated, as with every other adapter in this
+repo — no CI-runnable native-inference test was introduced.

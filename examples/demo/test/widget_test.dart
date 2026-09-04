@@ -29,6 +29,53 @@ void main() {
     expect(buffer.format, AudioFormat.pcm16kMono);
   });
 
+  test('demo STT options include every catalog STT model', () {
+    final catalogSttIds = Models.all
+        .where((manifest) => manifest.type == ModelType.stt)
+        .map((manifest) => manifest.id)
+        .toSet();
+    final demoSttIds =
+        demoSttModelManifests.map((manifest) => manifest.id).toSet();
+
+    expect(demoSttIds, catalogSttIds);
+    expect(
+      demoSttIds,
+      containsAll(<String>[
+        Models.moonshineTinyV2En.id,
+        Models.moonshineTinyV2Ja.id,
+        Models.moonshineTinyV2Ko.id,
+        Models.moonshineBaseV2Ar.id,
+        Models.moonshineBaseV2En.id,
+        Models.moonshineBaseV2Es.id,
+        Models.moonshineBaseV2Ja.id,
+        Models.moonshineBaseV2Uk.id,
+        Models.moonshineBaseV2Vi.id,
+        Models.moonshineBaseV2Zh.id,
+        Models.dolphinBase.id,
+        Models.dolphinBaseInt8.id,
+      ]),
+    );
+  });
+
+  test('demo LLM options include every catalog LLM model', () {
+    final catalogLlmIds = Models.all
+        .where((manifest) => manifest.type == ModelType.llm)
+        .map((manifest) => manifest.id)
+        .toSet();
+    final demoLlmIds =
+        demoLlmModelManifests.map((manifest) => manifest.id).toSet();
+
+    expect(demoLlmIds, catalogLlmIds);
+    expect(
+      demoLlmIds,
+      containsAll(<String>[
+        Models.qwen25_05bGguf.id,
+        Models.llama32_1bGguf.id,
+        Models.smollm2_360mGguf.id,
+      ]),
+    );
+  });
+
   testWidgets('LocalAIDemoApp renders initial UI elements and MCP controls',
       (WidgetTester tester) async {
     // Build our app and trigger a frame.
@@ -77,14 +124,13 @@ void main() {
 
     expect(find.text('STT Model & Microphone'), findsOneWidget);
     expect(find.text('Start Recording'), findsOneWidget);
-    expect(find.text('Live Transcript'), findsOneWidget);
+    expect(find.text('Final Transcript'), findsOneWidget);
     expect(
       find.text(
           'Capture 16 kHz mono microphone audio. Stop recording to produce one stable transcription for the captured utterance.'),
       findsOneWidget,
     );
-    expect(find.text('Live hypothesis is provisional while recording.'),
-        findsOneWidget);
+    expect(find.textContaining('Live hypothesis'), findsNothing);
     expect(find.text('Clear Transcript'), findsOneWidget);
   });
 
@@ -105,5 +151,44 @@ void main() {
     expect(gemmaOption, findsOneWidget);
     await tester.tap(gemmaOption);
     await tester.pump();
+  });
+
+  testWidgets(
+      'LLM Dropdown contains llama.cpp GGUF models and allows selection',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const LocalAIDemoApp());
+
+    // Find LLM DropdownButton
+    final dropdown = find.byType(DropdownButton<String>).first;
+    expect(dropdown, findsOneWidget);
+
+    // Open Dropdown
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+
+    // Verify Llama 3.2 1B (GGUF • llama.cpp) is an option and select it
+    final llamaOption = find.textContaining('Llama 3.2 1B').last;
+    expect(llamaOption, findsOneWidget);
+    await tester.tap(llamaOption);
+    await tester.pump();
+  });
+
+  testWidgets('Toggling Genkit Orchestrator updates UI state',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const LocalAIDemoApp());
+
+    // 1. Verify initial Genkit state
+    expect(find.textContaining('Genkit Orchestrator: OFF'), findsOneWidget);
+
+    // 2. Tap to enable Genkit Orchestrator
+    final genkitChip = find.textContaining('Genkit Orchestrator');
+    await tester.tap(genkitChip);
+    await tester.pump();
+    expect(find.textContaining('Genkit Orchestrator: ON'), findsOneWidget);
+
+    // 3. Tap to disable Genkit Orchestrator
+    await tester.tap(find.textContaining('Genkit Orchestrator'));
+    await tester.pump();
+    expect(find.textContaining('Genkit Orchestrator: OFF'), findsOneWidget);
   });
 }

@@ -88,21 +88,34 @@ Genkit on device is an **orchestration layer** — flows, tools, prompt template
 
 ### Wiring
 
-Set `enableGenkit` and register the plugins in order (Genkit wraps the base adapter by provider):
+Set `enableGenkit: true` and register base LLM plugins first, followed by `GenkitAdapterPlugin`. By default, `GenkitAdapterPlugin()` automatically discovers and wraps all registered LLM providers (both `google-gemma` and `llama-cpp`):
 
 ```dart
 final ai = await LocalAI.initialize(
   LocalAIConfig.offlineChat().copyWith(
     llm: const LlmConfig(
-      modelId: 'gemma-3n-e2b-it-int4',
+      modelId: 'qwen2.5-0.5b-instruct-gguf', // or 'gemma-3n-e2b-it-int4'
       enableGenkit: true,
     ),
   ),
   plugins: const [
-    GemmaAdapterPlugin(),   // base LLM first
-    GenkitAdapterPlugin(),  // wraps provider 'google-gemma'
+    GemmaAdapterPlugin(),     // provider 'google-gemma'
+    LlamaCppAdapterPlugin(),  // provider 'llama-cpp'
+    GenkitAdapterPlugin(),    // automatically wraps all registered LLMs
   ],
 );
+```
+
+You can also target specific providers explicitly:
+```dart
+// Wrap only llama.cpp:
+GenkitAdapterPlugin(provider: ModelProviders.llamaCpp)
+
+// Or wrap a specific list of providers:
+GenkitAdapterPlugin(providers: [
+  ModelProviders.googleGemma,
+  ModelProviders.llamaCpp,
+])
 ```
 
 ### The `ai.genkit` escape hatch

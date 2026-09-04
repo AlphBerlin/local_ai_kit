@@ -28,7 +28,8 @@ flutter test packages/local_ai_kit/test/pipeline_test.dart    # Flutter package
 
 ## Architecture
 
-Six-package workspace with a strict, one-directional dependency graph
+Seven-package workspace (plus the `bedge_ai` umbrella) with a strict,
+one-directional dependency graph
 (enforced by convention, not tooling — respect it when adding imports):
 
 ```
@@ -38,6 +39,8 @@ App
      ├─ local_ai_genkit   (optional LocalLlm orchestration; also depends on local_ai_kit
      │                     for its LocalAIGenkitX escape-hatch extension — the one
      │                     intentional exception to "kit never depends on an adapter")
+     ├─ local_ai_llama_cpp (llama_cpp_dart → LocalLlm + LocalEmbedding for any GGUF;
+     │                     real FFI in worker isolates)
      ├─ local_ai_sherpa   (sherpa_onnx → LocalVad / LocalStt / LocalTts, FFI in worker isolates)
      └─ local_ai_flutter  (platform layer: storage paths, mic capture, audio playback,
                             network policy, device probe, permissions, app lifecycle)
@@ -55,6 +58,9 @@ App
   adapters explicitly — `LocalAI.initialize(config, plugins: [GemmaAdapterPlugin(), SherpaAdapterPlugin()])`
   — which is what lets an unused native runtime (e.g. onnxruntime when no
   STT/TTS is needed) be fully tree-shaken out of a binary.
+- `bedge_ai` re-exports every first-party package, so a new adapter package
+  needs an entry there, in the root `pubspec.yaml` `workspace:` list, and in
+  `tool/release_config.dart` (all packages share one version).
 
 Mechanisms worth understanding before changing related code (each spans
 multiple files, so grep won't surface the full picture on its own):
@@ -117,9 +123,34 @@ multiple files, so grep won't surface the full picture on its own):
   `topK=40`/`topP=0.9`/`temperature=0.8` sampling. It always reports
   `finishReason: stop` and never populates `promptTokens`/
   `completionTokens`, regardless of how generation actually ended.
+- **llama.cpp adapter** (`packages/local_ai_llama_cpp/`): the only adapter
+  doing real FFI-in-isolate today. Four things carry most of the design and
+  are each isolated as a pure, unit-tested function so they can be changed
+  without a device: `json_schema_to_gbnf.dart` (JsonSchema → GBNF grammar
+  for constrained structured output), `prompt_plan.dart` (whether the next
+  request may continue the live KV cache or must reset it),
+  `chat_template.dart` (turn markers per model family, inferred from the
+  model id/file name — GGUF metadata templates are not reachable through
+  `llama_cpp_dart`) and `stop_sequences.dart` (streaming stop-marker
+  detection that holds back partial matches). Three constraints imposed by
+  `llama_cpp_dart` and worked around rather than fixed: `setPrompt` always
+  tokenizes with `add_special = true` (so cache continuation is disabled for
+  models whose tokenizer prepends a BOS — probed at load), the sampler chain
+  cannot be swapped after context creation (so a grammar or a changed
+  temperature rebuilds the `Llama` instance and drops the cache), and the
+  package is bindings-only with no Flutter plugin wiring (so the native
+  library is built by `native/build_llama.sh` and bundled by the app, or
+  pointed at with `LlamaCppRuntime.useLibrary`).
+- **External (bring-your-own) models** (`ModelManagerImpl.registerExternalModel`):
+  the only consumer of `ModelDelivery.external`. Symlinks (copies on
+  Windows) an app-supplied file into `models/<type>/<id>/`, writes
+  `installed.json` with the `catalogVersion: 0` sentinel and registers the
+  manifest with `ModelCatalogService.registerManifest`. `verify` degrades to
+  an existence check and `update` is a no-op for these — there is no trusted
+  hash and no remote version. Nothing is verified, by design.
 - **Bundle-size policy** (`tools/verify_bundle_policy.dart`): any asset
   under `packages/local_ai_kit/assets` matching
-  `.onnx`/`.tflite`/`.task`/`.bin` must stay under 25MB (kept in sync with
+  `.onnx`/`.tflite`/`.task`/`.bin`/`.gguf` must stay under 25MB (kept in sync with
   `ModelDeliveryPolicy.smart(bundleBelowMB: 25)`); larger models must be
   marked `download` delivery, not `bundled`.
 

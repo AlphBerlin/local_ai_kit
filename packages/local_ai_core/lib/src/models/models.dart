@@ -19,6 +19,10 @@ const String kPlaceholderSha256 =
 abstract final class ModelProviders {
   static const String googleGemma = 'google-gemma';
   static const String sherpaCommunity = 'sherpa-community';
+
+  /// Any GGUF model run through llama.cpp (`local_ai_llama_cpp`), chat and
+  /// embedding alike.
+  static const String llamaCpp = 'llama-cpp';
 }
 
 /// Built-in model manifests.
@@ -450,6 +454,112 @@ abstract final class Models {
     ],
   );
 
+  /// Moonshine v2 Tiny English speech recognition.
+  static final LocalModelManifest moonshineTinyV2En = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27',
+    isTiny: true,
+    language: 'en',
+    languageName: 'English',
+    sizeBytes: 45000000,
+  );
+
+  /// Moonshine v2 Tiny Japanese speech recognition.
+  static final LocalModelManifest moonshineTinyV2Ja = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27',
+    isTiny: true,
+    language: 'ja',
+    languageName: 'Japanese',
+    sizeBytes: 45000000,
+  );
+
+  /// Moonshine v2 Tiny Korean speech recognition.
+  static final LocalModelManifest moonshineTinyV2Ko = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27',
+    isTiny: true,
+    language: 'ko',
+    languageName: 'Korean',
+    sizeBytes: 45000000,
+  );
+
+  /// Moonshine v2 Base Arabic speech recognition.
+  static final LocalModelManifest moonshineBaseV2Ar = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-ar-quantized-2026-02-27',
+    isTiny: false,
+    language: 'ar',
+    languageName: 'Arabic',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base English speech recognition.
+  static final LocalModelManifest moonshineBaseV2En = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-en-quantized-2026-02-27',
+    isTiny: false,
+    language: 'en',
+    languageName: 'English',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Spanish speech recognition.
+  static final LocalModelManifest moonshineBaseV2Es = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-es-quantized-2026-02-27',
+    isTiny: false,
+    language: 'es',
+    languageName: 'Spanish',
+    sizeBytes: 65000000,
+  );
+
+  /// Moonshine v2 Base Japanese speech recognition.
+  static final LocalModelManifest moonshineBaseV2Ja = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-ja-quantized-2026-02-27',
+    isTiny: false,
+    language: 'ja',
+    languageName: 'Japanese',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Ukrainian speech recognition.
+  static final LocalModelManifest moonshineBaseV2Uk = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-uk-quantized-2026-02-27',
+    isTiny: false,
+    language: 'uk',
+    languageName: 'Ukrainian',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Vietnamese speech recognition.
+  static final LocalModelManifest moonshineBaseV2Vi = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-vi-quantized-2026-02-27',
+    isTiny: false,
+    language: 'vi',
+    languageName: 'Vietnamese',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Chinese speech recognition.
+  static final LocalModelManifest moonshineBaseV2Zh = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-zh-quantized-2026-02-27',
+    isTiny: false,
+    language: 'zh',
+    languageName: 'Chinese',
+    sizeBytes: 140000000,
+  );
+
+  /// Dolphin Base multilingual CTC speech recognition.
+  static final LocalModelManifest dolphinBase = _DolphinBaseManifest(
+    id: 'sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02',
+    fileName: 'sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02.tar.bz2',
+    sizeBytes: 318000000,
+    quantization: null,
+  );
+
+  /// Dolphin Base int8 multilingual CTC speech recognition.
+  static final LocalModelManifest dolphinBaseInt8 = _DolphinBaseManifest(
+    id: 'sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02',
+    fileName: 'sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2',
+    sizeBytes: 104000000,
+    quantization: 'int8',
+  );
+
   /// Piper fast streaming TTS model.
   static const LocalModelManifest vitsPiper = LocalModelManifest(
     id: 'vits-piper-en-lessac',
@@ -732,8 +842,357 @@ abstract final class Models {
     ],
   );
 
+  // ---------------------------------------------------------------------------
+  // GGUF models (llama.cpp adapter, `local_ai_llama_cpp`)
+  // ---------------------------------------------------------------------------
+
+  /// Qwen 2.5 0.5B Instruct in GGUF, for the llama.cpp adapter.
+  static const LocalModelManifest qwen25_05bGguf = LocalModelManifest(
+    id: 'qwen-2.5-0.5b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Qwen 2.5 0.5B Instruct (GGUF)',
+    description:
+        'Small ChatML chat model in GGUF Q4_K_M, run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 1024,
+    languages: ['en', 'zh'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.multilingual,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'qwen2.5-0.5b-instruct-q4_k_m.gguf',
+        url:
+            'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 491000000,
+      ),
+    ],
+  );
+
+  /// Llama 3.2 1B Instruct in GGUF, for the llama.cpp adapter.
+  static const LocalModelManifest llama32_1bGguf = LocalModelManifest(
+    id: 'llama-3.2-1b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Llama 3.2 1B Instruct (GGUF)',
+    description:
+        'Meta Llama 3.2 1B instruction-tuned model in GGUF Q4_K_M, run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 8192,
+    minMemoryMB: 1536,
+    languages: ['en', 'multilingual'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.multilingual,
+    },
+    license: 'llama3.2',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'Llama-3.2-1B-Instruct-Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 808000000,
+      ),
+    ],
+  );
+
+  /// SmolLM2 360M Instruct in GGUF, for the llama.cpp adapter.
+  static const LocalModelManifest smollm2_360mGguf = LocalModelManifest(
+    id: 'smollm2-360m-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'SmolLM2 360M Instruct (GGUF)',
+    description:
+        'Ultra-lightweight SmolLM2 360M model in GGUF Q4_K_M, run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 2048,
+    minMemoryMB: 512,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'smollm2-360m-instruct-q4_k_m.gguf',
+        url:
+            'https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/resolve/main/smollm2-360m-instruct-q4_k_m.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 229000000,
+      ),
+    ],
+  );
+
+  /// LFM2.5 1.2B JP in GGUF (Liquid AI), optimized for Japanese dialogue.
+  static const LocalModelManifest lfm25_12bJp = LocalModelManifest(
+    id: 'lfm2.5-1.2b-jp-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'LFM2.5 1.2B JP (GGUF)',
+    description:
+        'Liquid AI LFM2.5 1.2B model optimized for Japanese dialogue in GGUF Q4_K_M (731 MB).',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 1024,
+    languages: ['ja'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'liquid-community',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'LFM2.5-1.2B-JP-Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/LiquidAI/LFM2.5-1.2B-JP-GGUF/resolve/main/LFM2.5-1.2B-JP-Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 731000000,
+      ),
+    ],
+  );
+
+  /// Qwen 3.5 0.8B in GGUF, ultra-small general model run through llama.cpp.
+  static const LocalModelManifest qwen35_08bGguf = LocalModelManifest(
+    id: 'qwen-3.5-0.8b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Qwen 3.5 0.8B Instruct (GGUF)',
+    description:
+        'Ultra-small general model in GGUF Q4_K_M (563 MB), run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 1024,
+    languages: ['en', 'zh', 'multilingual'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.multilingual,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'qwen3.5-0.8b-instruct-q4_k_m.gguf',
+        url:
+            'https://huggingface.co/Qwen/Qwen3.5-0.8B-GGUF/resolve/main/qwen3.5-0.8b-instruct-q4_k_m.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 563000000,
+      ),
+    ],
+  );
+
+  /// LFM2.5 1.2B Instruct in GGUF (Liquid AI), general edge assistant.
+  static const LocalModelManifest lfm25_12bInstruct = LocalModelManifest(
+    id: 'lfm2.5-1.2b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'LFM2.5 1.2B Instruct (GGUF)',
+    description:
+        'General edge assistant in GGUF Q4_K_M (731 MB) from Liquid AI, run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 1024,
+    languages: ['en', 'multilingual'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'liquid-community',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'LFM2.5-1.2B-Instruct-Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF/resolve/main/LFM2.5-1.2B-Instruct-Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 731000000,
+      ),
+    ],
+  );
+
+  /// LFM2.5 2.6B in GGUF (Liquid AI), balanced edge model with high quality.
+  static const LocalModelManifest lfm25_26b = LocalModelManifest(
+    id: 'lfm2.5-2.6b-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'LFM2.5 2.6B (GGUF)',
+    description:
+        'Balanced edge model with high quality in GGUF Q4_K_M (1.67 GB) from Liquid AI.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 2048,
+    languages: ['en', 'multilingual'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'liquid-community',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'LFM2.5-2.6B-Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/resolve/main/LFM2.5-2.6B-Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 1670000000,
+      ),
+    ],
+  );
+
+  /// Qwen 3.5 4B in GGUF, best small general/multilingual model.
+  static const LocalModelManifest qwen35_4bGguf = LocalModelManifest(
+    id: 'qwen-3.5-4b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Qwen 3.5 4B Instruct (GGUF)',
+    description:
+        'High-capability small general/multilingual model in GGUF Q4_K_M (2.71 GB), run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 4096,
+    languages: ['en', 'zh', 'multilingual'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.multilingual,
+    },
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'qwen3.5-4b-instruct-q4_k_m.gguf',
+        url:
+            'https://huggingface.co/Qwen/Qwen3.5-4B-GGUF/resolve/main/qwen3.5-4b-instruct-q4_k_m.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 2710000000,
+      ),
+    ],
+  );
+
+  /// Ministral 3 3B in GGUF (Mistral AI), general text and instruction model.
+  static const LocalModelManifest ministral3_3b = LocalModelManifest(
+    id: 'ministral-3-3b-instruct-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Ministral 3 3B Instruct (GGUF)',
+    description:
+        'Mistral AI general text/instruction model in GGUF Q4_K_M (~2.05 GB), run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 3072,
+    languages: ['en', 'fr', 'multilingual'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+      ModelCapability.multilingual,
+    },
+    license: 'mistral-community',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'Ministral-3-3B-Instruct-2512-Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF/resolve/main/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 2050000000,
+      ),
+    ],
+  );
+
+  /// LFM2.5 8B A1B in GGUF (Liquid AI), MoE speed for desktop/laptop.
+  static const LocalModelManifest lfm25_8bA1b = LocalModelManifest(
+    id: 'lfm2.5-8b-a1b-gguf',
+    type: ModelType.llm,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'LFM2.5 8B A1B (GGUF)',
+    description:
+        'High-performance MoE model for desktop/laptop in GGUF Q4_K_M (5.16 GB), run through llama.cpp.',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 32768,
+    minMemoryMB: 6144,
+    languages: ['en', 'multilingual'],
+    platforms: ['macos', 'windows', 'linux'],
+    capabilities: {
+      ModelCapability.chat,
+      ModelCapability.streaming,
+    },
+    license: 'liquid-community',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'LFM2.5-8B-A1B-Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/LiquidAI/LFM2.5-8B-A1B-GGUF/resolve/main/LFM2.5-8B-A1B-Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 5160000000,
+      ),
+    ],
+  );
+
+  /// Nomic Embed Text v1.5 in GGUF — the embedding counterpart of the
+  /// llama.cpp chat models. Supports Matryoshka truncation down to 64 dims
+  /// through `EmbeddingConfig.dimensions`.
+  static const LocalModelManifest nomicEmbedText = LocalModelManifest(
+    id: 'nomic-embed-text-v1.5-gguf',
+    type: ModelType.embedding,
+    provider: ModelProviders.llamaCpp,
+    displayName: 'Nomic Embed Text v1.5 (GGUF)',
+    description: '768-dimension text embeddings for on-device RAG '
+        '(Matryoshka-truncatable).',
+    delivery: ModelDelivery.download,
+    quantization: 'q4_k_m',
+    contextLength: 2048,
+    minMemoryMB: 512,
+    languages: ['en'],
+    platforms: ['android', 'ios', 'macos', 'windows', 'linux'],
+    capabilities: {ModelCapability.embedding},
+    license: 'apache-2.0',
+    catalogVersion: 1,
+    files: [
+      ModelFile(
+        name: 'nomic-embed-text-v1.5.Q4_K_M.gguf',
+        url:
+            'https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf',
+        sha256: kPlaceholderSha256,
+        sizeBytes: 84110000,
+      ),
+    ],
+  );
+
   /// All built-in manifests, keyed by id.
-  static const List<LocalModelManifest> all = [
+  static final List<LocalModelManifest> all = List.unmodifiable([
     qwen35_08b,
     qwen35_2b,
     qwen35_4b,
@@ -749,10 +1208,33 @@ abstract final class Models {
     whisperBase,
     whisperTiny,
     moonshineTiny,
+    moonshineTinyV2En,
+    moonshineTinyV2Ja,
+    moonshineTinyV2Ko,
+    moonshineBaseV2Ar,
+    moonshineBaseV2En,
+    moonshineBaseV2Es,
+    moonshineBaseV2Ja,
+    moonshineBaseV2Uk,
+    moonshineBaseV2Vi,
+    moonshineBaseV2Zh,
+    dolphinBase,
+    dolphinBaseInt8,
     vitsPiper,
     supertonic,
     kokoroTts,
-  ];
+    qwen25_05bGguf,
+    llama32_1bGguf,
+    smollm2_360mGguf,
+    lfm25_12bJp,
+    qwen35_08bGguf,
+    lfm25_12bInstruct,
+    lfm25_26b,
+    qwen35_4bGguf,
+    ministral3_3b,
+    lfm25_8bA1b,
+    nomicEmbedText,
+  ]);
 
   /// Lookup helper; returns `null` for unknown ids.
   static LocalModelManifest? byId(String id) {
@@ -761,4 +1243,140 @@ abstract final class Models {
     }
     return null;
   }
+}
+
+const List<String> _dolphinLanguages = [
+  'zh',
+  'ja',
+  'th',
+  'ru',
+  'ko',
+  'id',
+  'vi',
+  'ct',
+  'hi',
+  'ur',
+  'ms',
+  'uz',
+  'ar',
+  'fa',
+  'bn',
+  'ta',
+  'te',
+  'ug',
+  'gu',
+  'my',
+  'tl',
+  'kk',
+  'or',
+  'ne',
+  'mn',
+  'km',
+  'jv',
+  'lo',
+  'si',
+  'fil',
+  'ps',
+  'pa',
+  'kab',
+  'ba',
+  'ks',
+  'tg',
+  'su',
+  'mr',
+  'ky',
+  'az',
+  'zh-CN',
+  'zh-TW',
+  'zh-WU',
+  'zh-SICHUAN',
+  'zh-SHANXI',
+  'zh-ANHUI',
+  'zh-TIANJIN',
+  'zh-NINGXIA',
+  'zh-SHAANXI',
+  'zh-HEBEI',
+  'zh-SHANDONG',
+  'zh-GUANGDONG',
+  'zh-SHANGHAI',
+  'zh-HUBEI',
+  'zh-LIAONING',
+  'zh-GANSU',
+  'zh-FUJIAN',
+  'zh-HUNAN',
+  'zh-HENAN',
+  'zh-YUNNAN',
+  'zh-MINNAN',
+  'zh-WENZHOU',
+  'multilingual',
+];
+
+class _MoonshineV2Manifest extends LocalModelManifest {
+  _MoonshineV2Manifest({
+    required String id,
+    required bool isTiny,
+    required String language,
+    required String languageName,
+    required int sizeBytes,
+  }) : super(
+          id: id,
+          type: ModelType.stt,
+          provider: ModelProviders.sherpaCommunity,
+          displayName: 'Moonshine v2 ${isTiny ? 'Tiny' : 'Base'} $languageName',
+          description: 'Quantized Moonshine v2 offline speech recognition '
+              '($languageName, approximately ${sizeBytes ~/ 1000000} MB).',
+          delivery: ModelDelivery.download,
+          quantization: 'int8',
+          minMemoryMB: isTiny ? 128 : 256,
+          languages: [language],
+          platforms: const ['android', 'ios', 'macos'],
+          capabilities: const {ModelCapability.asrOffline},
+          license: 'MIT',
+          catalogVersion: 1,
+          files: [
+            ModelFile(
+              name: '$id.tar.bz2',
+              url:
+                  'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/$id.tar.bz2',
+              sha256: kPlaceholderSha256,
+              sizeBytes: sizeBytes,
+            ),
+          ],
+        );
+}
+
+class _DolphinBaseManifest extends LocalModelManifest {
+  _DolphinBaseManifest({
+    required String id,
+    required String fileName,
+    required int sizeBytes,
+    required String? quantization,
+  }) : super(
+          id: id,
+          type: ModelType.stt,
+          provider: ModelProviders.sherpaCommunity,
+          displayName: 'Dolphin Base${quantization == null ? '' : ' int8'}',
+          description: 'Multilingual Dolphin CTC speech recognition model '
+              '(${sizeBytes ~/ 1000000} MB).',
+          delivery: ModelDelivery.download,
+          quantization: quantization,
+          minMemoryMB: quantization == null ? 512 : 256,
+          languages: _dolphinLanguages,
+          platforms: const ['android', 'ios', 'macos'],
+          capabilities: const {
+            ModelCapability.asrOffline,
+            ModelCapability.multilingual,
+          },
+          license: 'Apache-2.0',
+          catalogVersion: 1,
+          files: [
+            ModelFile(
+              name: fileName,
+              url:
+                  'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/$fileName',
+              sha256: kPlaceholderSha256,
+              sizeBytes: sizeBytes,
+            ),
+          ],
+        );
 }

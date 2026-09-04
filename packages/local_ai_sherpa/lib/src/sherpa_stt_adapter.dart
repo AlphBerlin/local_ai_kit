@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'package:local_ai_core/local_ai_core.dart';
 
 import 'isolate/sherpa_worker.dart';
+import 'sherpa_stt_model_layout.dart';
 
 /// [LocalStt] backed by sherpa_onnx (SenseVoice, Zipformer, Whisper).
 class SherpaSttAdapter implements LocalStt {
@@ -27,6 +28,7 @@ class SherpaSttAdapter implements LocalStt {
     final ok =
         await worker.request('initRecognizer', payload: <String, Object?>{
       'modelDir': modelDir,
+      'modelKind': sherpaSttModelKindForId(options.modelId).name,
       'cacheDir': _paths.cacheDir,
       'language': options.language,
       'enablePunctuation': options.enablePunctuation,
@@ -125,6 +127,7 @@ import numpy as np
 
 def main():
     model_dir = sys.argv[1] if len(sys.argv) > 1 else None
+    model_kind = sys.argv[2] if len(sys.argv) > 2 else 'auto'
     recognizer = None
     engine_type = 'none'
     is_online = False
@@ -137,9 +140,41 @@ def main():
             joiners = glob.glob(os.path.join(model_dir, '**', '*joiner*.onnx'), recursive=True)
             encoders = glob.glob(os.path.join(model_dir, '**', '*encoder*.onnx'), recursive=True)
             decoders = glob.glob(os.path.join(model_dir, '**', '*decoder*.onnx'), recursive=True)
-            
-            # 1. Whisper (Offline Recognizer)
-            if encoders and decoders and not joiners and tokens:
+
+            # Dolphin is a single-model offline CTC recognizer. Keep this
+            # branch ahead of SenseVoice because both archives use
+            # model*.onnx plus tokens.txt.
+            if model_kind == 'dolphin':
+                dolphin_models = glob.glob(os.path.join(model_dir, '**', 'model*.onnx'), recursive=True)
+                if dolphin_models and tokens:
+                    recognizer = sherpa_onnx.OfflineRecognizer.from_dolphin_ctc(
+                        model=dolphin_models[0],
+                        tokens=tokens[0],
+                        num_threads=4,
+                    )
+                    engine_type = 'dolphin'
+                    is_online = False
+
+            # Moonshine v2 uses two ORT files instead of Moonshine v1's four
+            # ONNX files. The explicit model kind also prevents these generic
+            # encoder/decoder names from being mistaken for Whisper.
+            if recognizer is None and model_kind == 'moonshineV2':
+                v2_encoders = glob.glob(os.path.join(model_dir, '**', 'encoder_model.ort'), recursive=True)
+                merged_decoders = glob.glob(os.path.join(model_dir, '**', 'decoder_model_merged.ort'), recursive=True)
+                if v2_encoders and merged_decoders and tokens:
+                    recognizer = sherpa_onnx.OfflineRecognizer.from_moonshine_v2(
+                        encoder=v2_encoders[0],
+                        decoder=merged_decoders[0],
+                        tokens=tokens[0],
+                        num_threads=4,
+                    )
+                    engine_type = 'moonshine_v2'
+                    is_online = False
+
+            # Heuristic fallback is retained for external/legacy manifests.
+            # Built-in Dolphin and Moonshine manifests arrive with an
+            # explicit model kind above.
+            if recognizer is None and model_kind == 'auto' and encoders and decoders and not joiners and tokens:
                 recognizer = sherpa_onnx.OfflineRecognizer.from_whisper(
                     encoder=encoders[0],
                     decoder=decoders[0],
@@ -152,7 +187,7 @@ def main():
                 is_online = False
 
             # 2. Moonshine (Offline Recognizer)
-            if recognizer is None:
+            if recognizer is None and model_kind in ('auto', 'moonshineV1'):
                 preprocessors = glob.glob(os.path.join(model_dir, '**', '*preprocess*.onnx'), recursive=True)
                 uncached_dec = glob.glob(os.path.join(model_dir, '**', '*uncached_decode*.onnx'), recursive=True)
                 cached_dec = glob.glob(os.path.join(model_dir, '**', '*cached_decode*.onnx'), recursive=True)
@@ -283,7 +318,10 @@ if __name__ == '__main__':
 
   String _cacheDir = '/tmp';
 
-  Future<void> _startServer(String modelDir) async {
+  Future<void> _startServer(
+    String modelDir, {
+    required SherpaSttModelKind modelKind,
+  }) async {
     try {
       final cacheDirObj = Directory(_cacheDir);
       if (!cacheDirObj.existsSync()) {
@@ -304,6 +342,7 @@ if __name__ == '__main__':
         'python3',
         scriptFile.path,
         modelDir,
+        modelKind.name,
       ]);
       _serverProcess = proc;
       final lines =
@@ -327,7 +366,12 @@ if __name__ == '__main__':
         _modelDir = args['modelDir'] as String?;
         _cacheDir = args['cacheDir'] as String? ?? '/tmp';
         if (_modelDir != null) {
-          await _startServer(_modelDir!);
+          final modelKindName = args['modelKind'] as String? ?? 'auto';
+          final modelKind = SherpaSttModelKind.values.firstWhere(
+            (kind) => kind.name == modelKindName,
+            orElse: () => SherpaSttModelKind.auto,
+          );
+          await _startServer(_modelDir!, modelKind: modelKind);
         }
         reply(command, true);
       case 'startUtterance':
