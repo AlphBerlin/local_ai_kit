@@ -251,7 +251,7 @@ void main() {
 
       final qwen35_08 = Models.qwen35_08bGguf;
       expect(qwen35_08.id, 'qwen-3.5-0.8b-instruct-gguf');
-      expect(qwen35_08.files.single.name, contains('qwen3.5-0.8b'));
+      expect(qwen35_08.files.single.name, contains('Qwen3.5-0.8B'));
 
       final lfmInstruct = Models.lfm25_12bInstruct;
       expect(lfmInstruct.id, 'lfm2.5-1.2b-instruct-gguf');
@@ -263,7 +263,7 @@ void main() {
 
       final qwen35_4 = Models.qwen35_4bGguf;
       expect(qwen35_4.id, 'qwen-3.5-4b-instruct-gguf');
-      expect(qwen35_4.files.single.name, contains('qwen3.5-4b'));
+      expect(qwen35_4.files.single.name, contains('Qwen3.5-4B'));
 
       final ministral = Models.ministral3_3b;
       expect(ministral.id, 'ministral-3-3b-instruct-gguf');

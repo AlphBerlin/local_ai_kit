@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.3
+
+- Add built-in GGUF manifests for Qwen, Llama, LFM and embedding models.
+- Add Moonshine v2 and Dolphin speech-recognition model manifests.
+- Expose registered provider keys from `AdapterRegistry`.
+- Correct the Qwen 3.5 GGUF artifact URLs, filenames and sizes.
+
 ## 0.0.2
 
 - Tune default VAD endpointing thresholds for snappier turn-taking.

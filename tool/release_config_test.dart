@@ -10,6 +10,7 @@ void main() {
         'local_ai_core',
         'local_ai_flutter',
         'local_ai_gemma',
+        'local_ai_llama_cpp',
         'local_ai_sherpa',
         'local_ai_kit',
         'local_ai_genkit',

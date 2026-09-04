@@ -995,11 +995,11 @@ abstract final class Models {
     catalogVersion: 1,
     files: [
       ModelFile(
-        name: 'qwen3.5-0.8b-instruct-q4_k_m.gguf',
+        name: 'Qwen3.5-0.8B-Q4_K_M.gguf',
         url:
-            'https://huggingface.co/Qwen/Qwen3.5-0.8B-GGUF/resolve/main/qwen3.5-0.8b-instruct-q4_k_m.gguf',
+            'https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf',
         sha256: kPlaceholderSha256,
-        sizeBytes: 563000000,
+        sizeBytes: 532517120,
       ),
     ],
   );
@@ -1089,11 +1089,11 @@ abstract final class Models {
     catalogVersion: 1,
     files: [
       ModelFile(
-        name: 'qwen3.5-4b-instruct-q4_k_m.gguf',
+        name: 'Qwen3.5-4B-Q4_K_M.gguf',
         url:
-            'https://huggingface.co/Qwen/Qwen3.5-4B-GGUF/resolve/main/qwen3.5-4b-instruct-q4_k_m.gguf',
+            'https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf',
         sha256: kPlaceholderSha256,
-        sizeBytes: 2710000000,
+        sizeBytes: 2740937888,
       ),
     ],
   );

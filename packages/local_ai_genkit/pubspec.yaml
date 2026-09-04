@@ -3,7 +3,7 @@ description: >-
   Optional Genkit orchestration layer for LocalAI Kit: flows, tools,
   prompt templates and schema-validated structured output on top of any
   core LocalLlm.
-version: 0.0.2
+version: 0.0.3
 repository: https://github.com/AlphBerlin/local_ai_kit
 issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace
@@ -15,10 +15,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_ai_core: ^0.0.2
+  local_ai_core: ^0.0.3
   # Only for the `LocalAIGenkitX` escape-hatch extension (architecture
   # §3.5). The dependency direction genkit → kit is intentional.
-  local_ai_kit: ^0.0.2
+  local_ai_kit: ^0.0.3
   genkit: ">=0.14.1 <0.15.0"
 
 dev_dependencies:

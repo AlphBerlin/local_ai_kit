@@ -2,7 +2,7 @@ name: local_ai_core
 description: >-
   Pure-Dart core of LocalAI Kit: capability interfaces, configuration,
   manifests, events, adapter registry and test fakes. No Flutter deps.
-version: 0.0.2
+version: 0.0.3
 repository: https://github.com/AlphBerlin/local_ai_kit
 issue_tracker: https://github.com/AlphBerlin/local_ai_kit/issues
 resolution: workspace

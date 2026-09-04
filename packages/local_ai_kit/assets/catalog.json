@@ -1,5 +1,5 @@
 {
-  "catalogVersion": 7,
+  "catalogVersion": 8,
   "updatedAt": "2026-09-04T00:00:00Z",
   "comment": "Built-in offline model catalog with direct high-speed weights for lightweight on-device models.",
   "models": [
@@ -917,10 +917,10 @@
       "catalogVersion": 1,
       "files": [
         {
-          "name": "qwen3.5-0.8b-instruct-q4_k_m.gguf",
-          "url": "https://huggingface.co/Qwen/Qwen3.5-0.8B-GGUF/resolve/main/qwen3.5-0.8b-instruct-q4_k_m.gguf",
+          "name": "Qwen3.5-0.8B-Q4_K_M.gguf",
+          "url": "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 563000000
+          "sizeBytes": 532517120
         }
       ]
     },
@@ -989,10 +989,10 @@
       "catalogVersion": 1,
       "files": [
         {
-          "name": "qwen3.5-4b-instruct-q4_k_m.gguf",
-          "url": "https://huggingface.co/Qwen/Qwen3.5-4B-GGUF/resolve/main/qwen3.5-4b-instruct-q4_k_m.gguf",
+          "name": "Qwen3.5-4B-Q4_K_M.gguf",
+          "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf",
           "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-          "sizeBytes": 2710000000
+          "sizeBytes": 2740937888
         }
       ]
     },

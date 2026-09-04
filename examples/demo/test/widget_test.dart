@@ -83,14 +83,14 @@ void main() {
 
     // Verify title and main tabs are rendered.
     expect(find.text('LocalAI Kit'), findsOneWidget);
-    expect(find.text('Text Generation (LLM)'), findsOneWidget);
-    expect(find.text('Text-to-Speech (TTS)'), findsOneWidget);
-    expect(find.text('Speech-to-Text (STT)'), findsOneWidget);
+    expect(find.text('Text Generation'), findsOneWidget);
+    expect(find.text('Text-to-Speech'), findsOneWidget);
+    expect(find.text('Speech-to-Text'), findsOneWidget);
     expect(find.text('Voice Assistant'), findsOneWidget);
     expect(find.text('Model Catalog'), findsOneWidget);
     expect(find.text('Live Logs'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Generate'), findsOneWidget);
-    expect(find.byIcon(Icons.hub_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.hub_rounded), findsOneWidget);
 
     // Verify Genkit & MCP Skills Orchestration controls
     expect(find.textContaining('Genkit Orchestrator'), findsOneWidget);
@@ -117,7 +117,7 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(const LocalAIDemoApp());
 
-    final sttTab = find.text('Speech-to-Text (STT)');
+    final sttTab = find.text('Speech-to-Text');
     await tester.ensureVisible(sttTab);
     await tester.tap(sttTab);
     await tester.pumpAndSettle();

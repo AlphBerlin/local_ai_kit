@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.3
+
+- Export the new `local_ai_llama_cpp` adapter package.
+- Track the coordinated 0.0.3 releases of all LocalAI Kit packages.
+
 ## 0.0.2
 
 - **Package renamed** from `local_ai_kit_all` to `bedge_ai`. Update your
