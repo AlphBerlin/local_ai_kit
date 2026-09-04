@@ -43,3 +43,5 @@ Wraps `connectivity_plus`, mapping its results onto `NetworkStatus.wifi` / `.cel
 ## FlutterDeviceProbe
 
 Backs `ai.runtime.deviceCapabilities()` / `checkCompatibility()` (see [Runtime & Memory](runtime-memory.md)). On Android and iOS it reads physical RAM, available RAM and free disk from `device_info_plus`. On Linux it parses `/proc/meminfo` and `df`; on macOS it uses `sysctl`, `vm_stat` and `df`; on Windows it uses PowerShell CIM queries. A failed or unsupported metric is reported as `0` rather than a fabricated capacity. Pass a custom `DeviceMetricsSource` to `FlutterDeviceProbe` in tests or when an app has a more appropriate platform-specific source.
+
+`LocalAI.initialize` wires this probe by default, and also derives the download manager's free-disk pre-flight from it. The result is cached for `cacheDuration` (30 s by default) rather than for the process lifetime: free RAM moves as models load and unload, and free disk moves as models download, so a permanently cached snapshot would gate a second download against space the first one already claimed. `probe(forceRefresh: true)` and `invalidate()` bypass the cache.

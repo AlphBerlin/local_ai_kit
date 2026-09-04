@@ -91,9 +91,67 @@ class ModelHub implements LocalModelManager {
           {DownloadPolicy policy = const DownloadPolicy()}) =>
       _manager.installPack(packId, policy: policy);
 
+  // ---------------------------------------------------------------------------
+  // Compatibility — check before you offer the download
+  // ---------------------------------------------------------------------------
+
+  /// Whether this device can run [modelId], checked **before** downloading.
+  ///
+  /// ```dart
+  /// final report = await ai.models.checkCompatibility('gemma-3n-e2b-it-int4');
+  /// if (!report.isCompatible) {
+  ///   showBlocked(report.summary);          // e.g. not enough free disk
+  /// } else {
+  ///   if (report.hasWarnings) showTight(report.warnings);
+  ///   await ai.models.ensureInstalled('gemma-3n-e2b-it-int4');
+  /// }
+  /// ```
+  ///
+  /// `install` / `ensureInstalled` run the same check themselves and throw
+  /// `IncompatibleDeviceError` on a blocking issue (unless the config sets
+  /// `compatibilityEnforcement` to something other than
+  /// `CompatibilityEnforcement.enforce`), so this is for building the UI,
+  /// not for safety.
+  Future<CompatibilityReport> checkCompatibility(String modelId) =>
+      _manager.checkCompatibility(modelId);
+
+  /// Catalog models this device can actually run, each with its report.
+  ///
+  /// Use it to build a "models you can install" screen: hide or annotate
+  /// the entries whose report is incompatible instead of letting a user
+  /// spend a gigabyte of mobile data on a model that cannot load.
+  Future<List<ModelCompatibility>> compatible({
+    ModelType? type,
+    String? language,
+    bool includeIncompatible = false,
+  }) async {
+    final manifests = await _catalog.list(type: type, language: language);
+    final results = <ModelCompatibility>[];
+    for (final manifest in manifests) {
+      final report = await _manager.checkManifestCompatibility(manifest);
+      if (!report.isCompatible && !includeIncompatible) continue;
+      results.add(ModelCompatibility(manifest: manifest, report: report));
+    }
+    return results;
+  }
+
   /// Refreshes the remote catalog and merges it into the built-in one.
   Future<void> refreshCatalog() => _catalog.refresh();
 
   /// Ids of installed models with a newer catalog version available.
   Set<String> get updatable => _catalog.updatable;
+}
+
+/// A catalog entry paired with its compatibility verdict for this device.
+class ModelCompatibility {
+  const ModelCompatibility({required this.manifest, required this.report});
+
+  final LocalModelManifest manifest;
+  final CompatibilityReport report;
+
+  bool get isCompatible => report.isCompatible;
+  bool get hasWarnings => report.hasWarnings;
+
+  @override
+  String toString() => 'ModelCompatibility(${manifest.id}, ${report.summary})';
 }

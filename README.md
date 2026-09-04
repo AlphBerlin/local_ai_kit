@@ -50,8 +50,17 @@ All eight packages release together and share a version number — see
 - **Resumable downloads** — HTTP `Range` resume, `.part` temp files,
   atomic `meta.json` writes, streamed sha256 verification, exponential
   backoff retry, and atomic same-partition install.
+- **Compatibility checked before the download** — `ai.models.checkCompatibility(id)`
+  weighs free disk, RAM, platform and accelerators against the manifest and
+  returns a report you can render; `install` and `loadModel` enforce it, so a
+  device never spends a gigabyte of mobile data on a model it cannot load.
+- **Observable model loading** — `ai.runtime.loadProgress(id)` streams typed
+  phases with elapsed time and, from the second load on, a duration estimate,
+  so a real progress bar replaces the indeterminate spinner. Concurrent
+  requests for one model share a single load.
 - **Runtime memory management** — LRU eviction, idle-timeout sweep,
-  background trim, automatic gpu/npu → cpu fallback with events.
+  background trim, automatic gpu/npu → cpu fallback with events, plus
+  `ai.warmUp()`, `ai.pinModel(id)` and `ai.runtime.cacheStats` for tuning.
 - **Voice sessions** — Mic → VAD → STT → LLM → TTS event bus with
   barge-in (confidence threshold + 120 ms persistence, echo mitigation
   without AEC).

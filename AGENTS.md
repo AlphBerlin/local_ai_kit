@@ -83,7 +83,29 @@ multiple files, so grep won't surface the full picture on its own):
 - **RuntimeScheduler** (`packages/local_ai_kit/lib/src/runtime/runtime_scheduler.dart`):
   LRU eviction across loaded models (default max 2), idle-timeout unload
   (default 5 min), background trim via `AppLifecycleObserver`, and automatic
-  gpu/npu → cpu fallback on backend load failure.
+  gpu/npu → cpu fallback on backend load failure. Also: concurrent
+  `loadModel` calls for one id share a single in-flight future (two native
+  loads of the same weights would leak one of them); every load publishes
+  typed `ModelLoadPhase` transitions on `loadProgress(id)` and on
+  `events`; `setPinned` exempts a model from eviction and, unlike
+  `setLocked`, survives across loads; `cacheStats` counts hits/misses/
+  evictions and the last measured load duration per model.
+- **Compatibility checking** (`packages/local_ai_core/lib/src/models/model_compatibility.dart`):
+  `ModelCompatibilityChecker.check(manifest:, device:)` is a pure function —
+  no I/O, no Flutter, exhaustively unit-tested with `dart test`. Two rules
+  encoded in it that are easy to break: a capacity check against a
+  *momentary* resource (free RAM right now) warns rather than blocks, since
+  the scheduler can free some by evicting; and a metric the probe reported as
+  `0` produces a `CompatibilityCheck.unknown` warning naming the skipped
+  check, never a pass and never a fail. `minMemoryMB` defaults to `0` on most
+  manifests, so the checker falls back to `weights × 1.15 + 256MB` — and
+  because that is an estimate it only ever warns. The gates live in
+  `ModelManagerImpl._installInternal` (before the first downloaded byte) and
+  `RuntimeScheduler._loadInternal` (before `adapter.load()`), both governed by
+  `LocalAIConfig.compatibilityEnforcement`. Note that most catalog manifests
+  list `['android','ios','macos']`, so on Linux/Windows the platform check
+  blocks — correctly. Tests that call `LocalAI.initialize` must inject a
+  `deviceProbe`, or they assert against whatever host runs them.
 - **Voice pipeline / barge-in** (`packages/local_ai_kit/lib/src/voice/voice_pipeline.dart`):
   Mic → VAD → STT → LLM(/Genkit) → TTS → Speaker wired as one broadcast
   `VoiceEvent` stream. Barge-in triggers on sustained VAD confidence
@@ -153,6 +175,24 @@ multiple files, so grep won't surface the full picture on its own):
   `.onnx`/`.tflite`/`.task`/`.bin`/`.gguf` must stay under 25MB (kept in sync with
   `ModelDeliveryPolicy.smart(bundleBelowMB: 25)`); larger models must be
   marked `download` delivery, not `bundled`.
+
+`.claude/skills/local-ai-kit-installer/` is an agent skill that installs and
+integrates this kit into a target Flutter app. It deliberately reads the docs
+listed below rather than restating them, so keeping those accurate keeps the
+skill accurate — including the honest capability caveats above, which it is
+required to relay.
+
+`docs-internal/package-architecture-improvements.md` records the current
+design direction, the bug register (fixed and outstanding), and what is
+deliberately deferred. It is authoritative where it disagrees with the
+original draft below.
+
+One trap it documents that is worth repeating here, because it has bitten
+this codebase twice: `future.whenComplete(() => map.remove(key))` where the
+map holds futures. `Map.remove` returns the removed value — the very future
+being built — and `whenComplete` waits on a `Future` its callback returns, so
+the arrow form deadlocks the operation against itself and it never completes.
+Use a block body.
 
 `docs-internal/architecture.md` has the full original design rationale
 (Chinese, marked as a v0.1 draft — cross-check against the code above before

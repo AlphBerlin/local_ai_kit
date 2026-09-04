@@ -5,6 +5,7 @@ import 'dart:async';
 import '../models/device_capabilities.dart';
 import '../models/manifest.dart';
 import 'memory_policy.dart';
+import 'model_load_progress.dart';
 
 /// A model currently held in memory by the runtime.
 class LoadedModel {
@@ -90,6 +91,30 @@ final class RuntimeMemoryPressure extends RuntimeEvent {
   final MemoryUsage usage;
 }
 
+/// A model load moved to a new phase.
+///
+/// Emitted for every phase transition of every load, so one listener on
+/// [LocalModelRuntime.events] can drive a global "loading models…" banner;
+/// use [LocalModelRuntime.loadProgress] for a single model.
+final class RuntimeModelLoadProgress extends RuntimeEvent {
+  const RuntimeModelLoadProgress(this.progress);
+  final ModelLoadProgress progress;
+}
+
+/// A model was checked against the device before loading or downloading.
+///
+/// Emitted whether or not the check passed, so an app can surface
+/// warnings ("RAM is tight") without polling.
+final class RuntimeCompatibilityChecked extends RuntimeEvent {
+  const RuntimeCompatibilityChecked({
+    required this.modelId,
+    required this.report,
+  });
+
+  final String modelId;
+  final CompatibilityReport report;
+}
+
 /// Coordinates model loading across capabilities with an LRU memory policy.
 ///
 /// Implemented by `RuntimeScheduler` in `local_ai_kit`.
@@ -116,4 +141,36 @@ abstract interface class LocalModelRuntime {
 
   /// Lifecycle events stream (broadcast).
   Stream<RuntimeEvent> get events;
+
+  /// Phase-by-phase progress of loads of [modelId] (broadcast).
+  ///
+  /// Emits the current phase immediately to a new listener when a load is
+  /// already in flight, so a widget that subscribes late still renders a
+  /// loader instead of a blank screen.
+  Stream<ModelLoadProgress> loadProgress(String modelId);
+
+  /// Loads [modelIds] ahead of first use so the first `generate` /
+  /// `transcribe` call does not pay the load cost.
+  ///
+  /// Loads run sequentially (concurrent native loads compete for the same
+  /// memory) and a failure on one id does not abort the rest — the
+  /// returned map reports the outcome per id.
+  Future<Map<String, Object?>> warmUp(
+    List<String> modelIds, {
+    RuntimePreference? preference,
+  });
+
+  /// Pins [modelId] so the LRU policy, the idle sweep and the background
+  /// trim never unload it.
+  ///
+  /// Unlike locking a loaded model, a pin survives across loads: pinning an
+  /// id that is not loaded yet takes effect the moment it is.
+  void setPinned(String modelId, {required bool pinned});
+
+  /// Ids currently pinned.
+  Set<String> get pinnedModels;
+
+  /// Cache effectiveness counters, for diagnostics and for tuning
+  /// `RuntimeMemoryPolicy.maxLoadedModels`.
+  ModelCacheStats get cacheStats;
 }

@@ -1,6 +1,7 @@
 /// Model manifest: the catalog's declarative description of a model.
 library;
 
+import 'device_capabilities.dart';
 import 'local_voice.dart';
 import 'model_delivery.dart';
 import 'model_file.dart';
@@ -44,6 +45,8 @@ class LocalModelManifest {
     this.catalogVersion = 1,
     this.displayName,
     this.description,
+    this.requiredAccelerators = const {},
+    this.preferredAccelerators = const {},
   });
 
   /// Unique id, e.g. `gemma-3n-e2b-it-int4`.
@@ -97,6 +100,19 @@ class LocalModelManifest {
   /// Optional description for UI.
   final String? description;
 
+  /// Backends this model cannot run without.
+  ///
+  /// A device missing one of these fails `ModelCompatibilityChecker.check`
+  /// with a blocking issue, so the download is never offered. Empty for
+  /// every catalog model that has a CPU path (i.e. almost all of them).
+  final Set<Accelerator> requiredAccelerators;
+
+  /// Backends this model runs acceptably fast on.
+  ///
+  /// A device exposing none of them still passes the check, but the report
+  /// carries a warning that generation falls back to CPU.
+  final Set<Accelerator> preferredAccelerators;
+
   /// Total size of all [files] in bytes.
   int get totalSizeBytes => files.fold<int>(0, (sum, f) => sum + f.sizeBytes);
 
@@ -120,6 +136,12 @@ class LocalModelManifest {
         'catalogVersion': catalogVersion,
         if (displayName != null) 'displayName': displayName,
         if (description != null) 'description': description,
+        if (requiredAccelerators.isNotEmpty)
+          'requiredAccelerators':
+              requiredAccelerators.map((a) => a.name).toList(),
+        if (preferredAccelerators.isNotEmpty)
+          'preferredAccelerators':
+              preferredAccelerators.map((a) => a.name).toList(),
       };
 
   factory LocalModelManifest.fromJson(Map<String, Object?> json) {
@@ -148,7 +170,21 @@ class LocalModelManifest {
       catalogVersion: json['catalogVersion'] as int? ?? 1,
       displayName: json['displayName'] as String?,
       description: json['description'] as String?,
+      requiredAccelerators: _accelerators(json['requiredAccelerators']),
+      preferredAccelerators: _accelerators(json['preferredAccelerators']),
     );
+  }
+
+  /// Tolerant accelerator decoding: an unknown name from a newer remote
+  /// catalog is skipped rather than failing the whole manifest.
+  static Set<Accelerator> _accelerators(Object? raw) {
+    if (raw is! List) return const {};
+    final names = Accelerator.values.map((a) => a.name).toSet();
+    return raw
+        .whereType<String>()
+        .where(names.contains)
+        .map(Accelerator.values.byName)
+        .toSet();
   }
 
   @override

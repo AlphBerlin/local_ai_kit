@@ -20,18 +20,24 @@ class _CapabilityGate {
 
   /// Ensures the model of [configModelId] is installed and loaded, then
   /// returns its adapter.
+  ///
+  /// `loadModel` is called unconditionally: it is a no-op plus an LRU touch
+  /// when the model is already resident, and it coalesces with a load
+  /// another caller already started. Branching on `isLoaded` here would
+  /// race — two callers could both observe "not loaded" and start two
+  /// native loads of the same weights.
   Future<T> ready<T>(
     String configModelId,
     RuntimePreference preference,
     String capabilityName,
   ) async {
     await models.ensureInstalled(configModelId);
-    if (!runtime.isLoaded(configModelId)) {
-      await runtime.loadModel(configModelId, preference: preference);
-    }
+    await runtime.loadModel(configModelId, preference: preference);
     runtime.touch(configModelId);
     try {
       return runtime.adapter<T>(configModelId);
+    } on LocalAIError {
+      rethrow;
     } on Object {
       throw InvalidStateError(
           'No adapter instance for $capabilityName model "$configModelId". '

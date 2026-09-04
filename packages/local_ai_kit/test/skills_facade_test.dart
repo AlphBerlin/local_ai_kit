@@ -80,7 +80,8 @@ void main() {
         turns++;
         if (turns == 1) {
           yield const LlmChunk(
-            textDelta: '{"tool": "calculate", "arguments": {"expression": "50 * 20"}}',
+            textDelta:
+                '{"tool": "calculate", "arguments": {"expression": "50 * 20"}}',
           );
         } else {
           yield const LlmChunk(
@@ -100,6 +101,16 @@ void main() {
       paths: paths,
       networkPolicy: _TestNetworkPolicy(),
       enableAudio: false,
+      // Pin the device the compatibility checker sees. Without this the
+      // test asserts against whatever host runs it — and the catalog
+      // manifest for this model does not list linux, so CI would fail on
+      // a real (correct) `IncompatibleDeviceError`.
+      deviceProbe: () async => const DeviceCapabilities(
+        totalMemoryMB: 8192,
+        availableMemoryMB: 6144,
+        freeDiskMB: 32768,
+        platform: 'android',
+      ),
     );
 
     expect(ai.skills, isNotNull);

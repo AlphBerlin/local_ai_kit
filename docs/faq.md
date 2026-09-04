@@ -14,7 +14,7 @@ When the remote catalog carries a higher `catalogVersion` with changed file hash
 
 Three layers of defense:
 
-1. **Pre-check** — `ai.runtime.checkCompatibility(manifest)` compares `minMemoryMB` with available RAM before you even offer a download. The shipped `FlutterDeviceProbe` reads mobile metrics through `device_info_plus` and desktop metrics through native OS commands. Unsupported or failed metrics are `0`, so an app can inject a stricter `DeviceMetricsSource` when a reliable platform-specific value is required.
+1. **Pre-check** — `ai.models.checkCompatibility(modelId)` compares the model's RAM and disk requirements against the device before you even offer a download, and `install` / `ensureInstalled` / `loadModel` enforce the same check themselves (throwing `IncompatibleDeviceError`) unless `LocalAIConfig.compatibilityEnforcement` says otherwise. The probe is `FlutterDeviceProbe`, wired by default: it reads mobile metrics through `device_info_plus` and desktop metrics through native OS commands. A metric it cannot read is reported as `0` and produces an *unknown* warning naming the skipped check — never a fabricated capacity, and never a silent pass. Inject a stricter `DeviceMetricsSource` when a reliable platform-specific value is required.
 2. **LRU policy** — `RuntimeMemoryPolicy.maxLoadedModels` caps simultaneously loaded models; the least-recently-used unlocked model is evicted first, idle models are swept after `unloadUnusedAfter`, and backgrounding trims everything unlocked.
 3. **Fallback** — if a `gpu`/`npu` load fails, the scheduler retries on `cpu` and reports `RuntimeBackendFallback`.
 
@@ -33,7 +33,7 @@ Downloads are resilient to app lifecycle: progress is persisted in `downloads/<i
 | Gemma LLM adapter | ✅ | ✅ | — | per flutter_gemma |
 | Sherpa VAD/STT/TTS adapters | ⚠️ | ⚠️ | ✅ | see caveat below |
 
-Each manifest also declares its own `platforms` list; `checkCompatibility` enforces it at runtime.
+Each manifest also declares its own `platforms` list, and `checkCompatibility` enforces it at runtime. Most catalog manifests list `['android', 'ios', 'macos']`, so on Linux and Windows they are genuinely reported incompatible — the GGUF models served by `local_ai_llama_cpp` are the ones that declare desktop support. When developing on Linux, `LocalAIConfig(compatibilityEnforcement: CompatibilityEnforcement.warn)` is the documented escape hatch.
 
 **Sherpa adapter caveat:** the manifests list Android/iOS as supported platforms, but the current `local_ai_sherpa` implementation does not use the `sherpa_onnx` Dart package at all — STT/TTS shell out to a `uv run python3` subprocess (desktop-only; Android/iOS sandboxing doesn't allow spawning arbitrary subprocesses) and VAD is a pure-Dart RMS-energy heuristic, not Silero. Treat Android/iOS support for these three adapters as unverified until they're re-implemented against real FFI bindings — see [Adapters → Built-in adapter implementations](adapters.md) for details.
 
