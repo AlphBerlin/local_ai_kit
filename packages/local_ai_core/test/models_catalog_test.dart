@@ -84,6 +84,55 @@ void main() {
       expect(manifest.files.first.sizeBytes, 245366784);
     });
 
+    test('Dolphin Base manifests cover fp32 and int8 CTC archives', () {
+      for (final manifest in [Models.dolphinBase, Models.dolphinBaseInt8]) {
+        expect(manifest.type, ModelType.stt);
+        expect(manifest.provider, ModelProviders.sherpaCommunity);
+        expect(manifest.capabilities, contains(ModelCapability.asrOffline));
+        expect(manifest.languages, contains('ja'));
+        expect(manifest.languages, contains('zh-WU'));
+        expect(manifest.files.single.name, endsWith('.tar.bz2'));
+        expect(manifest.files.single.name, contains('dolphin-base'));
+      }
+    });
+
+    test('Moonshine v2 manifests include every published language variant', () {
+      final manifests = <LocalModelManifest>[
+        Models.moonshineTinyV2En,
+        Models.moonshineTinyV2Ja,
+        Models.moonshineTinyV2Ko,
+        Models.moonshineBaseV2Ar,
+        Models.moonshineBaseV2En,
+        Models.moonshineBaseV2Es,
+        Models.moonshineBaseV2Ja,
+        Models.moonshineBaseV2Uk,
+        Models.moonshineBaseV2Vi,
+        Models.moonshineBaseV2Zh,
+      ];
+
+      expect(manifests.map((manifest) => manifest.languages.single),
+          containsAll(['ar', 'en', 'es', 'ja', 'ko', 'uk', 'vi', 'zh']));
+      expect(
+        manifests
+            .map((manifest) => manifest.id)
+            .every((id) => Models.byId(id) != null),
+        isTrue,
+      );
+      for (final manifest in manifests) {
+        expect(manifest.type, ModelType.stt);
+        expect(manifest.capabilities, contains(ModelCapability.asrOffline));
+        expect(manifest.files.single.name, endsWith('.tar.bz2'));
+        expect(manifest.files.single.name, contains('quantized-2026-02-27'));
+      }
+    });
+
+    test('legacy Moonshine v1 English manifest remains available', () {
+      expect(Models.moonshineTiny.id, 'sherpa-onnx-moonshine-tiny-en');
+      expect(Models.moonshineTiny.files.single.name,
+          'sherpa-onnx-moonshine-tiny-en-int8.tar.bz2');
+      expect(Models.byId(Models.moonshineTiny.id), isNotNull);
+    });
+
     test('Supertonic & Kokoro TTS manifests are configured properly', () {
       final supertonic = Models.supertonic;
       expect(supertonic.id, 'supertonic-tts');

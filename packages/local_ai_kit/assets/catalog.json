@@ -1,6 +1,6 @@
 {
-  "catalogVersion": 4,
-  "updatedAt": "2026-08-25T00:00:00Z",
+  "catalogVersion": 5,
+  "updatedAt": "2026-09-04T00:00:00Z",
   "comment": "Built-in offline model catalog with direct high-speed weights for lightweight on-device models.",
   "models": [
     {
@@ -350,6 +350,257 @@
           "sizeBytes": 30000000
         }
       ]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Tiny English",
+      "description": "Quantized Moonshine v2 offline English speech recognition (~45 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 128,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 45000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Tiny Japanese",
+      "description": "Quantized Moonshine v2 offline Japanese speech recognition (~45 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 128,
+      "languages": ["ja"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 45000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Tiny Korean",
+      "description": "Quantized Moonshine v2 offline Korean speech recognition (~45 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 128,
+      "languages": ["ko"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 45000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-ar-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Arabic",
+      "description": "Quantized Moonshine v2 offline Arabic speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["ar"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-ar-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-ar-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-en-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base English",
+      "description": "Quantized Moonshine v2 offline English speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["en"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-en-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-en-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-es-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Spanish",
+      "description": "Quantized Moonshine v2 offline Spanish speech recognition (~65 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["es"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-es-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-es-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 65000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-ja-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Japanese",
+      "description": "Quantized Moonshine v2 offline Japanese speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["ja"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-ja-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-ja-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-uk-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Ukrainian",
+      "description": "Quantized Moonshine v2 offline Ukrainian speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["uk"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-uk-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-uk-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-vi-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Vietnamese",
+      "description": "Quantized Moonshine v2 offline Vietnamese speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["vi"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-vi-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-vi-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-moonshine-base-zh-quantized-2026-02-27",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Moonshine v2 Base Chinese",
+      "description": "Quantized Moonshine v2 offline Chinese speech recognition (~140 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["zh"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline"],
+      "license": "MIT",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-moonshine-base-zh-quantized-2026-02-27.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-zh-quantized-2026-02-27.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 140000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Dolphin Base",
+      "description": "Multilingual Dolphin CTC speech recognition (~318 MB).",
+      "delivery": "download",
+      "minMemoryMB": 512,
+      "languages": ["zh", "ja", "th", "ru", "ko", "id", "vi", "ct", "hi", "ur", "ms", "uz", "ar", "fa", "bn", "ta", "te", "ug", "gu", "my", "tl", "kk", "or", "ne", "mn", "km", "jv", "lo", "si", "fil", "ps", "pa", "kab", "ba", "ks", "tg", "su", "mr", "ky", "az", "zh-CN", "zh-TW", "zh-WU", "zh-SICHUAN", "zh-SHANXI", "zh-ANHUI", "zh-TIANJIN", "zh-NINGXIA", "zh-SHAANXI", "zh-HEBEI", "zh-SHANDONG", "zh-GUANGDONG", "zh-SHANGHAI", "zh-HUBEI", "zh-LIAONING", "zh-GANSU", "zh-FUJIAN", "zh-HUNAN", "zh-HENAN", "zh-YUNNAN", "zh-MINNAN", "zh-WENZHOU", "multilingual"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline", "multilingual"],
+      "license": "Apache-2.0",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 318000000
+      }]
+    },
+    {
+      "id": "sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02",
+      "type": "stt",
+      "provider": "sherpa-community",
+      "displayName": "Dolphin Base int8",
+      "description": "Quantized multilingual Dolphin CTC speech recognition (~104 MB).",
+      "delivery": "download",
+      "quantization": "int8",
+      "minMemoryMB": 256,
+      "languages": ["zh", "ja", "th", "ru", "ko", "id", "vi", "ct", "hi", "ur", "ms", "uz", "ar", "fa", "bn", "ta", "te", "ug", "gu", "my", "tl", "kk", "or", "ne", "mn", "km", "jv", "lo", "si", "fil", "ps", "pa", "kab", "ba", "ks", "tg", "su", "mr", "ky", "az", "zh-CN", "zh-TW", "zh-WU", "zh-SICHUAN", "zh-SHANXI", "zh-ANHUI", "zh-TIANJIN", "zh-NINGXIA", "zh-SHAANXI", "zh-HEBEI", "zh-SHANDONG", "zh-GUANGDONG", "zh-SHANGHAI", "zh-HUBEI", "zh-LIAONING", "zh-GANSU", "zh-FUJIAN", "zh-HUNAN", "zh-HENAN", "zh-YUNNAN", "zh-MINNAN", "zh-WENZHOU", "multilingual"],
+      "platforms": ["android", "ios", "macos"],
+      "capabilities": ["asrOffline", "multilingual"],
+      "license": "Apache-2.0",
+      "catalogVersion": 1,
+      "files": [{
+        "name": "sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sizeBytes": 104000000
+      }]
     },
     {
       "id": "vits-piper-en-lessac",

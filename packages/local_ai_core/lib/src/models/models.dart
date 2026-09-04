@@ -454,6 +454,112 @@ abstract final class Models {
     ],
   );
 
+  /// Moonshine v2 Tiny English speech recognition.
+  static final LocalModelManifest moonshineTinyV2En = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27',
+    isTiny: true,
+    language: 'en',
+    languageName: 'English',
+    sizeBytes: 45000000,
+  );
+
+  /// Moonshine v2 Tiny Japanese speech recognition.
+  static final LocalModelManifest moonshineTinyV2Ja = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27',
+    isTiny: true,
+    language: 'ja',
+    languageName: 'Japanese',
+    sizeBytes: 45000000,
+  );
+
+  /// Moonshine v2 Tiny Korean speech recognition.
+  static final LocalModelManifest moonshineTinyV2Ko = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27',
+    isTiny: true,
+    language: 'ko',
+    languageName: 'Korean',
+    sizeBytes: 45000000,
+  );
+
+  /// Moonshine v2 Base Arabic speech recognition.
+  static final LocalModelManifest moonshineBaseV2Ar = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-ar-quantized-2026-02-27',
+    isTiny: false,
+    language: 'ar',
+    languageName: 'Arabic',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base English speech recognition.
+  static final LocalModelManifest moonshineBaseV2En = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-en-quantized-2026-02-27',
+    isTiny: false,
+    language: 'en',
+    languageName: 'English',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Spanish speech recognition.
+  static final LocalModelManifest moonshineBaseV2Es = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-es-quantized-2026-02-27',
+    isTiny: false,
+    language: 'es',
+    languageName: 'Spanish',
+    sizeBytes: 65000000,
+  );
+
+  /// Moonshine v2 Base Japanese speech recognition.
+  static final LocalModelManifest moonshineBaseV2Ja = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-ja-quantized-2026-02-27',
+    isTiny: false,
+    language: 'ja',
+    languageName: 'Japanese',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Ukrainian speech recognition.
+  static final LocalModelManifest moonshineBaseV2Uk = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-uk-quantized-2026-02-27',
+    isTiny: false,
+    language: 'uk',
+    languageName: 'Ukrainian',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Vietnamese speech recognition.
+  static final LocalModelManifest moonshineBaseV2Vi = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-vi-quantized-2026-02-27',
+    isTiny: false,
+    language: 'vi',
+    languageName: 'Vietnamese',
+    sizeBytes: 140000000,
+  );
+
+  /// Moonshine v2 Base Chinese speech recognition.
+  static final LocalModelManifest moonshineBaseV2Zh = _MoonshineV2Manifest(
+    id: 'sherpa-onnx-moonshine-base-zh-quantized-2026-02-27',
+    isTiny: false,
+    language: 'zh',
+    languageName: 'Chinese',
+    sizeBytes: 140000000,
+  );
+
+  /// Dolphin Base multilingual CTC speech recognition.
+  static final LocalModelManifest dolphinBase = _DolphinBaseManifest(
+    id: 'sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02',
+    fileName: 'sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02.tar.bz2',
+    sizeBytes: 318000000,
+    quantization: null,
+  );
+
+  /// Dolphin Base int8 multilingual CTC speech recognition.
+  static final LocalModelManifest dolphinBaseInt8 = _DolphinBaseManifest(
+    id: 'sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02',
+    fileName: 'sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2',
+    sizeBytes: 104000000,
+    quantization: 'int8',
+  );
+
   /// Piper fast streaming TTS model.
   static const LocalModelManifest vitsPiper = LocalModelManifest(
     id: 'vits-piper-en-lessac',
@@ -803,7 +909,7 @@ abstract final class Models {
   );
 
   /// All built-in manifests, keyed by id.
-  static const List<LocalModelManifest> all = [
+  static final List<LocalModelManifest> all = List.unmodifiable([
     qwen35_08b,
     qwen35_2b,
     qwen35_4b,
@@ -819,12 +925,24 @@ abstract final class Models {
     whisperBase,
     whisperTiny,
     moonshineTiny,
+    moonshineTinyV2En,
+    moonshineTinyV2Ja,
+    moonshineTinyV2Ko,
+    moonshineBaseV2Ar,
+    moonshineBaseV2En,
+    moonshineBaseV2Es,
+    moonshineBaseV2Ja,
+    moonshineBaseV2Uk,
+    moonshineBaseV2Vi,
+    moonshineBaseV2Zh,
+    dolphinBase,
+    dolphinBaseInt8,
     vitsPiper,
     supertonic,
     kokoroTts,
     qwen25_05bGguf,
     nomicEmbedText,
-  ];
+  ]);
 
   /// Lookup helper; returns `null` for unknown ids.
   static LocalModelManifest? byId(String id) {
@@ -833,4 +951,140 @@ abstract final class Models {
     }
     return null;
   }
+}
+
+const List<String> _dolphinLanguages = [
+  'zh',
+  'ja',
+  'th',
+  'ru',
+  'ko',
+  'id',
+  'vi',
+  'ct',
+  'hi',
+  'ur',
+  'ms',
+  'uz',
+  'ar',
+  'fa',
+  'bn',
+  'ta',
+  'te',
+  'ug',
+  'gu',
+  'my',
+  'tl',
+  'kk',
+  'or',
+  'ne',
+  'mn',
+  'km',
+  'jv',
+  'lo',
+  'si',
+  'fil',
+  'ps',
+  'pa',
+  'kab',
+  'ba',
+  'ks',
+  'tg',
+  'su',
+  'mr',
+  'ky',
+  'az',
+  'zh-CN',
+  'zh-TW',
+  'zh-WU',
+  'zh-SICHUAN',
+  'zh-SHANXI',
+  'zh-ANHUI',
+  'zh-TIANJIN',
+  'zh-NINGXIA',
+  'zh-SHAANXI',
+  'zh-HEBEI',
+  'zh-SHANDONG',
+  'zh-GUANGDONG',
+  'zh-SHANGHAI',
+  'zh-HUBEI',
+  'zh-LIAONING',
+  'zh-GANSU',
+  'zh-FUJIAN',
+  'zh-HUNAN',
+  'zh-HENAN',
+  'zh-YUNNAN',
+  'zh-MINNAN',
+  'zh-WENZHOU',
+  'multilingual',
+];
+
+class _MoonshineV2Manifest extends LocalModelManifest {
+  _MoonshineV2Manifest({
+    required String id,
+    required bool isTiny,
+    required String language,
+    required String languageName,
+    required int sizeBytes,
+  }) : super(
+          id: id,
+          type: ModelType.stt,
+          provider: ModelProviders.sherpaCommunity,
+          displayName: 'Moonshine v2 ${isTiny ? 'Tiny' : 'Base'} $languageName',
+          description: 'Quantized Moonshine v2 offline speech recognition '
+              '($languageName, approximately ${sizeBytes ~/ 1000000} MB).',
+          delivery: ModelDelivery.download,
+          quantization: 'int8',
+          minMemoryMB: isTiny ? 128 : 256,
+          languages: [language],
+          platforms: const ['android', 'ios', 'macos'],
+          capabilities: const {ModelCapability.asrOffline},
+          license: 'MIT',
+          catalogVersion: 1,
+          files: [
+            ModelFile(
+              name: '$id.tar.bz2',
+              url:
+                  'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/$id.tar.bz2',
+              sha256: kPlaceholderSha256,
+              sizeBytes: sizeBytes,
+            ),
+          ],
+        );
+}
+
+class _DolphinBaseManifest extends LocalModelManifest {
+  _DolphinBaseManifest({
+    required String id,
+    required String fileName,
+    required int sizeBytes,
+    required String? quantization,
+  }) : super(
+          id: id,
+          type: ModelType.stt,
+          provider: ModelProviders.sherpaCommunity,
+          displayName: 'Dolphin Base${quantization == null ? '' : ' int8'}',
+          description: 'Multilingual Dolphin CTC speech recognition model '
+              '(${sizeBytes ~/ 1000000} MB).',
+          delivery: ModelDelivery.download,
+          quantization: quantization,
+          minMemoryMB: quantization == null ? 512 : 256,
+          languages: _dolphinLanguages,
+          platforms: const ['android', 'ios', 'macos'],
+          capabilities: const {
+            ModelCapability.asrOffline,
+            ModelCapability.multilingual,
+          },
+          license: 'Apache-2.0',
+          catalogVersion: 1,
+          files: [
+            ModelFile(
+              name: fileName,
+              url:
+                  'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/$fileName',
+              sha256: kPlaceholderSha256,
+              sizeBytes: sizeBytes,
+            ),
+          ],
+        );
 }

@@ -45,6 +45,10 @@ Computed helpers: `totalSizeBytes`, `totalSizeMB`. Serialization: `toJson()` / `
 | `Models.whisperBase` | `sherpa-onnx-whisper-base.en` | STT | `download` | Whisper Base English ASR (OpenAI), ~75 MB. |
 | `Models.whisperTiny` | `sherpa-onnx-whisper-tiny.en` | STT | `download` | Whisper Tiny English ASR (OpenAI), ~40 MB. |
 | `Models.moonshineTiny` | `sherpa-onnx-moonshine-tiny-en` | STT | `download` | Moonshine Tiny English ASR, sub-100ms latency, ~30 MB. |
+| `Models.moonshineTinyV2En` / `moonshineTinyV2Ja` / `moonshineTinyV2Ko` | `sherpa-onnx-moonshine-tiny-{en,ja,ko}-quantized-2026-02-27` | STT | `download` | Moonshine v2 Tiny ASR for English, Japanese, and Korean, ~45 MB each. |
+| `Models.moonshineBaseV2Ar` / `moonshineBaseV2En` / `moonshineBaseV2Es` / `moonshineBaseV2Ja` / `moonshineBaseV2Uk` / `moonshineBaseV2Vi` / `moonshineBaseV2Zh` | `sherpa-onnx-moonshine-base-{ar,en,es,ja,uk,vi,zh}-quantized-2026-02-27` | STT | `download` | Moonshine v2 Base ASR for Arabic, English, Spanish, Japanese, Ukrainian, Vietnamese, and Chinese, ~65–140 MB each. |
+| `Models.dolphinBase` | `sherpa-onnx-dolphin-base-ctc-multi-lang-2025-04-02` | STT | `download` | Multilingual Dolphin Base CTC ASR, 40 languages plus Chinese dialect regions, ~318 MB. |
+| `Models.dolphinBaseInt8` | `sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02` | STT | `download` | Quantized multilingual Dolphin Base CTC ASR, ~104 MB. |
 | `Models.supertonic` | `supertonic-tts` | TTS | `download` | Supertonic 3 (Supertone Inc.), 31+ languages, 10 voice styles (`F1`–`F5`, `M1`–`M5`), 44.1 kHz neural flow matching (~398 MB). |
 | `Models.kokoroTts` | `kokoro-en-tts` | TTS | `download` | Kokoro TTS v0.19 fast streaming text-to-speech (~319 MB). |
 | `Models.vitsPiper` | `vits-piper-en-lessac` | TTS | `download` | Piper VITS Lessac offline voice (~65 MB). |
