@@ -29,6 +29,34 @@ void main() {
     expect(buffer.format, AudioFormat.pcm16kMono);
   });
 
+  test('demo STT options include every catalog STT model', () {
+    final catalogSttIds = Models.all
+        .where((manifest) => manifest.type == ModelType.stt)
+        .map((manifest) => manifest.id)
+        .toSet();
+    final demoSttIds =
+        demoSttModelManifests.map((manifest) => manifest.id).toSet();
+
+    expect(demoSttIds, catalogSttIds);
+    expect(
+      demoSttIds,
+      containsAll(<String>[
+        Models.moonshineTinyV2En.id,
+        Models.moonshineTinyV2Ja.id,
+        Models.moonshineTinyV2Ko.id,
+        Models.moonshineBaseV2Ar.id,
+        Models.moonshineBaseV2En.id,
+        Models.moonshineBaseV2Es.id,
+        Models.moonshineBaseV2Ja.id,
+        Models.moonshineBaseV2Uk.id,
+        Models.moonshineBaseV2Vi.id,
+        Models.moonshineBaseV2Zh.id,
+        Models.dolphinBase.id,
+        Models.dolphinBaseInt8.id,
+      ]),
+    );
+  });
+
   testWidgets('LocalAIDemoApp renders initial UI elements and MCP controls',
       (WidgetTester tester) async {
     // Build our app and trigger a frame.

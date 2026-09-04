@@ -17,6 +17,37 @@ import 'package:local_ai_sherpa/local_ai_sherpa.dart';
 
 import 'logger.dart';
 
+/// STT options shown by both the standalone STT tab and the voice pipeline.
+///
+/// Keep this derived from the built-in catalog so newly registered STT models
+/// (including all Moonshine v2 languages and Dolphin variants) are selectable
+/// everywhere in the demo.
+final List<LocalModelManifest> demoSttModelManifests = List.unmodifiable(
+  Models.all.where((manifest) => manifest.type == ModelType.stt),
+);
+
+String _formatDemoModelSize(LocalModelManifest manifest) {
+  final megabytes = manifest.totalSizeBytes / 1000000;
+  if (megabytes >= 1000) {
+    return '${(megabytes / 1000).toStringAsFixed(1)} GB';
+  }
+  return '${megabytes.round()} MB';
+}
+
+List<DropdownMenuItem<String>> _buildDemoSttDropdownItems({
+  bool includeDetails = false,
+}) {
+  return demoSttModelManifests.map((manifest) {
+    final name = manifest.displayName ?? manifest.id;
+    final details = '${_formatDemoModelSize(manifest)}'
+        '${includeDetails && manifest.languages.isNotEmpty ? ' • ${manifest.languages.join('/').toUpperCase()}' : ''}';
+    return DropdownMenuItem<String>(
+      value: manifest.id,
+      child: Text('$name ($details)'),
+    );
+  }).toList(growable: false);
+}
+
 /// Keeps microphone frames together until the STT adapter can decode them.
 class SttCaptureBuffer {
   final List<AudioFrame> _frames = [];
@@ -2311,23 +2342,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                     label: 'STT Model',
                     icon: Icons.graphic_eq,
                     value: _selectedSttId,
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-whisper-base.en',
-                          child: Text('Whisper Base English (75 MB)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-whisper-tiny.en',
-                          child: Text('Whisper Tiny English (40 MB)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
-                          child: Text('SenseVoice Small (234 MB)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-moonshine-tiny-en',
-                          child: Text('Moonshine Tiny English (30 MB)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-streaming-zipformer-en-20m',
-                          child: Text('Zipformer Small English (70 MB)')),
-                    ],
+                    items: _buildDemoSttDropdownItems(),
                     onChanged: (val) {
                       if (val != null && val != _selectedSttId) {
                         setState(() => _selectedSttId = val);
@@ -2601,25 +2616,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                     label: '2. Speech-to-Text (STT)',
                     icon: Icons.record_voice_over,
                     value: _selectedSttId,
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-whisper-base.en',
-                          child: Text('Whisper Base English (75 MB - OpenAI)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-whisper-tiny.en',
-                          child: Text('Whisper Tiny English (40 MB - OpenAI)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue',
-                          child: Text(
-                              'SenseVoice Small (234 MB - Multilingual EN/JA/ZH/KO)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-moonshine-tiny-en',
-                          child:
-                              Text('Moonshine Tiny English (30 MB - NextGen)')),
-                      DropdownMenuItem(
-                          value: 'sherpa-onnx-streaming-zipformer-en-20m',
-                          child: Text('Zipformer Small English (70 MB)')),
-                    ],
+                    items: _buildDemoSttDropdownItems(includeDetails: true),
                     onChanged: (val) {
                       if (val != null) {
                         setState(() => _selectedSttId = val);
@@ -2952,14 +2949,23 @@ class _DemoHomePageState extends State<DemoHomePage>
       children: [
         Icon(icon, size: 18),
         const SizedBox(width: 8),
-        Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-        const Spacer(),
-        DropdownButton<String>(
-          value: items.any((i) => i.value == value) ? value : items.first.value,
-          items: items,
-          onChanged: onChanged,
-          isDense: true,
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: DropdownButton<String>(
+            value:
+                items.any((i) => i.value == value) ? value : items.first.value,
+            items: items,
+            onChanged: onChanged,
+            isDense: true,
+            isExpanded: true,
+          ),
         ),
       ],
     );
