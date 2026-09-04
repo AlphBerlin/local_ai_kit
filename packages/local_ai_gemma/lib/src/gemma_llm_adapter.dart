@@ -9,6 +9,41 @@ import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:local_ai_core/local_ai_core.dart';
 
+/// Effective native chat settings for one generation request.
+class GemmaGenerationConfig {
+  const GemmaGenerationConfig({
+    required this.temperature,
+    required this.topK,
+    required this.topP,
+    this.maxOutputTokens,
+  });
+
+  final double temperature;
+  final int topK;
+  final double topP;
+  final int? maxOutputTokens;
+
+  factory GemmaGenerationConfig.resolve(
+    LlmRequest request,
+    LlmLoadOptions loadOptions,
+  ) {
+    final isQwen35 = loadOptions.modelId.toLowerCase().contains('qwen-3.5');
+    final loadTemperature = isQwen35 && loadOptions.temperature == 0.8
+        ? 1.0
+        : loadOptions.temperature;
+    final loadTopK =
+        isQwen35 && loadOptions.topK == 40 ? 20 : loadOptions.topK ?? 40;
+    final loadTopP =
+        isQwen35 && loadOptions.topP == 0.9 ? 1.0 : loadOptions.topP ?? 0.9;
+    return GemmaGenerationConfig(
+      temperature: (request.temperature ?? loadTemperature).clamp(0.1, 1.2),
+      topK: loadTopK,
+      topP: request.topP ?? loadTopP,
+      maxOutputTokens: request.maxTokens,
+    );
+  }
+}
+
 /// [LocalLlm] implementation backed by Google's flutter_gemma runtime.
 ///
 /// Responsibilities (architecture §3.3):
@@ -260,18 +295,20 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     final turns =
         request.messages.where((m) => m.role != LlmRole.system).toList();
 
-    // Use nucleus top-p / top-k sampling to avoid greedy repetition traps
-    final temp = (_options?.temperature ?? 0.7).clamp(0.1, 1.2);
-    final topK = _options?.topK ?? 40;
-    final topP = _options?.topP ?? 0.9;
+    // Resolve request overrides plus model-specific sampling defaults.
+    final generationConfig = GemmaGenerationConfig.resolve(
+      request,
+      _options ?? const LlmLoadOptions(modelId: ''),
+    );
 
     // Create a fresh chat session for this generation request
     final fg.InferenceChat chat = await model.createChat(
-      temperature: temp,
-      topK: topK,
-      topP: topP,
+      temperature: generationConfig.temperature,
+      topK: generationConfig.topK,
+      topP: generationConfig.topP,
       systemInstruction:
           systemPrompt != null && systemPrompt.isNotEmpty ? systemPrompt : null,
+      maxOutputTokens: generationConfig.maxOutputTokens,
     );
 
     // Add preceding turns in order
@@ -292,52 +329,10 @@ class GemmaLlmAdapter with StructuredOutputSupport implements LocalLlm {
     ));
 
     final stream = chat.generateChatResponseAsync();
-    final generatedBuffer = StringBuffer();
 
     await for (final response in stream) {
       final text = textTokenForResponse(response);
       if (text != null && text.isNotEmpty) {
-        generatedBuffer.write(text);
-        final full = generatedBuffer.toString();
-
-        // 1. Line-level repetition loop guard (e.g. repeated same line >= 3 times)
-        final lines = full
-            .split('\n')
-            .map((l) => l.trim())
-            .where((l) => l.isNotEmpty)
-            .toList();
-        if (lines.length >= 3) {
-          final last = lines.last;
-          if (last.length > 3) {
-            final count = lines.where((l) => l == last).length;
-            if (count >= 3) {
-              break;
-            }
-          }
-        }
-
-        // 2. Multi-word n-gram repetition loop guard (e.g. "with you with you with you" or "1. 1. 1. 1.")
-        final words =
-            full.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-        if (words.length >= 9) {
-          final w1 = words.sublist(words.length - 3).join(' ');
-          final w2 =
-              words.sublist(words.length - 6, words.length - 3).join(' ');
-          final w3 =
-              words.sublist(words.length - 9, words.length - 6).join(' ');
-          if (w1 == w2 && w2 == w3) {
-            break;
-          }
-        }
-
-        // 3. Single word / token runaway burst guard
-        if (words.length >= 6) {
-          final lastW = words.last;
-          if (words.sublist(words.length - 6).every((w) => w == lastW)) {
-            break;
-          }
-        }
-
         yield text;
       }
     }

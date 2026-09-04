@@ -124,14 +124,13 @@ void main() {
 
     expect(find.text('STT Model & Microphone'), findsOneWidget);
     expect(find.text('Start Recording'), findsOneWidget);
-    expect(find.text('Live Transcript'), findsOneWidget);
+    expect(find.text('Final Transcript'), findsOneWidget);
     expect(
       find.text(
           'Capture 16 kHz mono microphone audio. Stop recording to produce one stable transcription for the captured utterance.'),
       findsOneWidget,
     );
-    expect(find.text('Live hypothesis is provisional while recording.'),
-        findsOneWidget);
+    expect(find.textContaining('Live hypothesis'), findsNothing);
     expect(find.text('Clear Transcript'), findsOneWidget);
   });
 
@@ -154,7 +153,8 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('LLM Dropdown contains llama.cpp GGUF models and allows selection',
+  testWidgets(
+      'LLM Dropdown contains llama.cpp GGUF models and allows selection',
       (WidgetTester tester) async {
     await tester.pumpWidget(const LocalAIDemoApp());
 

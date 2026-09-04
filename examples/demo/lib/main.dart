@@ -208,13 +208,10 @@ class _DemoHomePageState extends State<DemoHomePage>
   // 3. STT microphone capture state
   StreamSubscription<AudioFrame>? _sttAudioSubscription;
   Timer? _sttElapsedTimer;
-  Timer? _sttPartialTimer;
   final Stopwatch _sttStopwatch = Stopwatch();
   final SttCaptureBuffer _sttCapture = SttCaptureBuffer();
-  Future<void>? _sttLiveTranscriptionFuture;
   bool _isSttRecording = false;
   String _sttTranscript = '';
-  String _sttLiveHypothesis = '';
   String _sttStatus = 'Ready to transcribe microphone audio.';
 
   static const Map<String, String> _samplePhrases = {
@@ -831,7 +828,6 @@ class _DemoHomePageState extends State<DemoHomePage>
     }
 
     _sttElapsedTimer?.cancel();
-    _sttPartialTimer?.cancel();
     _sttStopwatch
       ..reset()
       ..start();
@@ -839,7 +835,6 @@ class _DemoHomePageState extends State<DemoHomePage>
     setState(() {
       _isSttRecording = true;
       _sttTranscript = '';
-      _sttLiveHypothesis = '';
       _sttStatus = 'Starting microphone and STT model…';
     });
     AppLogger.info(
@@ -872,11 +867,8 @@ class _DemoHomePageState extends State<DemoHomePage>
       );
       if (mounted) {
         setState(() => _sttStatus =
-            'Listening… Live hypothesis updates as audio arrives.');
+            'Listening… Stop recording to produce the final transcript.');
       }
-      _sttPartialTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        unawaited(_scheduleLiveSttTranscription());
-      });
     } on LocalAIError catch (e, st) {
       AppLogger.error('STT', 'STT setup failed: ${e.message}',
           error: e, stackTrace: st);
@@ -909,8 +901,6 @@ class _DemoHomePageState extends State<DemoHomePage>
 
     _sttElapsedTimer?.cancel();
     _sttElapsedTimer = null;
-    _sttPartialTimer?.cancel();
-    _sttPartialTimer = null;
     _sttStopwatch.stop();
 
     final subscription = _sttAudioSubscription;
@@ -925,9 +915,6 @@ class _DemoHomePageState extends State<DemoHomePage>
 
     if (mounted) setState(() => _isSttRecording = false);
 
-    final liveTranscription = _sttLiveTranscriptionFuture;
-    if (liveTranscription != null) await liveTranscription;
-
     if (_sttCapture.isEmpty) {
       if (mounted) {
         setState(
@@ -940,50 +927,6 @@ class _DemoHomePageState extends State<DemoHomePage>
     await _transcribeCapturedAudio();
   }
 
-  Future<void> _scheduleLiveSttTranscription() async {
-    if (!_isSttRecording ||
-        _sttCapture.isEmpty ||
-        _sttLiveTranscriptionFuture != null) {
-      return;
-    }
-
-    final future = _transcribeLiveSttSnapshot();
-    _sttLiveTranscriptionFuture = future;
-    try {
-      await future;
-    } finally {
-      if (identical(_sttLiveTranscriptionFuture, future)) {
-        _sttLiveTranscriptionFuture = null;
-      }
-    }
-  }
-
-  Future<void> _transcribeLiveSttSnapshot() async {
-    final ai = _ai;
-    if (ai == null) return;
-
-    try {
-      final transcript = await ai.transcribe(_sttCapture.toAudioBuffer());
-      if (!mounted || !_isSttRecording || transcript.isEmpty) return;
-      setState(() {
-        _sttLiveHypothesis = transcript.text;
-        _sttStatus = 'Listening… Live hypothesis updated.';
-      });
-    } on LocalAIError catch (e, st) {
-      AppLogger.error('STT', 'Live transcription failed: ${e.message}',
-          error: e, stackTrace: st);
-      if (mounted && _isSttRecording) {
-        setState(() => _sttStatus = 'STT live update error: ${e.message}');
-      }
-    } catch (e, st) {
-      AppLogger.error('STT', 'Unexpected live transcription error',
-          error: e, stackTrace: st);
-      if (mounted && _isSttRecording) {
-        setState(() => _sttStatus = 'STT live update error: $e');
-      }
-    }
-  }
-
   Future<void> _transcribeCapturedAudio() async {
     final ai = _ai;
     if (ai == null) return;
@@ -993,7 +936,6 @@ class _DemoHomePageState extends State<DemoHomePage>
       if (!mounted) return;
 
       _sttTranscript = transcript.text;
-      _sttLiveHypothesis = '';
       _sttStatus = transcript.isEmpty
           ? 'Transcription complete, but no speech was recognized.'
           : 'Transcription complete.';
@@ -2320,8 +2262,7 @@ class _DemoHomePageState extends State<DemoHomePage>
   // ===========================================================================
   Widget _buildSttTab(ThemeData theme) {
     final isSttInstalled = _isModelInstalled(_selectedSttId);
-    final hasTranscript =
-        _sttTranscript.isNotEmpty || _sttLiveHypothesis.isNotEmpty;
+    final hasTranscript = _sttTranscript.isNotEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -2473,7 +2414,7 @@ class _DemoHomePageState extends State<DemoHomePage>
                       Icon(Icons.notes,
                           size: 18, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
-                      Text('Live Transcript',
+                      Text('Final Transcript',
                           style: theme.textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
                       const Spacer(),
@@ -2481,14 +2422,6 @@ class _DemoHomePageState extends State<DemoHomePage>
                         const Icon(Icons.fiber_manual_record,
                             size: 12, color: Colors.redAccent),
                     ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Live hypothesis is provisional while recording.',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
                   ),
                   const SizedBox(height: 8),
                   if (!hasTranscript)
@@ -2499,31 +2432,11 @@ class _DemoHomePageState extends State<DemoHomePage>
                         fontStyle: FontStyle.italic,
                       ),
                     )
-                  else ...[
-                    if (_sttTranscript.isNotEmpty)
-                      SelectableText(
-                        _sttTranscript,
-                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
-                      ),
-                    if (_sttLiveHypothesis.isNotEmpty) ...[
-                      if (_sttTranscript.isNotEmpty) const SizedBox(height: 10),
-                      Text(
-                        'Live hypothesis',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _sttLiveHypothesis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ],
+                  else
+                    SelectableText(
+                      _sttTranscript,
+                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
+                    ),
                   const Divider(height: 24),
                   Wrap(
                     spacing: 8,
@@ -2540,10 +2453,9 @@ class _DemoHomePageState extends State<DemoHomePage>
                     onPressed: hasTranscript || !_sttCapture.isEmpty
                         ? () => setState(() {
                               _sttTranscript = '';
-                              _sttLiveHypothesis = '';
                               _sttCapture.clear();
                               _sttStatus = _isSttRecording
-                                  ? 'Listening… Live hypothesis updates as audio arrives.'
+                                  ? 'Listening… Stop recording to produce the final transcript.'
                                   : 'Ready to transcribe microphone audio.';
                             })
                         : null,
