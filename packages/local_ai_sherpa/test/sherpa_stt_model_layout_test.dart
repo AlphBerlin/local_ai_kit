@@ -1,5 +1,5 @@
 import 'package:local_ai_sherpa/local_ai_sherpa.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Sherpa STT model layout detection', () {
