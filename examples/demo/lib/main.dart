@@ -1835,8 +1835,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2495,8 +2493,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2622,10 +2618,6 @@ class _DemoHomePageState extends State<DemoHomePage>
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2721,8 +2713,6 @@ class _DemoHomePageState extends State<DemoHomePage>
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2963,10 +2953,6 @@ class _DemoHomePageState extends State<DemoHomePage>
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -3179,7 +3165,7 @@ class _DemoHomePageState extends State<DemoHomePage>
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: Padding(
